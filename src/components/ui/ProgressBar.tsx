@@ -24,15 +24,15 @@ export function ProgressBar({
   };
 
   const colors = {
-    orange: 'bg-[#FF5A36]',
-    dark: 'bg-[#22221C]',
-    success: 'bg-[#55B88B]',
+    orange: 'bg-accent',
+    dark: 'bg-dark',
+    success: 'bg-success',
   };
 
   return (
     <div
       className={cn(
-        'w-full bg-[#ECECE8] rounded-full overflow-hidden relative',
+        'w-full bg-border rounded-full overflow-hidden relative',
         heights[height],
         className
       )}

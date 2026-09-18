@@ -1,17 +1,17 @@
-﻿import React from 'react';
+import type { HTMLAttributes } from 'react';
 import { cn } from '../../lib/utils';
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: 'neutral' | 'success' | 'danger' | 'warning' | 'orange';
 }
 
 export function Badge({ className, variant = 'neutral', children, ...props }: BadgeProps) {
   const variants = {
-    neutral: 'bg-[#FAFAF8] text-[#777771] border border-[#ECECE8]',
-    success: 'bg-[#55B88B]/10 text-[#27865B] border border-[#55B88B]/20',
-    danger: 'bg-[#E95E5E]/10 text-[#C93838] border border-[#E95E5E]/20',
-    warning: 'bg-[#E8CF56]/15 text-[#9E8314] border border-[#E8CF56]/30',
-    orange: 'bg-[#FF5A36]/10 text-[#FF5A36] border border-[#FF5A36]/20',
+    neutral: 'bg-surface text-secondary border border-border',
+    success: 'bg-success/10 text-success border border-success/20',
+    danger: 'bg-danger/10 text-danger border border-danger/20',
+    warning: 'bg-warning/15 text-[#9E8314] border border-warning/30',
+    orange: 'bg-accent/10 text-accent border border-accent/20',
   };
 
   return (

@@ -1,9 +1,9 @@
-﻿import React, { useState } from 'react';
+import { useState, type ReactElement } from 'react';
 import { cn } from '../../lib/utils';
 
 export interface TooltipProps {
   content: string;
-  children: React.ReactElement;
+  children: ReactElement;
   position?: 'top' | 'right' | 'bottom' | 'left';
   className?: string;
 }
@@ -31,7 +31,7 @@ export function Tooltip({ content, children, position = 'right', className }: To
         <div
           role="tooltip"
           className={cn(
-            'absolute z-50 px-2.5 py-1 text-xs font-medium text-white bg-[#171714] rounded-md shadow-md pointer-events-none whitespace-nowrap animate-in fade-in-50 duration-150',
+            'absolute z-50 px-2.5 py-1 text-xs font-medium text-white bg-primary rounded-md shadow-md pointer-events-none whitespace-nowrap animate-in fade-in-50 duration-150',
             positions[position],
             className
           )}

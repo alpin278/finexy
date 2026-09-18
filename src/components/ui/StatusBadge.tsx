@@ -1,4 +1,4 @@
-﻿import { cn } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 
 export type StatusType = 'completed' | 'pending' | 'in_progress' | 'active' | 'inactive';
 
@@ -14,33 +14,33 @@ export function StatusBadge({ status, label, className }: StatusBadgeProps) {
     { dotColor: string; textColor: string; bgColor: string; defaultLabel: string }
   > = {
     completed: {
-      dotColor: 'bg-[#55B88B]',
-      textColor: 'text-[#171714]',
-      bgColor: 'bg-[#FAFAF8]',
+      dotColor: 'bg-success',
+      textColor: 'text-primary',
+      bgColor: 'bg-surface',
       defaultLabel: 'Completed',
     },
     pending: {
-      dotColor: 'bg-[#E95E5E]',
-      textColor: 'text-[#171714]',
-      bgColor: 'bg-[#FAFAF8]',
+      dotColor: 'bg-danger',
+      textColor: 'text-primary',
+      bgColor: 'bg-surface',
       defaultLabel: 'Pending',
     },
     in_progress: {
-      dotColor: 'bg-[#E8CF56]',
-      textColor: 'text-[#171714]',
-      bgColor: 'bg-[#FAFAF8]',
+      dotColor: 'bg-warning',
+      textColor: 'text-primary',
+      bgColor: 'bg-surface',
       defaultLabel: 'In Progress',
     },
     active: {
-      dotColor: 'bg-[#55B88B]',
-      textColor: 'text-[#27865B]',
-      bgColor: 'bg-[#55B88B]/10',
+      dotColor: 'bg-success',
+      textColor: 'text-success',
+      bgColor: 'bg-success/10',
       defaultLabel: 'Active',
     },
     inactive: {
-      dotColor: 'bg-[#777771]',
-      textColor: 'text-[#777771]',
-      bgColor: 'bg-[#ECECE8]/50',
+      dotColor: 'bg-secondary',
+      textColor: 'text-secondary',
+      bgColor: 'bg-border/50',
       defaultLabel: 'Inactive',
     },
   };
@@ -51,7 +51,7 @@ export function StatusBadge({ status, label, className }: StatusBadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-[#ECECE8]',
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-border',
         config.bgColor,
         config.textColor,
         className

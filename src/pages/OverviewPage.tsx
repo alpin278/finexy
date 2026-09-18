@@ -8,10 +8,10 @@ export function OverviewPage() {
       {/* Welcome Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-[32px] font-bold text-[#171714] tracking-tight">
+          <h1 className="text-2xl sm:text-[32px] font-bold text-primary tracking-tight">
             Good morning, Sajibur
           </h1>
-          <p className="text-xs sm:text-sm text-[#777771] mt-1">
+          <p className="text-xs sm:text-sm text-secondary mt-1">
             Stay on top of your tasks, monitor progress, and track status.
           </p>
         </div>
@@ -27,24 +27,26 @@ export function OverviewPage() {
       </div>
 
       {/* Phase 1 Verification Placeholder Banner */}
-      <Card padding="md" className="bg-gradient-to-r from-white to-[#FAFAF8] border-dashed">
+      <Card padding="md" className="bg-gradient-to-r from-white to-surface border-dashed">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-full bg-[#FF5A36]/10 flex items-center justify-center text-[#FF5A36]">
+            <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent">
               <Wallet className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[#171714]">Overview Dashboard Placeholder</h3>
-              <p className="text-xs text-[#777771]">
-                AppShell, design tokens, typography, and navigation active. Full dashboard grid modules will be constructed in Phase 2.
+              <h3 className="text-sm font-semibold text-primary">Overview Dashboard Placeholder</h3>
+              <p className="text-xs text-secondary">
+                AppShell, client-side routing, design tokens, and synchronized navigation active.
               </p>
             </div>
           </div>
-          <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-[#FF5A36]">
-            Phase 1 Ready <ArrowUpRight className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-accent">
+            Phase 1.1 Hardened <ArrowUpRight className="w-3.5 h-3.5" />
           </span>
         </div>
       </Card>
     </div>
   );
 }
+
+export default OverviewPage;

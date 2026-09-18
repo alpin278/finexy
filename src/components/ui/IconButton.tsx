@@ -1,7 +1,7 @@
-﻿import React, { forwardRef } from 'react';
+import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '../../lib/utils';
 
-export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'primary' | 'secondary' | 'ghost' | 'active';
   'aria-label': string;
@@ -21,13 +21,13 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center rounded-full transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171714]/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0';
+      'inline-flex items-center justify-center rounded-full transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0';
 
     const variants = {
-      primary: 'bg-[#22221C] text-white hover:bg-[#171714] active:scale-95 shadow-sm',
-      secondary: 'bg-[#FAFAF8] text-[#171714] border border-[#ECECE8] hover:bg-[#ECECE8]/60 active:scale-95',
-      ghost: 'bg-transparent text-[#777771] hover:text-[#171714] hover:bg-[#ECECE8]/60 active:scale-95',
-      active: 'bg-[#22221C] text-white shadow-sm',
+      primary: 'bg-dark text-white hover:bg-dark-hover active:scale-95 shadow-sm',
+      secondary: 'bg-surface text-primary border border-border hover:bg-border/60 active:scale-95',
+      ghost: 'bg-transparent text-secondary hover:text-primary hover:bg-border/60 active:scale-95',
+      active: 'bg-dark text-white shadow-sm',
     };
 
     const sizes = {

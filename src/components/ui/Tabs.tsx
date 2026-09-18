@@ -18,7 +18,7 @@ export function Tabs({ tabs, activeTab, onChange, className, size = 'md' }: Tabs
   return (
     <div
       className={cn(
-        'inline-flex items-center p-1 bg-[#FAFAF8] border border-[#ECECE8] rounded-full',
+        'inline-flex items-center p-1 bg-surface border border-border rounded-full',
         className
       )}
     >
@@ -33,8 +33,8 @@ export function Tabs({ tabs, activeTab, onChange, className, size = 'md' }: Tabs
               'relative inline-flex items-center gap-1.5 rounded-full font-medium transition-all duration-150 cursor-pointer',
               size === 'sm' ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-xs sm:text-sm',
               isActive
-                ? 'bg-[#22221C] text-white shadow-sm'
-                : 'text-[#777771] hover:text-[#171714] hover:bg-[#ECECE8]/40'
+                ? 'bg-dark text-white shadow-sm'
+                : 'text-secondary hover:text-primary hover:bg-border/40'
             )}
           >
             <span>{tab.label}</span>
@@ -42,7 +42,7 @@ export function Tabs({ tabs, activeTab, onChange, className, size = 'md' }: Tabs
               <span
                 className={cn(
                   'px-1.5 py-0.2 rounded-full text-[10px] font-semibold',
-                  isActive ? 'bg-white/20 text-white' : 'bg-[#ECECE8] text-[#777771]'
+                  isActive ? 'bg-white/20 text-white' : 'bg-border text-secondary'
                 )}
               >
                 {tab.count}

@@ -1,8 +1,8 @@
-﻿import React, { forwardRef } from 'react';
+import { forwardRef, type InputHTMLAttributes } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
 }
 
@@ -32,15 +32,15 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           />
           <div
             className={cn(
-              'w-4 h-4 rounded-[4px] border border-[#ECECE8] bg-white transition-all duration-150',
-              'peer-checked:bg-[#22221C] peer-checked:border-[#22221C]',
-              'peer-focus-visible:ring-2 peer-focus-visible:ring-[#171714]/20',
-              'hover:border-[#777771]'
+              'w-4 h-4 rounded-[4px] border border-border bg-white transition-all duration-150',
+              'peer-checked:bg-dark peer-checked:border-dark',
+              'peer-focus-visible:ring-2 peer-focus-visible:ring-primary/20',
+              'hover:border-secondary'
             )}
           />
           <Check className="absolute w-3 h-3 text-white stroke-[2.5] opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
         </div>
-        {label && <span className="text-xs text-[#171714] font-medium">{label}</span>}
+        {label && <span className="text-xs text-primary font-medium">{label}</span>}
       </label>
     );
   }

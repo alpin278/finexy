@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import { useState } from 'react';
 import { cn } from '../../lib/utils';
 
 export interface AvatarProps {
@@ -9,7 +9,7 @@ export interface AvatarProps {
 }
 
 export function Avatar({ src, name, size = 'md', className }: AvatarProps) {
-  const [hasError, setHasError] = React.useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const getInitials = (fullName: string) => {
     const parts = fullName.trim().split(' ');
@@ -28,7 +28,7 @@ export function Avatar({ src, name, size = 'md', className }: AvatarProps) {
   return (
     <div
       className={cn(
-        'relative rounded-full overflow-hidden bg-[#22221C] text-white font-medium flex items-center justify-center shrink-0 select-none border border-[#ECECE8]',
+        'relative rounded-full overflow-hidden bg-dark text-white font-medium flex items-center justify-center shrink-0 select-none border border-border',
         sizes[size],
         className
       )}

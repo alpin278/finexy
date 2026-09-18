@@ -1,17 +1,33 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @theme {
-  --color-page-bg: #F2F2F0;
-  --color-app-surface: #FAFAF8;
+  --color-canvas: #F2F2F0;
+  --color-surface: #FAFAF8;
   --color-card: #FFFFFF;
-  --color-text-primary: #171714;
-  --color-text-secondary: #777771;
+
+  --color-primary: #171714;
+  --color-secondary: #777771;
+  --color-muted: #777771;
+
+  --color-border: #ECECE8;
   --color-border-subtle: #ECECE8;
-  --color-orange-primary: #FF5A36;
-  --color-dark-accent: #22221C;
+
+  --color-accent: #FF5A36;
+  --color-accent-hover: #E54B29;
+  --color-dark: #22221C;
+  --color-dark-hover: #171714;
+
   --color-success: #55B88B;
   --color-danger: #E95E5E;
   --color-warning: #E8CF56;
+
+  /* Explicit aliases for token compatibility */
+  --color-page-bg: #F2F2F0;
+  --color-app-surface: #FAFAF8;
+  --color-text-primary: #171714;
+  --color-text-secondary: #777771;
+  --color-orange-primary: #FF5A36;
+  --color-dark-accent: #22221C;
 
   --radius-app: 28px;
   --radius-card: 20px;

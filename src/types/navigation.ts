@@ -1,4 +1,4 @@
-﻿export type NavigationTab = 'overview' | 'transactions' | 'categories' | 'reports' | 'settings';
+export type NavigationTab = 'overview' | 'transactions' | 'categories' | 'reports' | 'settings';
 
 export interface NavItem {
   id: NavigationTab;
@@ -19,3 +19,13 @@ export interface UserProfile {
   email: string;
   avatarUrl?: string;
 }
+
+export function getActiveTabFromPath(pathname: string): NavigationTab | null {
+  if (pathname === '/' || pathname === '/overview' || pathname.startsWith('/overview/')) return 'overview';
+  if (pathname === '/transactions' || pathname.startsWith('/transactions/')) return 'transactions';
+  if (pathname === '/categories' || pathname.startsWith('/categories/')) return 'categories';
+  if (pathname === '/reports' || pathname.startsWith('/reports/')) return 'reports';
+  if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'settings';
+  return null;
+}
+

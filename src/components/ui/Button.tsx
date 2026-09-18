@@ -1,12 +1,12 @@
-﻿import React, { forwardRef } from 'react';
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'accent' | 'secondary' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -25,19 +25,19 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171714]/20 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
+      'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
 
     const variants = {
       primary:
-        'bg-[#22221C] text-white hover:bg-[#171714] active:scale-[0.98] shadow-sm',
+        'bg-dark text-white hover:bg-dark-hover active:scale-[0.98] shadow-sm',
       accent:
-        'bg-[#FF5A36] text-white hover:bg-[#E54B29] active:scale-[0.98] shadow-sm',
+        'bg-accent text-white hover:bg-accent-hover active:scale-[0.98] shadow-sm',
       secondary:
-        'bg-[#FAFAF8] text-[#171714] border border-[#ECECE8] hover:bg-[#F2F2F0] active:scale-[0.98]',
+        'bg-surface text-primary border border-border hover:bg-canvas active:scale-[0.98]',
       outline:
-        'border border-[#ECECE8] bg-transparent text-[#171714] hover:bg-[#FAFAF8] active:scale-[0.98]',
+        'border border-border bg-transparent text-primary hover:bg-surface active:scale-[0.98]',
       ghost:
-        'bg-transparent text-[#777771] hover:text-[#171714] hover:bg-[#ECECE8]/40 active:scale-[0.98]',
+        'bg-transparent text-secondary hover:text-primary hover:bg-border/40 active:scale-[0.98]',
     };
 
     const sizes = {
