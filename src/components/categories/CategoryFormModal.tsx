@@ -13,7 +13,6 @@ export interface CategoryFormValues {
   icon: CategoryIconName;
   accent: CategoryAccent;
   keywords: string;
-  budgetLimit: string;
   status: CategoryStatus;
 }
 
@@ -23,7 +22,6 @@ const getInitialValues = (category?: FinanceCategory | null): CategoryFormValues
   icon: category?.icon ?? 'wallet',
   accent: category?.accent ?? 'orange',
   keywords: category?.keywords.join(', ') ?? '',
-  budgetLimit: category?.budgetLimit ? String(category.budgetLimit) : '',
   status: category?.status ?? 'active',
 });
 
@@ -42,13 +40,12 @@ export function CategoryFormModal({ isOpen, category, categories, onClose, onSub
     if (!values.name.trim()) nextErrors.name = 'Category name is required.';
     if (!values.type) nextErrors.type = 'Choose a category type.';
     if (duplicate) nextErrors.name = `A ${values.type} category with this name already exists.`;
-    if (values.type === 'expense' && values.budgetLimit !== '' && Number(values.budgetLimit) <= 0) nextErrors.budgetLimit = 'Budget must be greater than 0.';
     setErrors(nextErrors);
     if (!Object.keys(nextErrors).length) onSubmit(values);
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={category ? 'Edit Category' : 'Create New Category'} description={category ? 'Update this local category and its matching details.' : 'Add a local expense or income category for this prototype.'} maxWidth="lg" footer={<><Button variant="outline" size="sm" onClick={onClose} type="button">Cancel</Button><Button variant="accent" size="sm" onClick={save} type="button">{category ? 'Save Changes' : 'Create Category'}</Button></>}>
+    <Modal isOpen={isOpen} onClose={onClose} title={category ? 'Edit Category' : 'Create New Category'} description={category ? 'Update this persisted category and its matching details.' : 'Add a persisted expense or income category.'} maxWidth="lg" footer={<><Button variant="outline" size="sm" onClick={onClose} type="button">Cancel</Button><Button variant="accent" size="sm" onClick={save} type="button">{category ? 'Save Changes' : 'Create Category'}</Button></>}>
       <form onSubmit={(event) => { event.preventDefault(); save(); }} className="space-y-4">
         <div>
           <label htmlFor="category-name" className="mb-1.5 block text-xs font-semibold text-primary">Category Name</label>
@@ -85,11 +82,6 @@ export function CategoryFormModal({ isOpen, category, categories, onClose, onSub
           <Input id="category-keywords" value={values.keywords} onChange={(event) => update('keywords', event.target.value)} placeholder="Whole Foods, Starbucks, grocery" />
           <p className="mt-1 text-[11px] text-secondary">Separate payee or description matches with commas.</p>
         </div>
-
-        {values.type === 'expense' && <div>
-          <label htmlFor="category-budget" className="mb-1.5 block text-xs font-semibold text-primary">Optional Monthly Budget</label>
-          <Input id="category-budget" type="number" min="0.01" step="0.01" inputMode="decimal" value={values.budgetLimit} onChange={(event) => update('budgetLimit', event.target.value)} placeholder="0.00" error={errors.budgetLimit} />
-        </div>}
 
         <div>
           <label htmlFor="category-status" className="mb-1.5 block text-xs font-semibold text-primary">Status</label>

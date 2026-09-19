@@ -35,7 +35,7 @@ export function CategoryCard({ category, matchingRuleCount, menuOpen, onToggleMe
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-primary">{category.name}</p>
-            <p className="mt-0.5 text-xs text-secondary">{category.transactionCount} recorded transactions</p>
+            <p className="mt-0.5 text-xs text-secondary">{category.transactionCount} prototype transactions</p>
           </div>
         </div>
         <div className="relative shrink-0">
@@ -58,8 +58,8 @@ export function CategoryCard({ category, matchingRuleCount, menuOpen, onToggleMe
           <p className="mt-1 text-sm font-bold text-primary">{money(category.monthlyAverage)}</p>
         </div>
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary">{hasBudget ? 'Budget bound' : 'Matching rules'}</p>
-          <p className="mt-1 text-sm font-bold text-primary">{hasBudget ? money(category.budgetLimit!) : matchingRuleCount}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary">{category.type === 'expense' ? 'Budget' : 'Matching rules'}</p>
+          <p className="mt-1 text-sm font-bold text-primary">{hasBudget ? money(category.budgetLimit!) : category.type === 'expense' ? 'No budget' : matchingRuleCount}</p>
         </div>
       </div>
 
@@ -73,6 +73,13 @@ export function CategoryCard({ category, matchingRuleCount, menuOpen, onToggleMe
           <div className="mt-2.5 flex items-center justify-between gap-2">
             <span className={budgetStatus === 'over_budget' ? 'text-xs font-bold text-danger' : 'text-xs font-bold text-primary'}>{usage.toFixed(1)}% {budgetStatus === 'over_budget' ? 'Over' : 'used'}</span>
             <Badge variant={statusCopy.variant}>{statusCopy.label}</Badge>
+          </div>
+        </div>
+      ) : category.type === 'expense' ? (
+        <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs text-secondary">Budget status</span>
+            <span className="text-xs font-semibold text-secondary">No budget</span>
           </div>
         </div>
       ) : (

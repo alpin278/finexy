@@ -5,10 +5,10 @@ import { money } from './categoryUtils';
 
 export function CategorySummary({ summary }: { summary: CategorySummaryData }) {
   const metrics = [
-    { label: 'Total categories', value: String(summary.totalCategories), detail: '14 expense · 6 income', icon: Layers3, tone: 'text-primary bg-surface' },
-    { label: 'Monthly budget cap', value: money(summary.monthlyBudgetCap), detail: '1 over limit warning', icon: WalletCards, tone: 'text-accent bg-accent/10' },
-    { label: 'Auto-rule coverage', value: `${summary.autoRuleCoverage.toFixed(1)}%`, detail: '+3.8% this period', icon: ListChecks, tone: 'text-success bg-success/10' },
-    { label: 'Uncategorized', value: `${summary.uncategorizedCount} Items`, detail: 'Requires manual review', icon: CircleAlert, tone: 'text-[#9E8314] bg-warning/15' },
+    { label: 'Total categories', value: String(summary.totalCategories), detail: `${summary.expenseCategoryCount} expense · ${summary.incomeCategoryCount} income`, icon: Layers3, tone: 'text-primary bg-surface' },
+    { label: 'Monthly budget cap', value: summary.monthlyBudgetCap === null ? '—' : money(summary.monthlyBudgetCap), detail: 'Temporary budget bridge', icon: WalletCards, tone: 'text-accent bg-accent/10' },
+    { label: 'Auto-rule coverage', value: summary.autoRuleCoverage === null ? '—' : `${summary.autoRuleCoverage.toFixed(1)}%`, detail: 'Available after Transactions migration', icon: ListChecks, tone: 'text-success bg-success/10' },
+    { label: 'Uncategorized', value: summary.uncategorizedCount === null ? '—' : `${summary.uncategorizedCount} Items`, detail: summary.uncategorizedCount === null ? 'Available after Transactions migration' : 'Requires manual review', icon: CircleAlert, tone: 'text-[#9E8314] bg-warning/15' },
   ];
 
   return (

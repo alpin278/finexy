@@ -47,9 +47,34 @@ export interface CategoryRule {
 
 export interface CategorySummaryData {
   totalCategories: number;
-  monthlyBudgetCap: number;
-  autoRuleCoverage: number;
-  uncategorizedCount: number;
+  monthlyBudgetCap: number | null;
+  autoRuleCoverage: number | null;
+  uncategorizedCount: number | null;
   expenseCategoryCount: number;
   incomeCategoryCount: number;
+}
+
+export interface DefaultCategorySeed {
+  seedId: string;
+  name: string;
+  type: CategoryType;
+  icon: CategoryIconName;
+  accent: CategoryAccent;
+  keywords: string[];
+  status: CategoryStatus;
+}
+
+export interface CategoryPresentationMetadata {
+  transactionCount: number;
+  monthlyAverage: number;
+}
+
+export interface DefaultCategoryRuleSeed {
+  categorySeedId: string;
+  field: CategoryRuleField;
+  operator: RuleOperator;
+  value: string;
+  label: string;
+  active?: boolean;
+  matchCount?: number;
 }
