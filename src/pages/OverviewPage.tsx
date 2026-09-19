@@ -149,8 +149,8 @@ export function OverviewPage() {
             wallets={mockWallets}
             totalWalletsCount={6}
             onAddWallet={() => {
-              setTransferMode('transfer');
-              setTransferModalOpen(true);
+              // Harmless placeholder interaction for Add Wallet (flow not designed yet)
+              console.log('Add Wallet action clicked');
             }}
             className="h-full"
           />

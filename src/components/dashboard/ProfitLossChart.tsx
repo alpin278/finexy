@@ -65,30 +65,14 @@ export function ProfitLossChart({ data, className }: ProfitLossChartProps) {
   return (
     <Card className={cn('p-5 sm:p-6 flex flex-col justify-between', className)}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm sm:text-base font-bold text-primary">Total Income</h3>
-            <span className="text-xs text-secondary font-medium">• Profit and Loss</span>
-          </div>
-          <p className="text-xs text-secondary mt-0.5">
-            View your income in a certain period of time
-          </p>
-        </div>
-
-        {/* Legend + Period Select */}
-        <div className="flex items-center gap-4 self-start sm:self-auto">
-          <div className="flex items-center gap-3 text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-accent" />
-              <span className="text-secondary font-medium">Profit</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-dark" />
-              <span className="text-secondary font-medium">Loss</span>
-            </div>
+      <div className="flex flex-col gap-2.5 pb-3 border-b border-border/60">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <h3 className="text-sm sm:text-base font-bold text-primary tracking-tight whitespace-nowrap">Total Income</h3>
+            <span className="text-xs text-secondary font-medium whitespace-nowrap">• Profit and Loss</span>
           </div>
 
+          {/* Period Select Pill */}
           <div className="relative">
             <button
               type="button"
@@ -121,14 +105,30 @@ export function ProfitLossChart({ data, className }: ProfitLossChartProps) {
             )}
           </div>
         </div>
+
+        <div className="flex items-center justify-between text-xs text-secondary">
+          <p className="text-xs text-secondary">
+            View income in a certain period
+          </p>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-accent" />
+              <span className="text-secondary font-medium">Profit</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-dark" />
+              <span className="text-secondary font-medium">Loss</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Chart Area */}
-      <div className="w-full flex-1 min-h-[240px] pt-4">
+      <div className="w-full flex-1 min-h-[240px] pt-3">
         <ResponsiveContainer width="100%" height="100%" minHeight={220} minWidth={200}>
           <BarChart
             data={data}
-            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
             barSize={18}
           >
             <CartesianGrid
@@ -160,6 +160,7 @@ export function ProfitLossChart({ data, className }: ProfitLossChartProps) {
               stackId="a"
               fill="#22221C"
               radius={[0, 0, 4, 4]}
+              isAnimationActive={false}
             />
             <Bar
               dataKey="profit"
@@ -167,6 +168,7 @@ export function ProfitLossChart({ data, className }: ProfitLossChartProps) {
               stackId="a"
               fill="#FF5A36"
               radius={[6, 6, 0, 0]}
+              isAnimationActive={false}
             />
           </BarChart>
         </ResponsiveContainer>
