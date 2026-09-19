@@ -131,11 +131,11 @@ export function TransactionsPage() {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-7 pb-8 animate-in fade-in-50 duration-200">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
+    <div className="min-w-0 w-full max-w-[calc(100vw-2rem)] space-y-6 sm:space-y-7 pb-8 animate-in fade-in-50 duration-200">
+      <div className="flex min-w-0 flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="min-w-0 w-full max-w-full">
           <h1 className="text-2xl sm:text-[32px] font-bold text-primary tracking-tight">Transactions</h1>
-          <p className="text-xs sm:text-sm text-secondary mt-1 max-w-2xl">
+          <p className="w-[calc(100vw-4rem)] max-w-full break-words whitespace-normal text-xs sm:w-auto sm:max-w-2xl sm:text-sm text-secondary mt-1">
             Manage, search, and audit all your personal income and expenses across accounts.
           </p>
         </div>

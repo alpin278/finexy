@@ -60,7 +60,7 @@ export function TransactionFilters({
   const hasActiveFilter = category !== 'all' || wallet !== 'all' || status !== 'all';
 
   return (
-    <div className="rounded-[18px] border border-border bg-white p-3 sm:p-4">
+    <div className="min-w-0 rounded-[18px] border border-border bg-white p-3 sm:p-4">
       <div className="flex flex-col xl:flex-row xl:items-center gap-3">
         <div className="flex flex-wrap items-center gap-2.5 flex-1">
           <div className="flex items-center gap-2 text-xs font-semibold text-primary mr-1">

@@ -19,7 +19,7 @@ export function TransactionTable({ transactions, onView, onEdit, onDelete }: Tra
   const pageNumbers = [1, 2, 3, 178];
 
   return (
-    <Card padding="none" className="overflow-visible">
+    <Card padding="none" className="min-w-0 overflow-visible">
       <div className="px-4 sm:px-5 pt-4 sm:pt-5 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm sm:text-base font-bold text-primary">Transaction Activity</h2>
