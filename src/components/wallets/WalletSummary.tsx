@@ -11,7 +11,7 @@ function mixedCurrencyValue(wallets: Wallet[], values: (wallet: Wallet) => numbe
 export function WalletSummary({ wallets }: { wallets: Wallet[] }) {
   const active = wallets.filter((wallet) => wallet.status === 'Active').length;
   const stats = [
-    ['Opening Balance Baseline', mixedCurrencyValue(wallets, (wallet) => wallet.balance)],
+    ['Current Balance', mixedCurrencyValue(wallets, (wallet) => wallet.balance)],
     ['Total Wallets', String(wallets.length)],
     ['Active Wallets', String(active)],
     ['Monthly Limit', mixedCurrencyValue(wallets, (wallet) => wallet.monthlyLimit ?? 0)],

@@ -1,6 +1,6 @@
 import { cn } from '../../lib/utils';
 
-export type StatusType = 'completed' | 'pending' | 'in_progress' | 'active' | 'inactive';
+export type StatusType = 'completed' | 'pending' | 'canceled' | 'in_progress' | 'active' | 'inactive';
 
 export interface StatusBadgeProps {
   status: StatusType;
@@ -24,6 +24,12 @@ export function StatusBadge({ status, label, className }: StatusBadgeProps) {
       textColor: 'text-primary',
       bgColor: 'bg-surface',
       defaultLabel: 'Pending',
+    },
+    canceled: {
+      dotColor: 'bg-danger',
+      textColor: 'text-danger',
+      bgColor: 'bg-danger/10',
+      defaultLabel: 'Canceled',
     },
     in_progress: {
       dotColor: 'bg-warning',

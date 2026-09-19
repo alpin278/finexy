@@ -29,6 +29,6 @@ export function getStatusLabel(status: TransactionStatus) {
   return {
     completed: 'Completed',
     pending: 'Pending',
-    in_progress: 'In Progress',
+    canceled: 'Canceled',
   }[status];
 }

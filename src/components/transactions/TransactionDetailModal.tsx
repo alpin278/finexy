@@ -14,7 +14,7 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
       isOpen={Boolean(transaction)}
       onClose={onClose}
       title="Transaction Details"
-      description="A read-only view of this local transaction."
+      description="A read-only view of this persisted ledger transaction."
       maxWidth="md"
     >
       {transaction && (

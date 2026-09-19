@@ -13,8 +13,8 @@ export function DeleteTransactionDialog({ transaction, onCancel, onConfirm }: De
     <Modal
       isOpen={Boolean(transaction)}
       onClose={onCancel}
-      title="Delete transaction?"
-      description="This only removes the row from the local preview."
+      title="Archive transaction?"
+      description="Archived transactions leave the active ledger and no longer affect wallet balances."
       maxWidth="sm"
       footer={
         <>
@@ -28,13 +28,13 @@ export function DeleteTransactionDialog({ transaction, onCancel, onConfirm }: De
             type="button"
             className="bg-danger hover:bg-danger/90"
           >
-            Delete
+            Archive
           </Button>
         </>
       }
     >
       <p className="text-sm text-secondary leading-relaxed">
-        Are you sure you want to delete <span className="font-semibold text-primary">{transaction?.description}</span>?
+        Are you sure you want to archive <span className="font-semibold text-primary">{transaction?.description}</span>?
       </p>
     </Modal>
   );

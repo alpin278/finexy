@@ -23,7 +23,7 @@ export const transactionWallets = [
 export const transactionStatuses: { value: TransactionStatus; label: string }[] = [
   { value: 'completed', label: 'Completed' },
   { value: 'pending', label: 'Pending' },
-  { value: 'in_progress', label: 'In Progress' },
+  { value: 'canceled', label: 'Canceled' },
 ];
 
 export const transactionTypeLabels: Record<TransactionType, string> = {
@@ -31,9 +31,9 @@ export const transactionTypeLabels: Record<TransactionType, string> = {
   expense: 'Expense',
 };
 
-// The product dataset is represented by 1,248 transactions in the UI. These seven
-// typed rows are an intentionally small local preview until persistence is connected.
-export const mockTransactions: Transaction[] = [
+// These seven visible records are deterministic seed input for the Supabase
+// bootstrap. They are not a live transaction store or a hidden aggregate dataset.
+export const defaultTransactionSeeds: Transaction[] = [
   {
     id: 'txn-942',
     description: 'Salary Deposit',
@@ -144,6 +144,6 @@ export const mockTransactions: Transaction[] = [
     time: '06:00 AM',
     amount: 89,
     currency: 'USD',
-    status: 'in_progress',
+    status: 'pending',
   },
 ];

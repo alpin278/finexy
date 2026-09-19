@@ -4,7 +4,7 @@ import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 import { Select, type SelectOption } from '../ui/Select';
 import type { Transaction, TransactionStatus, TransactionType } from '../../types/finance';
-import { transactionCategories, transactionStatuses, transactionWallets } from '../../data/transactions';
+import { transactionStatuses } from '../../data/transactions';
 
 export interface TransactionFormValues {
   type: TransactionType;
@@ -17,26 +17,32 @@ export interface TransactionFormValues {
   status: TransactionStatus;
 }
 
+export interface TransactionCategoryOption extends SelectOption {
+  type: TransactionType;
+}
+
 export interface TransactionFormModalProps {
   isOpen: boolean;
   transaction?: Transaction | null;
+  categories: readonly TransactionCategoryOption[];
+  wallets: readonly SelectOption[];
   onClose: () => void;
   onSubmit: (values: TransactionFormValues) => void;
 }
 
-const defaultValues: TransactionFormValues = {
+const defaultValues = (categories: readonly TransactionCategoryOption[], wallets: readonly SelectOption[]): TransactionFormValues => ({
   type: 'expense',
   amount: '',
-  category: transactionCategories[0],
-  wallet: transactionWallets[0],
+  category: categories.find((category) => category.type === 'expense')?.value ?? '',
+  wallet: wallets[0]?.value ?? '',
   date: '2026-04-18',
   description: '',
   referenceNote: '',
   status: 'completed',
-};
+});
 
-function getInitialValues(transaction?: Transaction | null): TransactionFormValues {
-  if (!transaction) return defaultValues;
+function getInitialValues(transaction: Transaction | null | undefined, categories: readonly TransactionCategoryOption[], wallets: readonly SelectOption[]): TransactionFormValues {
+  if (!transaction) return defaultValues(categories, wallets);
 
   return {
     type: transaction.type,
@@ -53,20 +59,16 @@ function getInitialValues(transaction?: Transaction | null): TransactionFormValu
 export function TransactionFormModal({
   isOpen,
   transaction,
+  categories,
+  wallets,
   onClose,
   onSubmit,
 }: TransactionFormModalProps) {
-  const [values, setValues] = useState<TransactionFormValues>(() => getInitialValues(transaction));
+  const [values, setValues] = useState<TransactionFormValues>(() => getInitialValues(transaction, categories, wallets));
   const [errors, setErrors] = useState<Partial<Record<keyof TransactionFormValues, string>>>({});
 
-  const categoryOptions: SelectOption[] = transactionCategories.map((option) => ({
-    value: option,
-    label: option,
-  }));
-  const walletOptions: SelectOption[] = transactionWallets.map((option) => ({
-    value: option,
-    label: option,
-  }));
+  const categoryOptions: SelectOption[] = categories.filter((option) => option.type === values.type).map(({ value, label }) => ({ value, label }));
+  const walletOptions: SelectOption[] = wallets.map((wallet) => ({ value: wallet.value, label: wallet.label }));
 
   const updateValue = <Key extends keyof TransactionFormValues>(key: Key, value: TransactionFormValues[Key]) => {
     setValues((current) => ({ ...current, [key]: value }));
@@ -101,7 +103,7 @@ export function TransactionFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={transaction ? 'Edit Transaction' : 'Add Transaction'}
-      description={transaction ? 'Update the details of this local transaction.' : 'Record a new income or expense.'}
+      description={transaction ? 'Update this persisted ledger transaction.' : 'Record a persisted income or expense.'}
       maxWidth="lg"
       footer={
         <>

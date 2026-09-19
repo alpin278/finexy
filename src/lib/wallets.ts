@@ -2,6 +2,7 @@ import type { PostgrestError } from '@supabase/supabase-js';
 import { defaultWalletSeeds, walletPresentationMetadata } from '../data/wallets';
 import type { Enums, Tables, TablesInsert, TablesUpdate } from '../types/database';
 import type { Wallet, WalletCurrencyCode, WalletStatus } from '../types/finance';
+import { loadWalletDerivedData } from './wallet-balances';
 import { supabase } from './supabase';
 
 type WalletRow = Tables<'wallets'>;
@@ -53,7 +54,7 @@ async function listWalletRows(userId: string) {
 function seedForWallet(row: WalletRow) { return defaultWalletSeeds.find((seed) => seed.name.toLowerCase() === row.name.toLowerCase() && seed.currency === row.currency); }
 function mapStatus(status: WalletDbStatus): WalletStatus { return status === 'active' ? 'Active' : 'Inactive'; }
 
-function mapWallet(row: WalletRow): Wallet {
+function mapWallet(row: WalletRow, derivedBalance: number, spentThisMonth: number): Wallet {
   const currency = row.currency as WalletCurrencyCode;
   const seed = seedForWallet(row);
   const metadata = seed ? walletPresentationMetadata[seed.seedId] : undefined;
@@ -63,12 +64,13 @@ function mapWallet(row: WalletRow): Wallet {
     symbol: currencyMetadata[currency].symbol,
     flag: currencyMetadata[currency].flag,
     name: row.name,
-    balance: Number(row.opening_balance),
+    balance: derivedBalance,
     monthlyLimit: row.monthly_limit === null ? null : Number(row.monthly_limit),
     status: mapStatus(row.status),
     type: row.kind,
     ...(row.account_mask ? { accountMask: row.account_mask } : {}),
     ...(row.institution ? { institution: row.institution } : {}),
+    spentThisMonth,
     ...(metadata ?? {}),
   };
 }
@@ -104,14 +106,17 @@ async function bootstrapDefaults(userId: string, walletRows: WalletRow[]) {
 export async function loadWalletsPage(): Promise<WalletPageData> {
   const userId = await requireUserId();
   const walletRows = await bootstrapDefaults(userId, await listWalletRows(userId));
-  return { wallets: walletRows.map(mapWallet) };
+  const derived = await loadWalletDerivedData(walletRows);
+  return { wallets: walletRows.map((row) => mapWallet(row, derived.balances.get(row.id) ?? Number(row.opening_balance), derived.spentThisMonth.get(row.id) ?? 0)) };
 }
 
 export async function getWallet(walletId: string) {
   const userId = await requireUserId();
   const { data, error } = await supabase.from('wallets').select('*').eq('id', walletId).eq('user_id', userId).is('deleted_at', null).maybeSingle();
   if (error) throw error;
-  return data ? mapWallet(data) : null;
+  if (!data) return null;
+  const derived = await loadWalletDerivedData([data]);
+  return mapWallet(data, derived.balances.get(data.id) ?? Number(data.opening_balance), derived.spentThisMonth.get(data.id) ?? 0);
 }
 
 export async function createWallet(input: CreateWalletInput) {
@@ -129,7 +134,8 @@ export async function createWallet(input: CreateWalletInput) {
   };
   const { data, error } = await supabase.from('wallets').insert(payload).select('*').single();
   if (error) throw error;
-  return mapWallet(data);
+  const derived = await loadWalletDerivedData([data]);
+  return mapWallet(data, derived.balances.get(data.id) ?? Number(data.opening_balance), derived.spentThisMonth.get(data.id) ?? 0);
 }
 
 export async function updateWallet(walletId: string, input: UpdateWalletInput) {
@@ -146,7 +152,8 @@ export async function updateWallet(walletId: string, input: UpdateWalletInput) {
   };
   const { data, error } = await supabase.from('wallets').update(payload).eq('id', walletId).eq('user_id', userId).is('deleted_at', null).select('*').single();
   if (error) throw error;
-  return mapWallet(data);
+  const derived = await loadWalletDerivedData([data]);
+  return mapWallet(data, derived.balances.get(data.id) ?? Number(data.opening_balance), derived.spentThisMonth.get(data.id) ?? 0);
 }
 
 export async function archiveWallet(walletId: string) {

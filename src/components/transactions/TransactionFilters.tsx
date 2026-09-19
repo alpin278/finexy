@@ -21,8 +21,8 @@ export interface TransactionFiltersProps {
 }
 
 const dateOptions: SelectOption[] = [
-  { value: 'this-month', label: 'This Month (Apr 2026)' },
-  { value: 'last-month', label: 'Last Month (Mar 2026)' },
+  { value: 'this-month', label: 'This Month' },
+  { value: 'last-month', label: 'Last Month' },
   { value: 'year-to-date', label: 'Year to Date' },
 ];
 

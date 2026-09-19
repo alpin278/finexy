@@ -89,7 +89,7 @@ export interface RecentActivity {
 
 export type TransactionType = 'income' | 'expense';
 
-export type TransactionStatus = 'completed' | 'pending' | 'in_progress';
+export type TransactionStatus = 'completed' | 'pending' | 'canceled';
 
 export interface Transaction {
   id: string;
