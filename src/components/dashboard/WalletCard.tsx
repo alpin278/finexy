@@ -11,7 +11,7 @@ export interface WalletCardProps {
 
 export function WalletCard({ wallet, onActionClick, className }: WalletCardProps) {
   const formattedBalance = `${wallet.symbol}${wallet.balance.toLocaleString()}`;
-  const formattedLimit = `Limit ${wallet.symbol}${wallet.monthlyLimit >= 1000 ? (wallet.monthlyLimit / 1000).toFixed(0) + 'k' : wallet.monthlyLimit}/mo`;
+  const formattedLimit = wallet.monthlyLimit === null ? 'No monthly limit' : `Limit ${wallet.symbol}${wallet.monthlyLimit >= 1000 ? (wallet.monthlyLimit / 1000).toFixed(0) + 'k' : wallet.monthlyLimit}/mo`;
 
   return (
     <div
