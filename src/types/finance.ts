@@ -45,12 +45,14 @@ export interface MetricData {
   period: string;
   isPositive: boolean;
   highlighted?: boolean;
+  format?: 'currency' | 'percentage';
+  trendLabel?: string;
 }
 
-export interface ProfitLossMonth {
+export interface CashFlowMonth {
   month: string;
-  profit: number;
-  loss: number;
+  income: number;
+  expenses: number;
 }
 
 export interface SpendingLimit {

@@ -1,7 +1,7 @@
 import type {
   Wallet,
   MetricData,
-  ProfitLossMonth,
+  CashFlowMonth,
   SpendingLimit,
   PaymentCardData,
   RecentActivity,
@@ -15,6 +15,9 @@ export const totalBalanceData = {
   period: 'than last month',
   isPositive: true,
 };
+
+// Overview figures are USD-denominated product-level mock aggregates. They
+// intentionally do not reconcile to the compact multi-currency wallet preview.
 
 export const mockWallets: Wallet[] = [
   {
@@ -49,56 +52,71 @@ export const mockWallets: Wallet[] = [
   },
 ];
 
+// Only three wallet rows are shown here as an Overview preview; the header's
+// six-wallet count is an independent product-level mock aggregate.
+
 export const mockMetrics: MetricData[] = [
   {
-    id: 'earnings',
-    title: 'Total Earnings',
-    amount: 950,
+    id: 'income',
+    title: 'Income',
+    amount: 1050,
     changePercentage: 7,
     period: 'This month',
     isPositive: true,
     highlighted: true, // Primary orange-coral treatment
   },
   {
-    id: 'spending',
-    title: 'Total Spending',
+    id: 'expenses',
+    title: 'Expenses',
     amount: 700,
     changePercentage: -5,
     period: 'This month',
-    isPositive: false,
+    isPositive: true,
     highlighted: false,
+    trendLabel: '5% lower',
   },
   {
-    id: 'income',
-    title: 'Total Income',
-    amount: 1050,
+    id: 'net-cash-flow',
+    title: 'Net Cash Flow',
+    amount: 350,
     changePercentage: 8,
     period: 'This month',
     isPositive: true,
     highlighted: false,
   },
   {
-    id: 'revenue',
-    title: 'Total Revenue',
-    amount: 850,
-    changePercentage: 4,
+    id: 'savings-rate',
+    title: 'Savings Rate',
+    amount: 33.3,
+    changePercentage: 2.4,
     period: 'This month',
     isPositive: true,
     highlighted: false,
+    format: 'percentage',
   },
 ];
 
-export const mockProfitLossData: ProfitLossMonth[] = [
-  { month: 'Jan', profit: 3200, loss: 1400 },
-  { month: 'Feb', profit: 4100, loss: 1200 },
-  { month: 'Mar', profit: 3800, loss: 2100 },
-  { month: 'Apr', profit: 5400, loss: 1600 },
-  { month: 'May', profit: 4600, loss: 2400 },
-  { month: 'Jun', profit: 6200, loss: 1800 },
-  { month: 'Jul', profit: 5800, loss: 2200 },
-  { month: 'Aug', profit: 6900, loss: 1500 },
+export const mockCashFlowData: CashFlowMonth[] = [
+  { month: 'Jan', income: 3200, expenses: 1400 },
+  { month: 'Feb', income: 4100, expenses: 1200 },
+  { month: 'Mar', income: 3800, expenses: 2100 },
+  { month: 'Apr', income: 5400, expenses: 1600 },
+  { month: 'May', income: 4600, expenses: 2400 },
+  { month: 'Jun', income: 6200, expenses: 1800 },
+  { month: 'Jul', income: 5800, expenses: 2200 },
+  { month: 'Aug', income: 6900, expenses: 1500 },
 ];
 
+// Category insight is a separate readable mock aggregate, not a roll-up of
+// the small recent-transaction preview rendered below it.
+export const mockSpendingCategories = [
+  { id: 'housing', label: 'Housing & Bills', amount: 3200, percentage: 32, color: '#FF5A36' },
+  { id: 'food', label: 'Food & Dining', amount: 1450, percentage: 22, color: '#F29B62' },
+  { id: 'shopping', label: 'Shopping & Goods', amount: 1750, percentage: 18, color: '#E8CF56' },
+] as const;
+
+// This compact Overview budget gauge is an independent mock snapshot from
+// the detailed Budgets page totals.
 export const mockSpendingLimit: SpendingLimit = {
   spent: 1400.0,
   totalLimit: 5500.0,

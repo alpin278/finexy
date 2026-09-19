@@ -1,6 +1,6 @@
 import { Card } from '../ui/Card';
 import type { MetricData } from '../../types/finance';
-import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownLeft, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownLeft, Activity, Percent } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface MetricCardProps {
@@ -9,20 +9,20 @@ export interface MetricCardProps {
 }
 
 export function MetricCard({ metric, className }: MetricCardProps) {
-  const isPositive = metric.changePercentage >= 0;
+  const isPositive = metric.isPositive;
   const isHighlighted = Boolean(metric.highlighted);
 
   // Icon mapping based on metric id
   const getIcon = () => {
     switch (metric.id) {
-      case 'earnings':
-        return <DollarSign className="w-4 h-4" />;
-      case 'spending':
+      case 'expenses':
         return <ArrowDownLeft className="w-4 h-4" />;
       case 'income':
         return <ArrowUpRight className="w-4 h-4" />;
-      case 'revenue':
+      case 'net-cash-flow':
         return <Activity className="w-4 h-4" />;
+      case 'savings-rate':
+        return <Percent className="w-4 h-4" />;
       default:
         return <DollarSign className="w-4 h-4" />;
     }
@@ -62,7 +62,9 @@ export function MetricCard({ metric, className }: MetricCardProps) {
       {/* Center: Amount */}
       <div className="my-1">
         <span className="text-2xl sm:text-[28px] font-bold tracking-tight font-sans">
-          ${metric.amount.toLocaleString()}
+          {metric.format === 'percentage'
+            ? `${metric.amount.toFixed(1)}%`
+            : `$${metric.amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
         </span>
       </div>
 
@@ -84,7 +86,7 @@ export function MetricCard({ metric, className }: MetricCardProps) {
             <TrendingDown className="w-3 h-3 stroke-[2.5]" />
           )}
           <span>
-            {isPositive ? `+${metric.changePercentage}%` : `${metric.changePercentage}%`}
+            {metric.trendLabel ?? (isPositive ? `+${metric.changePercentage}%` : `${metric.changePercentage}%`)}
           </span>
         </span>
 

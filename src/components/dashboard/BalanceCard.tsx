@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { ArrowUpRight, ArrowDownLeft, ChevronDown, TrendingUp } from 'lucide-react';
+import { ChevronDown, TrendingUp } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface BalanceCardProps {
@@ -9,8 +8,6 @@ export interface BalanceCardProps {
   currency?: string;
   changePercentage?: number;
   period?: string;
-  onTransfer?: () => void;
-  onRequest?: () => void;
   className?: string;
 }
 
@@ -19,16 +16,14 @@ export function BalanceCard({
   currency = 'USD',
   changePercentage = 5,
   period = 'than last month',
-  onTransfer,
-  onRequest,
   className,
 }: BalanceCardProps) {
   const [selectedCurrency, setSelectedCurrency] = useState(currency);
   const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false);
 
-  const currencies = ['USD', 'EUR', 'GBP', 'AUD'];
+  const currencies = ['USD', 'EUR', 'GBP', 'IDR'];
 
-  const formattedAmount = new Intl.NumberFormat('en-US', {
+  const formattedAmount = new Intl.NumberFormat(selectedCurrency === 'IDR' ? 'id-ID' : 'en-US', {
     style: 'currency',
     currency: selectedCurrency,
     minimumFractionDigits: 2,
@@ -95,26 +90,8 @@ export function BalanceCard({
         </div>
       </div>
 
-      {/* Actions: Transfer & Request */}
-      <div className="grid grid-cols-2 gap-3 pt-2">
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onTransfer}
-          leftIcon={<ArrowUpRight className="w-3.5 h-3.5" />}
-          className="h-10 text-xs sm:text-sm font-semibold"
-        >
-          Transfer
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onRequest}
-          leftIcon={<ArrowDownLeft className="w-3.5 h-3.5" />}
-          className="h-10 text-xs sm:text-sm font-semibold"
-        >
-          Request
-        </Button>
+      <div className="mt-4 border-t border-border/60 pt-3 text-[11px] text-secondary">
+        Aggregate balance snapshot · choose a display currency above
       </div>
     </Card>
   );

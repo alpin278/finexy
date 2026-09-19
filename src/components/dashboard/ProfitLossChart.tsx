@@ -1,175 +1,68 @@
 import { useState } from 'react';
 import { Card } from '../ui/Card';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from 'recharts';
-import type { ProfitLossMonth } from '../../types/finance';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import type { CashFlowMonth } from '../../types/finance';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface ProfitLossChartProps {
-  data: ProfitLossMonth[];
+  data: CashFlowMonth[];
   className?: string;
 }
 
-// Custom Tooltip matching Finexy styling
-function CustomChartTooltip({ active, payload, label }: any) {
-  if (active && payload && payload.length) {
-    const profit = payload.find((p: any) => p.dataKey === 'profit')?.value || 0;
-    const loss = payload.find((p: any) => p.dataKey === 'loss')?.value || 0;
-    const net = profit - loss;
+function CashFlowTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
 
-    return (
-      <div className="bg-white p-3 rounded-2xl border border-border shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1)] text-xs z-50 animate-in fade-in-50 duration-100">
-        <p className="font-bold text-primary mb-1.5">{label} Overview</p>
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-4">
-            <span className="flex items-center gap-1.5 text-secondary">
-              <span className="w-2 h-2 rounded-full bg-accent" />
-              Profit:
-            </span>
-            <span className="font-semibold text-primary">${profit.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <span className="flex items-center gap-1.5 text-secondary">
-              <span className="w-2 h-2 rounded-full bg-dark" />
-              Loss:
-            </span>
-            <span className="font-semibold text-primary">${loss.toLocaleString()}</span>
-          </div>
-          <div className="pt-1.5 mt-0.5 border-t border-border flex items-center justify-between gap-4">
-            <span className="text-secondary font-medium">Net:</span>
-            <span className={cn('font-bold', net >= 0 ? 'text-success' : 'text-danger')}>
-              ${net.toLocaleString()}
-            </span>
-          </div>
-        </div>
+  const income = payload.find((item: any) => item.dataKey === 'income')?.value || 0;
+  const expenses = payload.find((item: any) => item.dataKey === 'expenses')?.value || 0;
+  const net = income - expenses;
+
+  return (
+    <div className="z-50 rounded-2xl border border-border bg-white p-3 text-xs shadow-[0_10px_30px_-5px_rgba(0,0,0,0.1)] animate-in fade-in-50 duration-100">
+      <p className="mb-1.5 font-bold text-primary">{label} cash flow</p>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-4"><span className="flex items-center gap-1.5 text-secondary"><span className="h-2 w-2 rounded-full bg-accent" />Income</span><span className="font-semibold text-primary">${income.toLocaleString()}</span></div>
+        <div className="flex items-center justify-between gap-4"><span className="flex items-center gap-1.5 text-secondary"><span className="h-2 w-2 rounded-full bg-dark" />Expenses</span><span className="font-semibold text-primary">${expenses.toLocaleString()}</span></div>
+        <div className="mt-0.5 flex items-center justify-between gap-4 border-t border-border pt-1.5"><span className="font-medium text-secondary">Net</span><span className={cn('font-bold', net >= 0 ? 'text-success' : 'text-danger')}>{net >= 0 ? '+' : '-'}${Math.abs(net).toLocaleString()}</span></div>
       </div>
-    );
-  }
-  return null;
+    </div>
+  );
 }
 
 export function ProfitLossChart({ data, className }: ProfitLossChartProps) {
   const [period, setPeriod] = useState<'Monthly' | 'Weekly' | 'Yearly'>('Monthly');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
   const periods: ('Monthly' | 'Weekly' | 'Yearly')[] = ['Monthly', 'Weekly', 'Yearly'];
 
   return (
-    <Card className={cn('p-5 sm:p-6 flex flex-col justify-between', className)}>
-      {/* Header */}
-      <div className="flex flex-col gap-2.5 pb-3 border-b border-border/60">
+    <Card className={cn('flex flex-col justify-between p-5 sm:p-6', className)}>
+      <div className="flex flex-col gap-2.5 border-b border-border/60 pb-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <h3 className="text-sm sm:text-base font-bold text-primary tracking-tight whitespace-nowrap">Total Income</h3>
-            <span className="text-xs text-secondary font-medium whitespace-nowrap">• Profit and Loss</span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <h3 className="whitespace-nowrap text-sm font-bold tracking-tight text-primary sm:text-base">Income vs Expenses</h3>
+            <span className="whitespace-nowrap text-xs font-medium text-secondary">• Cash flow trend</span>
           </div>
-
-          {/* Period Select Pill */}
           <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-border bg-surface hover:bg-white text-xs font-semibold text-primary transition-colors cursor-pointer"
-            >
-              <span>{period}</span>
-              <ChevronDown className={cn('w-3 h-3 text-secondary transition-transform', isDropdownOpen && 'rotate-180')} />
+            <button type="button" aria-label="Select cash flow period" aria-expanded={isDropdownOpen} onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="inline-flex cursor-pointer items-center gap-1 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-white">
+              <span>{period}</span><ChevronDown className={cn('h-3 w-3 text-secondary transition-transform', isDropdownOpen && 'rotate-180')} />
             </button>
-
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-28 bg-white border border-border rounded-xl shadow-lg py-1 z-30 animate-in fade-in-80 duration-150">
-                {periods.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => {
-                      setPeriod(p);
-                      setIsDropdownOpen(false);
-                    }}
-                    className={cn(
-                      'w-full text-left px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer',
-                      p === period ? 'bg-surface text-primary font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'
-                    )}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            )}
+            {isDropdownOpen && <div className="absolute right-0 z-30 mt-1.5 w-28 rounded-xl border border-border bg-white py-1 shadow-lg animate-in fade-in-80 duration-150">{periods.map((option) => <button key={option} type="button" onClick={() => { setPeriod(option); setIsDropdownOpen(false); }} className={cn('w-full cursor-pointer px-3 py-1.5 text-left text-xs font-medium transition-colors', option === period ? 'bg-surface font-semibold text-primary' : 'text-secondary hover:bg-surface hover:text-primary')}>{option}</button>)}</div>}
           </div>
         </div>
-
-        <div className="flex items-center justify-between text-xs text-secondary">
-          <p className="text-xs text-secondary">
-            View income in a certain period
-          </p>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-accent" />
-              <span className="text-secondary font-medium">Profit</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-dark" />
-              <span className="text-secondary font-medium">Loss</span>
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-secondary">
+          <p>Compare money in and money out across the selected period.</p>
+          <div className="flex items-center gap-3"><div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-accent" /><span className="font-medium">Income</span></div><div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-dark" /><span className="font-medium">Expenses</span></div></div>
         </div>
       </div>
-
-      {/* Chart Area */}
-      <div className="w-full flex-1 min-h-[240px] pt-3">
+      <div className="min-h-[240px] w-full flex-1 pt-3">
         <ResponsiveContainer width="100%" height="100%" minHeight={220} minWidth={200}>
-          <BarChart
-            data={data}
-            margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
-            barSize={18}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#ECECE8"
-            />
-            <XAxis
-              dataKey="month"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#777771', fontSize: 11, fontWeight: 500 }}
-              dy={8}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: '#777771', fontSize: 10 }}
-              tickFormatter={(v) => `$${v >= 1000 ? v / 1000 + 'k' : v}`}
-              dx={-4}
-            />
-            <Tooltip
-              content={<CustomChartTooltip />}
-              cursor={{ fill: 'rgba(236, 236, 232, 0.4)', radius: 8 }}
-            />
-            <Bar
-              dataKey="loss"
-              name="Loss"
-              stackId="a"
-              fill="#22221C"
-              radius={[0, 0, 4, 4]}
-              isAnimationActive={false}
-            />
-            <Bar
-              dataKey="profit"
-              name="Profit"
-              stackId="a"
-              fill="#FF5A36"
-              radius={[6, 6, 0, 0]}
-              isAnimationActive={false}
-            />
+          <BarChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }} barSize={18}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ECECE8" />
+            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#777771', fontSize: 11, fontWeight: 500 }} dy={8} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#777771', fontSize: 10 }} tickFormatter={(value) => `$${value >= 1000 ? `${value / 1000}k` : value}`} dx={-4} />
+            <Tooltip content={<CashFlowTooltip />} cursor={{ fill: 'rgba(236, 236, 232, 0.4)', radius: 8 }} />
+            <Bar dataKey="expenses" name="Expenses" stackId="cash-flow" fill="#22221C" radius={[0, 0, 4, 4]} isAnimationActive={false} />
+            <Bar dataKey="income" name="Income" stackId="cash-flow" fill="#FF5A36" radius={[6, 6, 0, 0]} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>

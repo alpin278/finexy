@@ -72,9 +72,9 @@ export function RecentActivityTable({ activities, className }: RecentActivityTab
       {/* Table Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/60">
         <div>
-          <h3 className="text-sm sm:text-base font-bold text-primary">Recent Activities</h3>
+          <h3 className="text-sm sm:text-base font-bold text-primary">Recent Transactions</h3>
           <p className="text-xs text-secondary mt-0.5">
-            Real-time breakdown of all recent inflows and outflows
+            A quick view of recent income and expenses
           </p>
         </div>
 
@@ -84,7 +84,7 @@ export function RecentActivityTable({ activities, className }: RecentActivityTab
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onClear={() => setSearchQuery('')}
-            placeholder="Search activities..."
+            placeholder="Search transactions..."
             className="w-44 sm:w-56"
           />
 
@@ -144,8 +144,8 @@ export function RecentActivityTable({ activities, className }: RecentActivityTab
                   aria-label="Select all rows"
                 />
               </TableHead>
-              <TableHead>Invoice ID</TableHead>
-              <TableHead>Recipient / Service</TableHead>
+              <TableHead>Reference</TableHead>
+              <TableHead>Transaction / Merchant</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Date & Time</TableHead>
@@ -156,7 +156,7 @@ export function RecentActivityTable({ activities, className }: RecentActivityTab
             {filteredActivities.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-10 text-secondary">
-                  No matching activities found.
+                  No matching transactions found.
                 </TableCell>
               </TableRow>
             ) : (

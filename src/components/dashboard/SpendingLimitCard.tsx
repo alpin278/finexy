@@ -5,11 +5,13 @@ import { cn } from '../../lib/utils';
 
 export interface SpendingLimitCardProps {
   data?: SpendingLimit;
+  onViewBudget?: () => void;
   className?: string;
 }
 
 export function SpendingLimitCard({
   data = { spent: 1400.0, totalLimit: 5500.0, period: 'Monthly' },
+  onViewBudget,
   className,
 }: SpendingLimitCardProps) {
   const percentage = Math.min(100, Math.round((data.spent / data.totalLimit) * 100));
@@ -19,12 +21,13 @@ export function SpendingLimitCard({
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-border/60">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold text-primary">Monthly Spending Limit</h3>
+          <h3 className="text-sm font-bold text-primary">Monthly Budget Progress</h3>
         </div>
 
         <button
           type="button"
-          aria-label="Spending limit details"
+          aria-label="View budgets"
+          onClick={onViewBudget}
           className="w-7 h-7 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface transition-colors cursor-pointer"
         >
           <ChevronRight className="w-4 h-4" />
@@ -72,7 +75,7 @@ export function SpendingLimitCard({
       <div className="flex items-center justify-between text-xs text-secondary pt-1">
         <div className="flex items-center gap-1.5">
           <AlertCircle className="w-3.5 h-3.5 text-accent" />
-          <span>{percentage}% of monthly limit used</span>
+          <span>{percentage}% of monthly budget used</span>
         </div>
         <span className="font-semibold text-primary">
           ${(data.totalLimit - data.spent).toLocaleString('en-US', { minimumFractionDigits: 0 })} left

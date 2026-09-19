@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Calendar, Download, ChevronDown, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
   totalBalanceData,
   mockWallets,
   mockMetrics,
-  mockProfitLossData,
+  mockCashFlowData,
+  mockSpendingCategories,
   mockSpendingLimit,
-  mockPaymentCards as initialCards,
   mockRecentActivities,
 } from '../data/overview';
 import {
@@ -15,192 +16,69 @@ import {
   MetricCard,
   ProfitLossChart,
   SpendingLimitCard,
-  PaymentCards,
   RecentActivityTable,
-  TransferModal,
-  AddCardModal,
+  SpendingInsightCard,
+  QuickActions,
 } from '../components/dashboard';
-import type { PaymentCardData } from '../types/finance';
 import { cn } from '../lib/utils';
 
 export function OverviewPage() {
+  const navigate = useNavigate();
   const [dateRange, setDateRange] = useState('12 Apr, 2026 - 18 Apr, 2026');
   const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
-  const [transferModalOpen, setTransferModalOpen] = useState(false);
-  const [transferMode, setTransferMode] = useState<'transfer' | 'request'>('transfer');
-  const [addCardModalOpen, setAddCardModalOpen] = useState(false);
-  const [cards, setCards] = useState<PaymentCardData[]>(initialCards);
   const [exportFeedback, setExportFeedback] = useState(false);
 
-  const dateRangeOptions = [
-    'Today',
-    '12 Apr, 2026 - 18 Apr, 2026',
-    'This Month (Apr 2026)',
-    'Last 30 Days',
-    'Q1 2026',
-  ];
+  const dateRangeOptions = ['Today', '12 Apr, 2026 - 18 Apr, 2026', 'This Month (Apr 2026)', 'Last 30 Days', 'Q1 2026'];
 
   const handleExport = () => {
     setExportFeedback(true);
-    setTimeout(() => setExportFeedback(false), 2000);
-  };
-
-  const handleAddNewCard = (newCard: { number: string; expiry: string; cvv: string; holder: string }) => {
-    const cardEntry: PaymentCardData = {
-      id: `card-${Date.now()}`,
-      variant: cards.length % 2 === 0 ? 'dark' : 'orange',
-      status: 'Active',
-      last4: newCard.number.slice(-4) || '8888',
-      expiry: newCard.expiry || '12/30',
-      cvv: newCard.cvv || '999',
-      cardHolder: newCard.holder.toUpperCase() || 'SAJIBUR RAHMAN',
-      type: 'mastercard',
-    };
-    setCards((prev) => [...prev, cardEntry]);
+    window.setTimeout(() => setExportFeedback(false), 2000);
   };
 
   return (
-    <div className="space-y-6 sm:space-y-7 pb-8 animate-in fade-in-50 duration-200">
-      {/* 1. Overview Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 pb-8 animate-in fade-in-50 duration-200 sm:space-y-7">
+      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl sm:text-[28px] lg:text-[32px] font-bold text-primary tracking-tight font-sans">
-            Good morning, Sajibur
-          </h1>
-          <p className="text-xs sm:text-sm text-secondary mt-0.5">
-            Stay on top of your tasks, monitor progress, and track status.
-          </p>
+          <h1 className="font-sans text-2xl font-bold tracking-tight text-primary sm:text-[28px] lg:text-[32px]">Good morning, Sajibur</h1>
+          <p className="mt-0.5 text-xs text-secondary sm:text-sm">A clear view of your balance, spending, and progress this month.</p>
         </div>
 
-        {/* Header Controls: Date range picker & Export button */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Date range picker pill */}
+        <div className="flex flex-wrap items-center gap-2.5">
           <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsDateRangeOpen(!isDateRangeOpen)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full border border-border bg-white hover:bg-surface text-xs font-semibold text-primary shadow-2xs transition-colors cursor-pointer"
-              aria-label="Select date range"
-              aria-expanded={isDateRangeOpen}
-            >
-              <Calendar className="w-3.5 h-3.5 text-secondary" />
-              <span>{dateRange}</span>
-              <ChevronDown className={cn('w-3 h-3 text-secondary transition-transform', isDateRangeOpen && 'rotate-180')} />
+            <button type="button" onClick={() => setIsDateRangeOpen(!isDateRangeOpen)} className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-white px-3.5 py-2 text-xs font-semibold text-primary shadow-2xs transition-colors hover:bg-surface" aria-label="Select date range" aria-expanded={isDateRangeOpen}>
+              <Calendar className="h-3.5 w-3.5 text-secondary" /><span>{dateRange}</span><ChevronDown className={cn('h-3 w-3 text-secondary transition-transform', isDateRangeOpen && 'rotate-180')} />
             </button>
-
-            {isDateRangeOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-border rounded-2xl shadow-lg py-1.5 z-40 animate-in fade-in-80 duration-150">
-                {dateRangeOptions.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => {
-                      setDateRange(opt);
-                      setIsDateRangeOpen(false);
-                    }}
-                    className={cn(
-                      'w-full text-left px-3.5 py-2 text-xs font-medium flex items-center justify-between transition-colors cursor-pointer',
-                      opt === dateRange
-                        ? 'bg-surface text-primary font-semibold'
-                        : 'text-secondary hover:bg-surface hover:text-primary'
-                    )}
-                  >
-                    <span>{opt}</span>
-                    {opt === dateRange && <Check className="w-3.5 h-3.5 text-accent" />}
-                  </button>
-                ))}
-              </div>
-            )}
+            {isDateRangeOpen && <div className="absolute right-0 z-40 mt-2 w-56 rounded-2xl border border-border bg-white py-1.5 shadow-lg animate-in fade-in-80 duration-150">{dateRangeOptions.map((option) => <button key={option} type="button" onClick={() => { setDateRange(option); setIsDateRangeOpen(false); }} className={cn('flex w-full cursor-pointer items-center justify-between px-3.5 py-2 text-left text-xs font-medium transition-colors', option === dateRange ? 'bg-surface font-semibold text-primary' : 'text-secondary hover:bg-surface hover:text-primary')}><span>{option}</span>{option === dateRange && <Check className="h-3.5 w-3.5 text-accent" />}</button>)}</div>}
           </div>
-
-          {/* Export Button */}
-          <button
-            type="button"
-            onClick={handleExport}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-border bg-white hover:bg-surface text-xs font-semibold text-primary shadow-2xs transition-colors cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 text-secondary" />
-            <span>{exportFeedback ? 'Exported!' : 'Export'}</span>
-          </button>
+          <button type="button" onClick={handleExport} className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-white px-4 py-2 text-xs font-semibold text-primary shadow-2xs transition-colors hover:bg-surface"><Download className="h-3.5 w-3.5 text-secondary" /><span>{exportFeedback ? 'Summary ready!' : 'Export summary'}</span></button>
         </div>
-      </div>
+      </header>
 
-      {/* 2. Upper Dashboard Grid Region */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-5 sm:gap-6 items-stretch">
-        {/* Column 1: Total Balance + Wallets List */}
-        <div className="md:col-span-1 xl:col-span-4 flex flex-col gap-5 sm:gap-6 justify-between">
-          <BalanceCard
-            amount={totalBalanceData.amount}
-            currency={totalBalanceData.currency}
-            changePercentage={totalBalanceData.changePercentage}
-            period={totalBalanceData.period}
-            onTransfer={() => {
-              setTransferMode('transfer');
-              setTransferModalOpen(true);
-            }}
-            onRequest={() => {
-              setTransferMode('request');
-              setTransferModalOpen(true);
-            }}
-            className="h-full"
-          />
-
-          <WalletList
-            wallets={mockWallets}
-            totalWalletsCount={6}
-            onAddWallet={() => {
-              // Harmless placeholder interaction for Add Wallet (flow not designed yet)
-              console.log('Add Wallet action clicked');
-            }}
-            className="h-full"
-          />
+      <section aria-label="Financial summary" className="grid items-stretch gap-5 sm:gap-6 md:grid-cols-2 xl:grid-cols-12">
+        <div className="flex flex-col gap-5 sm:gap-6 md:col-span-1 xl:col-span-4">
+          <BalanceCard amount={totalBalanceData.amount} currency={totalBalanceData.currency} changePercentage={totalBalanceData.changePercentage} period={totalBalanceData.period} className="h-full" />
+          <WalletList wallets={mockWallets} totalWalletsCount={6} onAddWallet={() => navigate('/wallets')} onWalletAction={() => navigate('/wallets')} className="h-full" />
         </div>
 
-        {/* Column 2: 4 Financial Metric Cards in 2x2 Grid */}
-        <div className="md:col-span-1 xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {mockMetrics.map((metric) => (
-            <MetricCard key={metric.id} metric={metric} className="h-full" />
-          ))}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-1 xl:col-span-4">
+          {mockMetrics.map((metric) => <MetricCard key={metric.id} metric={metric} className="h-full" />)}
         </div>
 
-        {/* Column 3: Total Income (Profit & Loss) Stacked Bar Chart */}
-        <div className="md:col-span-2 xl:col-span-4 h-full">
-          <ProfitLossChart data={mockProfitLossData} className="h-full min-h-[340px]" />
+        <div className="h-full md:col-span-2 xl:col-span-4">
+          <ProfitLossChart data={mockCashFlowData} className="h-full min-h-[340px]" />
         </div>
-      </div>
+      </section>
 
-      {/* 3. Lower Dashboard Grid Region */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 sm:gap-6 items-stretch">
-        {/* Column 1: Monthly Spending Limit + My Cards */}
-        <div className="xl:col-span-4 flex flex-col gap-5 sm:gap-6 justify-between">
-          <SpendingLimitCard data={mockSpendingLimit} />
-          <PaymentCards
-            cards={cards}
-            onAddCard={() => setAddCardModalOpen(true)}
-          />
+      <section aria-label="Planning and activity" className="grid items-stretch gap-5 sm:gap-6 xl:grid-cols-12">
+        <div className="flex flex-col gap-5 sm:gap-6 xl:col-span-4">
+          <SpendingLimitCard data={mockSpendingLimit} onViewBudget={() => navigate('/budgets')} />
+          <SpendingInsightCard categories={mockSpendingCategories} />
+          <QuickActions />
         </div>
-
-        {/* Column 2: Recent Activities Table */}
         <div className="xl:col-span-8">
-          <RecentActivityTable
-            activities={mockRecentActivities}
-            className="h-full"
-          />
+          <RecentActivityTable activities={mockRecentActivities} className="h-full" />
         </div>
-      </div>
-
-      {/* Interactive Modals */}
-      <TransferModal
-        isOpen={transferModalOpen}
-        mode={transferMode}
-        onClose={() => setTransferModalOpen(false)}
-      />
-
-      <AddCardModal
-        isOpen={addCardModalOpen}
-        onClose={() => setAddCardModalOpen(false)}
-        onAddCard={handleAddNewCard}
-      />
+      </section>
     </div>
   );
 }

@@ -9,3 +9,5 @@ export * from './PaymentCards';
 export * from './RecentActivityTable';
 export * from './TransferModal';
 export * from './AddCardModal';
+export * from './SpendingInsightCard';
+export * from './QuickActions';
