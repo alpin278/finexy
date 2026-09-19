@@ -1,0 +1,4 @@
+import type { Wallet } from '../../types/finance';
+import { WalletAccountCard } from './WalletAccountCard';
+export interface WalletGridProps { wallets: Wallet[]; openMenuId: string | null; onToggleMenu: (id: string) => void; onView: (wallet: Wallet) => void; onEdit: (wallet: Wallet) => void; onSetLimit: (wallet: Wallet) => void; onDelete: (wallet: Wallet) => void; }
+export function WalletGrid(props: WalletGridProps) { return <section aria-label="Wallet accounts" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">{props.wallets.map(wallet => <WalletAccountCard key={wallet.id} wallet={wallet} menuOpen={props.openMenuId === wallet.id} onToggleMenu={() => props.onToggleMenu(wallet.id)} onView={() => props.onView(wallet)} onEdit={() => props.onEdit(wallet)} onSetLimit={() => props.onSetLimit(wallet)} onDelete={() => props.onDelete(wallet)} />)}</section>; }

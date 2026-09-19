@@ -1,6 +1,7 @@
-export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'JPY' | 'AUD' | 'CAD';
+export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'IDR' | 'JPY' | 'AUD' | 'CAD';
 
 export type WalletStatus = 'Active' | 'Inactive';
+export type WalletType = 'bank' | 'cash' | 'card' | 'travel' | 'savings';
 
 export interface Wallet {
   id: string;
@@ -11,6 +12,12 @@ export interface Wallet {
   balance: number;
   monthlyLimit: number;
   status: WalletStatus;
+  /** Extra fields are optional so the compact Overview wallet module stays stable. */
+  type?: WalletType;
+  spentThisMonth?: number;
+  accountMask?: string;
+  institution?: string;
+  colorVariant?: 'dark' | 'accent' | 'neutral';
 }
 
 export interface MetricData {
