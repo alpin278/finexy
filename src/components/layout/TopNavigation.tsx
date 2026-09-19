@@ -37,7 +37,7 @@ export function TopNavigation({
   return (
     <header
       className={cn(
-        'h-16 px-4 sm:px-6 lg:px-8 border-b border-border/60 flex items-center justify-between gap-4 bg-transparent select-none shrink-0',
+        'h-16 px-4 sm:px-6 lg:px-8 border-b border-border/60 flex items-center justify-between gap-2 sm:gap-3 lg:gap-2 bg-transparent select-none shrink-0',
         className
       )}
     >
@@ -79,7 +79,7 @@ export function TopNavigation({
       </div>
 
       {/* Center: Navigation Pills (Desktop & Tablet) */}
-      <nav className="hidden md:flex items-center gap-1.5" aria-label="Main Navigation">
+      <nav className="hidden md:flex items-center gap-1 lg:gap-1.5" aria-label="Main Navigation">
         {navTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -89,7 +89,7 @@ export function TopNavigation({
               onClick={() => onNavigate?.(tab.id)}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-150',
+                'px-3 xl:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-150',
                 isActive
                   ? 'bg-dark text-white shadow-xs'
                   : 'text-secondary hover:text-primary hover:bg-border/40'
@@ -102,13 +102,13 @@ export function TopNavigation({
       </nav>
 
       {/* Right: Search, Notifications, Info, Profile */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-2 xl:gap-3">
         {/* Search input / button */}
         <div className="relative flex items-center">
           <div
             className={cn(
               'flex items-center transition-all duration-200',
-              isSearchExpanded ? 'w-48 sm:w-56' : 'w-8 sm:w-44 lg:w-48'
+              isSearchExpanded ? 'w-48 xl:w-56' : 'w-8 sm:w-40 lg:w-40 xl:w-48'
             )}
           >
             <div className="relative w-full">
