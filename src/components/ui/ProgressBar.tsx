@@ -1,6 +1,7 @@
 import { cn } from '../../lib/utils';
+import type { HTMLAttributes } from 'react';
 
-export interface ProgressBarProps {
+export interface ProgressBarProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   value: number; // percentage (0 - 100) or current value
   max?: number;
   height?: 'sm' | 'md' | 'lg';
@@ -14,6 +15,7 @@ export function ProgressBar({
   height = 'md',
   color = 'orange',
   className,
+  ...props
 }: ProgressBarProps) {
   const percentage = Math.min(100, Math.max(0, (value / max) * 100));
 
@@ -40,6 +42,7 @@ export function ProgressBar({
       aria-valuenow={value}
       aria-valuemin={0}
       aria-valuemax={max}
+      {...props}
     >
       <div
         className={cn(
