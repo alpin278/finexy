@@ -20,7 +20,7 @@ export function FinancialHealthCard({ health, peerBenchmark }: FinancialHealthCa
         </div>
         <div className="min-w-0"><div className="flex items-center gap-2"><Award className="h-4 w-4 shrink-0 text-accent" /><p className="text-xs font-bold text-primary">{health.grade}</p></div><p className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em] text-success">{health.label}</p><p className="mt-3 text-xs text-secondary">Runway Projection: <strong className="text-primary">{health.runway}</strong></p></div>
       </div>
-      <div className="mt-5 grid gap-2 border-t border-border/70 pt-4 sm:grid-cols-2"><div className="flex items-start gap-2"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" /><p className="text-[10px] leading-4 text-secondary">{health.context}</p></div><p className="text-[10px] leading-4 text-secondary sm:text-right"><strong className="font-semibold text-primary">Peer Benchmark</strong><br />Ranked #14 of 420 · {peerBenchmark}</p></div>
+      <div className="mt-5 grid gap-2 border-t border-border/70 pt-4 sm:grid-cols-2"><div className="flex items-start gap-2"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" /><p className="text-[10px] leading-4 text-secondary">{health.context}</p></div><p className="text-[10px] leading-4 text-secondary sm:text-right"><strong className="font-semibold text-primary">Peer Benchmark</strong><br />Ranked #14 of 420 - {peerBenchmark}</p></div>
     </Card>
   );
 }

@@ -33,11 +33,11 @@ export function LiquidityBreakdown({ items }: LiquidityBreakdownProps) {
                     <span className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-full', isTotal ? 'bg-success text-white' : isPositive ? 'bg-success/12 text-success' : 'bg-accent/10 text-accent')}>
                       {isTotal ? <Check className="h-3 w-3" /> : isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                     </span>
-                    <p className={cn('truncate text-xs font-bold', isTotal ? 'text-primary' : 'text-primary')}>{item.label}</p>
+                    <p className="truncate text-xs font-bold text-primary">{item.label}</p>
                   </div>
                   <p className="mt-1 pl-7 text-[10px] leading-4 text-secondary">{item.description}</p>
                 </div>
-                <p className={cn('shrink-0 text-sm font-bold tracking-tight', isTotal || isPositive ? 'text-success' : 'text-primary')}>{item.amount > 0 ? '+' : '−'}{formatUsd(Math.abs(item.amount))}</p>
+                <p className={cn('shrink-0 text-sm font-bold tracking-tight', isTotal || isPositive ? 'text-success' : 'text-primary')}>{item.amount > 0 ? '+' : '-'}{formatUsd(Math.abs(item.amount))}</p>
               </div>
               {!isTotal && <div className="mt-2 h-1 overflow-hidden rounded-full bg-border/60"><div className={cn('h-full rounded-full', isPositive ? 'bg-success/55' : 'bg-accent/55')} style={{ width: `${width}%` }} /></div>}
             </div>

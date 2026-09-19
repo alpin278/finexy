@@ -20,14 +20,14 @@ export function ExpenseCategoryChart({ categories }: ExpenseCategoryChartProps) 
         </div>
         <div className="text-right"><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-secondary">Total</p><p className="mt-1 text-base font-bold text-primary">{formatUsd(total)}</p></div>
       </div>
-      <div className="mt-4 grid items-center gap-5 sm:grid-cols-[170px_minmax(0,1fr)]">
+      <div className="mt-4 grid min-w-0 items-center gap-5 sm:grid-cols-[170px_minmax(0,1fr)]">
         <div className="relative mx-auto h-[170px] w-[170px]" aria-label={`Expense category donut, total ${formatUsd(total)}`}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={categories} dataKey="amount" nameKey="label" innerRadius={54} outerRadius={78} paddingAngle={2} stroke="#FFFFFF" strokeWidth={2}>
+              <Pie data={categories} dataKey="amount" nameKey="label" innerRadius={54} outerRadius={78} paddingAngle={2} stroke="#FFFFFF" strokeWidth={2} isAnimationActive={false}>
                 {categories.map((category) => <Cell key={category.id} fill={category.color} />)}
               </Pie>
-              <Tooltip contentStyle={{ border: '1px solid #ECECE8', borderRadius: 12, boxShadow: '0 8px 24px rgba(23,23,20,0.08)', fontSize: 11 }} formatter={(value) => [formatUsd(Number(value)), 'Spend']} />
+              <Tooltip contentStyle={{ border: '1px solid #ECECE8', borderRadius: 12, boxShadow: '0 8px 24px rgba(23,23,20,0.08)', fontSize: 11 }} formatter={(value, name) => [formatUsd(Number(value)), String(name)]} />
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-secondary">Top Spend</p><p className="mt-1 text-sm font-bold text-primary">{topSpend.label.split(' & ')[0]}</p><p className="text-xs font-semibold text-accent">{topSpend.percentage}%</p></div>

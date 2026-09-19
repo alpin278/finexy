@@ -25,8 +25,9 @@ export function ReportsPage() {
   const [customEnd, setCustomEnd] = useState('2026-04-30');
 
   const snapshot = reportSnapshots[activePeriod];
+  const customRangeError = customStart > customEnd ? 'End date must be on or after the start date.' : '';
   const periodLabel = activePeriod === 'custom-range'
-    ? `Custom Range (${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${customStart}T00:00:00`))}–${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(`${customEnd}T00:00:00`))})`
+    ? `Custom Range (${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${customStart}T00:00:00`))}-${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(`${customEnd}T00:00:00`))})`
     : snapshot.periodLabel;
 
   const handlePeriodChange = (period: ReportPeriod) => {
@@ -41,6 +42,7 @@ export function ReportsPage() {
   };
 
   const applyCustomRange = () => {
+    if (customRangeError) return;
     setIsCustomRangeOpen(false);
     setExportFeedback(`Custom range set to ${customStart} through ${customEnd}.`);
     window.setTimeout(() => setExportFeedback(''), 2200);
@@ -81,7 +83,6 @@ export function ReportsPage() {
       {exportFeedback && <div role="status" className="rounded-[12px] border border-success/20 bg-success/[0.08] px-3 py-2 text-xs font-medium text-success">{exportFeedback}</div>}
 
       <ReportSummary metrics={snapshot.summaryMetrics} />
-
       <CashFlowTrendChart data={snapshot.cashFlow} stats={snapshot.cashFlowStats} highlight={snapshot.highlight} />
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-[1.25fr_0.75fr]">
@@ -94,11 +95,12 @@ export function ReportsPage() {
         <SurplusInsight message={snapshot.surplusInsight} onReview={() => setIsInsightOpen(true)} />
       </div>
 
-      <Modal isOpen={isCustomRangeOpen} onClose={() => setIsCustomRangeOpen(false)} title="Choose a custom range" description="This frontend prototype uses local mock data only." maxWidth="sm" footer={<><Button variant="ghost" size="sm" onClick={() => setIsCustomRangeOpen(false)}>Cancel</Button><Button variant="primary" size="sm" onClick={applyCustomRange}>Apply range</Button></>}>
+      <Modal isOpen={isCustomRangeOpen} onClose={() => setIsCustomRangeOpen(false)} title="Choose a custom range" description="This frontend prototype uses local mock data only." maxWidth="sm" footer={<><Button variant="ghost" size="sm" onClick={() => setIsCustomRangeOpen(false)}>Cancel</Button><Button variant="primary" size="sm" disabled={Boolean(customRangeError)} onClick={applyCustomRange}>Apply range</Button></>}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-1.5 text-xs font-semibold text-primary"><span>Start date</span><Input aria-label="Start date" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} /></label>
-          <label className="space-y-1.5 text-xs font-semibold text-primary"><span>End date</span><Input aria-label="End date" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} /></label>
+          <div className="space-y-1.5"><label htmlFor="report-custom-start" className="text-xs font-semibold text-primary">Start date</label><Input id="report-custom-start" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} /></div>
+          <div className="space-y-1.5"><label htmlFor="report-custom-end" className="text-xs font-semibold text-primary">End date</label><Input id="report-custom-end" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} /></div>
         </div>
+        {customRangeError && <p role="alert" className="mt-3 text-xs font-medium text-danger">{customRangeError}</p>}
         <p className="mt-4 rounded-[12px] bg-surface px-3 py-2 text-xs leading-5 text-secondary">Changing the dates updates the selected period label in this local view; it does not query a backend.</p>
       </Modal>
 

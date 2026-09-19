@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { CashFlowPoint } from '../../types/reports';
 import { Card } from '../ui/Card';
 import { CashFlowStats } from './CashFlowStats';
@@ -22,12 +22,12 @@ export function CashFlowTrendChart({ data, stats, highlight }: CashFlowTrendChar
 
   return (
     <section aria-labelledby="cash-flow-title" className="space-y-3">
-      <Card padding="none" className="overflow-hidden p-4 sm:p-6">
+      <Card padding="none" className="min-w-0 overflow-hidden p-4 sm:p-6">
         <div className="flex flex-col gap-4 border-b border-border/70 pb-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id="cash-flow-title" className="text-base font-bold tracking-tight text-primary sm:text-lg">Income vs Expense &amp; Cash Flow Trend</h2>
-              <span className="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-accent">Live mock</span>
+              <h2 id="cash-flow-title" className="min-w-0 break-words text-base font-bold tracking-tight text-primary sm:text-lg">Income vs Expense &amp; Cash Flow Trend</h2>
+              <span className="shrink-0 rounded-full bg-accent/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-accent">Live mock</span>
             </div>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-secondary">Monthly breakdown comparing capital inflow, operational burn, and net surplus trajectory.</p>
           </div>
@@ -38,9 +38,9 @@ export function CashFlowTrendChart({ data, stats, highlight }: CashFlowTrendChar
           </div>
         </div>
 
-        <div className="grid gap-4 pt-4 xl:grid-cols-[minmax(0,1fr)_184px]">
+        <div className="grid min-w-0 gap-4 pt-4 xl:grid-cols-[minmax(0,1fr)_184px]">
           <div className="min-w-0" aria-label="Chart summary: inflow, outflow, and net margin by month">
-            <ResponsiveContainer width="100%" height={290}>
+            <ResponsiveContainer width="100%" height={290} minWidth={0}>
               <ComposedChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }} barGap={5}>
                 <CartesianGrid stroke="#ECECE8" strokeDasharray="3 4" vertical={false} />
                 <XAxis dataKey="month" tick={{ fill: '#777771', fontSize: 10 }} axisLine={false} tickLine={false} dy={8} />
@@ -49,12 +49,11 @@ export function CashFlowTrendChart({ data, stats, highlight }: CashFlowTrendChar
                   cursor={{ fill: '#F2F2F0', opacity: 0.7 }}
                   contentStyle={{ border: '1px solid #ECECE8', borderRadius: 12, boxShadow: '0 8px 24px rgba(23,23,20,0.08)', fontSize: 11 }}
                   labelStyle={{ color: '#171714', fontWeight: 700, marginBottom: 5 }}
-                  formatter={(value) => [`$${Number(value).toLocaleString('en-US')}`, '']}
+                  formatter={(value, name) => [`$${Number(value).toLocaleString('en-US')}`, name === 'netMargin' ? 'Net Margin' : String(name)]}
                 />
-                <Legend content={() => null} />
-                <Bar dataKey="inflow" name="Inflow" fill="#22221C" radius={[5, 5, 0, 0]} maxBarSize={18} />
-                <Bar dataKey="outflow" name="Outflow" fill="#FF5A36" radius={[5, 5, 0, 0]} maxBarSize={18} />
-                <Line dataKey="netMargin" name="Net Margin" type="monotone" stroke="#55B88B" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2, fill: '#FFFFFF', stroke: '#55B88B' }} activeDot={{ r: 5 }} />
+                <Bar dataKey="inflow" name="Inflow" fill="#22221C" radius={[5, 5, 0, 0]} maxBarSize={18} isAnimationActive={false} />
+                <Bar dataKey="outflow" name="Outflow" fill="#FF5A36" radius={[5, 5, 0, 0]} maxBarSize={18} isAnimationActive={false} />
+                <Line dataKey="netMargin" name="Net Margin" type="monotone" stroke="#55B88B" strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2, fill: '#FFFFFF', stroke: '#55B88B' }} activeDot={{ r: 5 }} isAnimationActive={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>

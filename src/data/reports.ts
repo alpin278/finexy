@@ -1,42 +1,10 @@
 import type { ReportPeriod, ReportSnapshot } from '../types/reports';
 
 const summaryMetrics = [
-  {
-    id: 'savings-rate',
-    label: 'Net Savings Rate',
-    value: '66.5%',
-    accent: '4.2%',
-    detail: 'vs. 62.3% last month',
-    supportingLabel: 'Optimal Health',
-    icon: 'savings' as const,
-  },
-  {
-    id: 'total-inflow',
-    label: 'Total Inflow',
-    value: '$42,850.00',
-    accent: '100%',
-    detail: '4 deposits completed',
-    supportingLabel: 'All On-Time',
-    icon: 'inflow' as const,
-  },
-  {
-    id: 'total-outflow',
-    label: 'Total Outflow',
-    value: '$14,320.00',
-    accent: '3.8%',
-    detail: 'Below monthly budget cap',
-    supportingLabel: 'Cap: $14,900',
-    icon: 'outflow' as const,
-  },
-  {
-    id: 'net-retained',
-    label: 'Net Cash Retained',
-    value: '+$28,530.00',
-    accent: 'Surplus liquidity secured',
-    detail: '',
-    supportingLabel: 'Growth Vaults',
-    icon: 'retained' as const,
-  },
+  { id: 'savings-rate', label: 'Net Savings Rate', value: '66.5%', accent: '4.2%', detail: 'vs. 62.3% last month', supportingLabel: 'Optimal Health', icon: 'savings' as const },
+  { id: 'total-inflow', label: 'Total Inflow', value: '$42,850.00', accent: '100%', detail: '4 deposits completed', supportingLabel: 'All On-Time', icon: 'inflow' as const },
+  { id: 'total-outflow', label: 'Total Outflow', value: '$14,320.00', accent: '3.8%', detail: 'Below monthly budget cap', supportingLabel: 'Cap: $14,900', icon: 'outflow' as const },
+  { id: 'net-retained', label: 'Net Cash Retained', value: '+$28,530.00', accent: 'Surplus liquidity secured', detail: '', supportingLabel: 'Growth Vaults', icon: 'retained' as const },
 ];
 
 const monthlyCashFlow = [
@@ -73,52 +41,31 @@ const thisMonthSnapshot: ReportSnapshot = {
   periodLabel: 'This Month (Apr 2026)',
   summaryMetrics,
   cashFlow: monthlyCashFlow,
-  cashFlowStats: {
-    averageMonthlyBurn: '$13,800.00',
-    peakInflow: 'Jun ($48,200)',
-    capitalRetention: '66.5% Yield',
-  },
-  highlight: {
-    period: 'Apr 2026',
-    netRate: '+66.5% Net',
-    inflow: '+$42.8k',
-    outflow: '-$14.3k',
-    balance: '+$28,530.00',
-  },
+  cashFlowStats: { averageMonthlyBurn: '$13,800.00', peakInflow: 'Jun ($48,200)', capitalRetention: '66.5% Yield' },
+  highlight: { period: 'Apr 2026', netRate: '+66.5% Net', inflow: '+$42.8k', outflow: '-$14.3k', balance: '+$28,530.00' },
   liquidity,
   expenses,
-  health: {
-    score: 88,
-    grade: 'A+',
-    label: 'SUPERB WEALTH STABILITY',
-    runway: '4.8 Years at current burn',
-    context: 'Prototype indicator based on this mock dataset, not financial advice.',
-  },
+  health: { score: 88, grade: 'A+', label: 'SUPERB WEALTH STABILITY', runway: '4.8 Years at current burn', context: 'Prototype indicator based on this mock dataset, not financial advice.' },
   surplusInsight: 'You have $12,400 in mock surplus cash above the configured safety buffer in this prototype dataset.',
   peerBenchmark: 'Demo benchmark based on mock dataset.',
 };
 
 function createPeriodSnapshot(period: ReportPeriod, periodLabel: string, overrides: Partial<ReportSnapshot> = {}): ReportSnapshot {
-  return {
-    ...thisMonthSnapshot,
-    ...overrides,
-    period,
-    periodLabel,
-  };
+  return { ...thisMonthSnapshot, ...overrides, period, periodLabel };
 }
 
 export const reportSnapshots: Record<ReportPeriod, ReportSnapshot> = {
-  'this-week': createPeriodSnapshot('this-week', 'This Week (Apr 20–26, 2026)', {
+  'this-week': createPeriodSnapshot('this-week', 'This Week (Apr 20-26, 2026)', {
     summaryMetrics: summaryMetrics.map((metric) => metric.id === 'total-inflow' ? { ...metric, value: '$9,840.00', detail: '1 deposit completed' } : metric.id === 'total-outflow' ? { ...metric, value: '$3,180.00', supportingLabel: 'Cap: $3,725' } : metric.id === 'net-retained' ? { ...metric, value: '+$6,660.00' } : metric),
   }),
   'this-month': thisMonthSnapshot,
   'last-month': createPeriodSnapshot('last-month', 'Last Month (Mar 2026)', {
     summaryMetrics: summaryMetrics.map((metric) => metric.id === 'savings-rate' ? { ...metric, value: '62.3%', accent: '3.1%', detail: 'vs. 60.4% prior month' } : metric.id === 'total-inflow' ? { ...metric, value: '$39,610.00' } : metric.id === 'total-outflow' ? { ...metric, value: '$14,940.00' } : metric.id === 'net-retained' ? { ...metric, value: '+$24,670.00' } : metric),
   }),
-  'this-year': createPeriodSnapshot('this-year', 'This Year (Jan–Dec 2026)', {
+  'this-year': createPeriodSnapshot('this-year', 'This Year (Jan-Dec 2026)', {
     summaryMetrics: summaryMetrics.map((metric) => metric.id === 'total-inflow' ? { ...metric, value: '$312,480.00', detail: '31 deposits completed' } : metric.id === 'total-outflow' ? { ...metric, value: '$105,820.00', supportingLabel: 'Cap: $119,200' } : metric.id === 'net-retained' ? { ...metric, value: '+$206,660.00' } : metric),
   }),
-  'custom-range': createPeriodSnapshot('custom-range', 'Custom Range (Apr 1–30, 2026)'),
+  'custom-range': createPeriodSnapshot('custom-range', 'Custom Range (Apr 1-30, 2026)'),
 };
 
 export const reportPeriodOptions: { id: ReportPeriod; label: string }[] = [
