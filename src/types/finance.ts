@@ -3,6 +3,23 @@ export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'IDR' | 'JPY' | 'AUD' | 'CAD'
 export type WalletStatus = 'Active' | 'Inactive';
 export type WalletType = 'bank' | 'cash' | 'card' | 'travel' | 'savings';
 
+export type BudgetStatus = 'on_track' | 'near_limit' | 'over_budget';
+export type BudgetPeriod = 'this-month';
+
+export interface Budget {
+  id: string;
+  categoryId: string;
+  categoryName: string;
+  monthlyLimit: number;
+  spent: number;
+  monthlyAverage: number;
+  transactionCount: number;
+  period: BudgetPeriod;
+  status: BudgetStatus;
+  icon?: string;
+  notes?: string;
+}
+
 export interface Wallet {
   id: string;
   currency: CurrencyCode;

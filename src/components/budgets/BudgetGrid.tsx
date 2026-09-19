@@ -1,0 +1,3 @@
+import type { Budget } from '../../types/finance';
+import { BudgetCard } from './BudgetCard';
+export function BudgetGrid({ budgets, openMenuId, onToggleMenu, onView, onEdit, onDelete }: { budgets: Budget[]; openMenuId: string | null; onToggleMenu: (id: string) => void; onView: (budget: Budget) => void; onEdit: (budget: Budget) => void; onDelete: (budget: Budget) => void; }) { return <section aria-label="Category budgets" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">{budgets.map(budget => <BudgetCard key={budget.id} budget={budget} menuOpen={openMenuId===budget.id} onToggleMenu={()=>onToggleMenu(budget.id)} onView={()=>onView(budget)} onEdit={()=>onEdit(budget)} onDelete={()=>onDelete(budget)} />)}</section>; }

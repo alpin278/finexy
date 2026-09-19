@@ -1,0 +1,4 @@
+import type { Budget } from '../../types/finance';
+import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
+export function DeleteBudgetDialog({ budget, onCancel, onConfirm }: { budget?: Budget | null; onCancel: () => void; onConfirm: () => void }) { return <Modal isOpen={Boolean(budget)} onClose={onCancel} title={`Delete budget for ${budget ? `“${budget.categoryName}”` : 'category'}?`} description="This removes the budget from this local prototype only." maxWidth="sm" footer={<><Button variant="outline" size="sm" onClick={onCancel}>Cancel</Button><Button variant="primary" size="sm" className="bg-danger hover:bg-danger/90" onClick={onConfirm}>Delete Budget</Button></>}><p className="text-sm leading-relaxed text-secondary">Transactions and categories are not affected.</p></Modal>; }
