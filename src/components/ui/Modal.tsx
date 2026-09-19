@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useId, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { IconButton } from './IconButton';
@@ -22,6 +22,8 @@ export function Modal({
   footer,
   maxWidth = 'md',
 }: ModalProps) {
+  const titleId = useId();
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -57,11 +59,14 @@ export function Modal({
           'animate-in fade-in-90 zoom-in-95 duration-150',
           maxWidths[maxWidth]
         )}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-2">
           <div>
-            {title && <h3 className="text-lg font-semibold text-primary">{title}</h3>}
+            {title && <h3 id={titleId} className="text-lg font-semibold text-primary">{title}</h3>}
             {description && <p className="text-xs text-secondary mt-0.5">{description}</p>}
           </div>
           <IconButton

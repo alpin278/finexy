@@ -59,3 +59,24 @@ export interface RecentActivity {
   status: ActivityStatus;
   date: string;
 }
+
+export type TransactionType = 'income' | 'expense';
+
+export type TransactionStatus = 'completed' | 'pending' | 'in_progress';
+
+export interface Transaction {
+  id: string;
+  description: string;
+  payee: string;
+  reference: string;
+  secondaryReference: string;
+  type: TransactionType;
+  category: string;
+  wallet: string;
+  method: string;
+  date: string;
+  time: string;
+  amount: number;
+  currency: CurrencyCode;
+  status: TransactionStatus;
+}
