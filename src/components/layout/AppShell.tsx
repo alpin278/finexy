@@ -5,7 +5,16 @@ import { Sidebar } from './Sidebar';
 import { TopNavigation } from './TopNavigation';
 import { MainContent } from './MainContent';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
-import { X, LayoutDashboard, ArrowLeftRight, Layers, BarChart3, Settings } from 'lucide-react';
+import {
+  X,
+  LayoutDashboard,
+  ArrowLeftRight,
+  Wallet,
+  Target,
+  BarChart3,
+  Layers,
+  Settings,
+} from 'lucide-react';
 
 export interface AppShellProps {
   currentTab?: NavigationTab;
@@ -21,11 +30,26 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
   const location = useLocation();
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
 
-  const navTabs: { id: NavigationTab; label: string; path: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  const primaryNavTabs: {
+    id: NavigationTab;
+    label: string;
+    path: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[] = [
     { id: 'overview', label: 'Overview', path: '/overview', icon: LayoutDashboard },
     { id: 'transactions', label: 'Transactions', path: '/transactions', icon: ArrowLeftRight },
-    { id: 'categories', label: 'Categories', path: '/categories', icon: Layers },
+    { id: 'wallets', label: 'Wallets', path: '/wallets', icon: Wallet },
+    { id: 'budgets', label: 'Budgets', path: '/budgets', icon: Target },
     { id: 'reports', label: 'Reports', path: '/reports', icon: BarChart3 },
+  ];
+
+  const utilityNavTabs: {
+    id: NavigationTab;
+    label: string;
+    path: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }[] = [
+    { id: 'categories', label: 'Categories', path: '/categories', icon: Layers },
     { id: 'settings', label: 'Settings', path: '/settings', icon: Settings },
   ];
 
@@ -95,7 +119,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
 
               {/* Mobile Navigation Links */}
               <div className="py-6 flex flex-col gap-1.5 flex-1">
-                {navTabs.map((tab) => {
+                {primaryNavTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
                   return (
@@ -118,6 +142,34 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                     </Link>
                   );
                 })}
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-wider text-secondary">
+                    Utilities
+                  </p>
+                  {utilityNavTabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <Link
+                        key={tab.id}
+                        to={tab.path}
+                        onClick={() => {
+                          onNavigate?.(tab.id);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={cn(
+                          'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors text-left',
+                          isActive
+                            ? 'bg-dark text-white shadow-xs'
+                            : 'text-secondary hover:text-primary hover:bg-surface'
+                        )}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span>{tab.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Mobile Drawer Footer */}

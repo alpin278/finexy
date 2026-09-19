@@ -3,11 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Sun,
   Moon,
-  LayoutDashboard,
-  ArrowLeftRight,
   Calendar,
   Layers,
-  BarChart3,
   Settings,
   HelpCircle,
   LogOut,
@@ -41,11 +38,8 @@ export function Sidebar({
     path?: string;
     icon: ComponentType<{ className?: string }>;
   }[] = [
-    { id: 'overview', label: 'Overview', tab: 'overview', path: '/overview', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Transactions', tab: 'transactions', path: '/transactions', icon: ArrowLeftRight },
-    { id: 'calendar', label: 'Calendar', tab: 'overview', path: '/overview', icon: Calendar },
+    { id: 'calendar', label: 'Calendar', path: '/overview', icon: Calendar },
     { id: 'categories', label: 'Categories', tab: 'categories', path: '/categories', icon: Layers },
-    { id: 'reports', label: 'Reports', tab: 'reports', path: '/reports', icon: BarChart3 },
     { id: 'settings', label: 'Settings', tab: 'settings', path: '/settings', icon: Settings },
   ];
 

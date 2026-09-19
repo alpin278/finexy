@@ -29,7 +29,8 @@ export function TopNavigation({
   const navTabs: { id: NavigationTab; label: string; path: string }[] = [
     { id: 'overview', label: 'Overview', path: '/overview' },
     { id: 'transactions', label: 'Transactions', path: '/transactions' },
-    { id: 'categories', label: 'Categories', path: '/categories' },
+    { id: 'wallets', label: 'Wallets', path: '/wallets' },
+    { id: 'budgets', label: 'Budgets', path: '/budgets' },
     { id: 'reports', label: 'Reports', path: '/reports' },
   ];
 

@@ -2,6 +2,8 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { AppShell } from '../components/layout/AppShell';
 import { OverviewPage } from '../pages/OverviewPage';
 import { TransactionsPage } from '../pages/TransactionsPage';
+import { WalletsPage } from '../pages/WalletsPage';
+import { BudgetsPage } from '../pages/BudgetsPage';
 import { ReportsPage } from '../pages/ReportsPage';
 import { CategoriesPage } from '../pages/CategoriesPage';
 import { SettingsPage } from '../pages/SettingsPage';
@@ -23,6 +25,14 @@ export const router = createBrowserRouter([
       {
         path: 'transactions',
         element: <TransactionsPage />,
+      },
+      {
+        path: 'wallets',
+        element: <WalletsPage />,
+      },
+      {
+        path: 'budgets',
+        element: <BudgetsPage />,
       },
       {
         path: 'reports',
