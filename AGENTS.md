@@ -5,13 +5,13 @@
 Finexy is a personal-finance web application.
 
 Current stage:
-- Frontend only
+- Frontend implementation complete
 - Typed mock data
 - Local React state
-- No backend yet
-- No database yet
-- No authentication yet
-- No persistence yet
+- Backend foundation: Supabase + PostgreSQL migrations
+- Supabase Auth owns authentication
+- PostgreSQL with Row Level Security is the source of persistent data
+- Persistent frontend integration is not connected yet
 - No real financial integrations yet
 
 Stack:
@@ -41,8 +41,15 @@ Core domains:
 - Categories
 - Settings
 
-Frontend is being completed first. Backend/database integration will happen later.
-Do not prematurely implement backend behavior.
+The frontend implementation is complete and must remain stable during the backend
+migration. The backend target is Supabase + PostgreSQL: Supabase Auth owns
+authentication, and PostgreSQL with RLS is the source of persistent data. Database
+changes must use versioned SQL migrations. Service-role secrets are server-side
+only and must never be exposed to the frontend. Telegram is planned but not
+implemented yet; do not add bot or webhook behavior unless explicitly requested.
+
+The frontend remains backed by typed mock data and local React state until a later
+integration phase. Do not prematurely connect existing pages to Supabase.
 
 ---
 
@@ -174,6 +181,7 @@ For the current stage:
 - use local React state
 - use typed mock data
 - keep larger mock datasets outside page components
+- preserve this frontend boundary while the database foundation is being added
 
 Do not add unless explicitly requested:
 - Redux
@@ -475,24 +483,23 @@ Current frontend implementations include:
 - Budgets
 - Reports
 - Categories
+- Settings
 
 Treat completed areas as protected unless the requested task targets them.
 
-Settings may still be pending depending on the current phase.
 Always inspect the current repository rather than assuming this file is perfectly current.
 
 ---
 
 ## Future Integration Direction
 
-After frontend completion:
+After the database foundation:
+- authentication wiring through Supabase Auth
+- persistent CRUD and feature adapters
 - final frontend integration
 - Overview/dashboard refinement
-- backend
-- database
-- authentication
-- persistent CRUD
 - real cross-page data relationships
+- Telegram account linking, bot, and webhook work
 
 Expected future data flow:
 
