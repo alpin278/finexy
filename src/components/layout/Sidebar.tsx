@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Sun,
   Moon,
@@ -12,6 +12,7 @@ import {
 import { cn } from '../../lib/utils';
 import { Tooltip } from '../ui/Tooltip';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
+import { useAuth } from '../../context/useAuth';
 
 export interface SidebarProps {
   currentTab?: NavigationTab;
@@ -29,6 +30,8 @@ export function Sidebar({
   onToggleTheme,
 }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
 
   const mainNavItems: {
@@ -125,6 +128,12 @@ export function Sidebar({
         <Tooltip content="Log out" position="right">
           <button
             type="button"
+            onClick={async () => {
+              const result = await signOut();
+              if (!result.error) {
+                navigate('/login', { replace: true });
+              }
+            }}
             aria-label="Log out"
             className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer"
           >

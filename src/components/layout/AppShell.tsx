@@ -4,6 +4,7 @@ import { cn } from '../../lib/utils';
 import { Sidebar } from './Sidebar';
 import { TopNavigation } from './TopNavigation';
 import { MainContent } from './MainContent';
+import { useAuth } from '../../context/useAuth';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
 import {
   X,
@@ -26,6 +27,10 @@ export interface AppShellProps {
 export function AppShell({ currentTab, onNavigate, children, className }: AppShellProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const { user, profile } = useAuth();
+
+  const profileName = profile?.display_name?.trim() || user?.email || 'Finexy user';
+  const profileEmail = user?.email || profile?.email || '';
 
   const location = useLocation();
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
@@ -174,8 +179,8 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
 
               {/* Mobile Drawer Footer */}
               <div className="pt-4 border-t border-border">
-                <p className="text-xs font-semibold text-primary">Sajibur Rahman</p>
-                <p className="text-xs text-secondary">sajibur.rahman@gmail.com</p>
+                <p className="truncate text-xs font-semibold text-primary">{profileName}</p>
+                <p className="truncate text-xs text-secondary">{profileEmail}</p>
               </div>
             </div>
           </div>

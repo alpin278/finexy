@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, Bell, Info, ChevronDown, Menu, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../ui/Avatar';
-import { mockUser } from '../../data/mockUser';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
+import { useAuth } from '../../context/useAuth';
 
 export interface TopNavigationProps {
   currentTab?: NavigationTab;
@@ -22,9 +22,25 @@ export function TopNavigation({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const location = useLocation();
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
+  const profileName = profile?.display_name?.trim() || user?.email || 'Finexy user';
+  const profileEmail = user?.email || profile?.email || '';
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    const result = await signOut();
+    setIsSigningOut(false);
+
+    if (!result.error) {
+      setIsProfileOpen(false);
+      navigate('/login', { replace: true });
+    }
+  };
 
   const navTabs: { id: NavigationTab; label: string; path: string }[] = [
     { id: 'overview', label: 'Overview', path: '/overview' },
@@ -165,17 +181,17 @@ export function TopNavigation({
             className="flex items-center gap-2.5 pl-1.5 pr-2.5 py-1 rounded-full border border-border bg-surface hover:bg-white transition-all cursor-pointer select-none"
           >
             <Avatar
-              name={mockUser.name}
-              src={mockUser.avatarUrl}
+              name={profileName}
+              src={profile?.avatar_url ?? undefined}
               size="sm"
               className="w-7 h-7"
             />
             <div className="text-left hidden xl:block leading-tight">
               <p className="text-xs font-semibold text-primary truncate max-w-[110px]">
-                {mockUser.name}
+                {profileName}
               </p>
               <p className="text-[10px] text-secondary truncate max-w-[110px]">
-                sajibur.rahman@gm...
+                {profileEmail}
               </p>
             </div>
             <ChevronDown
@@ -193,8 +209,8 @@ export function TopNavigation({
               onMouseLeave={() => setIsProfileOpen(false)}
             >
               <div className="px-4 py-2.5 border-b border-border/60">
-                <p className="text-xs font-semibold text-primary">{mockUser.name}</p>
-                <p className="text-xs text-secondary truncate">{mockUser.email}</p>
+                <p className="text-xs font-semibold text-primary">{profileName}</p>
+                <p className="text-xs text-secondary truncate">{profileEmail}</p>
               </div>
 
               <div className="py-1">
@@ -223,9 +239,11 @@ export function TopNavigation({
               <div className="pt-1 border-t border-border/60">
                 <button
                   type="button"
-                  className="w-full text-left px-4 py-2 text-xs text-danger hover:bg-danger/10 transition-colors cursor-pointer"
+                  onClick={() => void handleSignOut()}
+                  disabled={isSigningOut}
+                  className="w-full text-left px-4 py-2 text-xs text-danger hover:bg-danger/10 transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-60"
                 >
-                  Log out
+                  {isSigningOut ? 'Signing out...' : 'Sign out'}
                 </button>
               </div>
             </div>
