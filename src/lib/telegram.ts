@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+﻿import { supabase } from './supabase';
 
 export type TelegramConnection =
   | { status: 'not_connected' }
@@ -53,3 +53,6 @@ export async function disconnectTelegram() {
   const { error } = await supabase.rpc('unlink_telegram');
   if (error) throw error;
 }
+export type TelegramDiagnostics = { connection: 'connected' | 'disconnected'; worker: 'healthy' | 'needs_attention' | 'disconnected'; last_worker_at?: string | null; last_delivered_at?: string | null; last_failed_at?: string | null; failure_class?: string | null; pending: number; retryable: number; failed: number };
+export async function loadTelegramDiagnostics(): Promise<TelegramDiagnostics> { const { data, error } = await (supabase as any).rpc('get_telegram_diagnostics'); if (error) throw error; return data as TelegramDiagnostics; }
+export async function sendTelegramTestNotification() { const { data, error } = await (supabase as any).rpc('queue_telegram_test_notification'); if (error) throw error; return data as 'queued' | 'already_queued'; }

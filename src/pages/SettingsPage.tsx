@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Bell,  Check,
@@ -33,7 +33,7 @@ import { PreferenceToggle, SettingsSection } from '../components/settings';
 import type { AppearancePreference, SettingsCurrency, SettingsProfile, SettingsState } from '../types/settings';
 import { cn } from '../lib/utils';
 import { loadSettings, saveSettings, settingsErrorMessage } from '../lib/settings';
-import { disconnectTelegram, generateTelegramLinkCode, loadTelegramBudgetNotificationPreferences, loadTelegramConnection, saveTelegramBudgetNotificationPreferences, type TelegramBudgetNotificationPreferences, type TelegramConnection } from '../lib/telegram';
+import { loadTelegramDiagnostics, sendTelegramTestNotification, disconnectTelegram, generateTelegramLinkCode, loadTelegramBudgetNotificationPreferences, loadTelegramConnection, saveTelegramBudgetNotificationPreferences, type TelegramBudgetNotificationPreferences, type TelegramConnection, type TelegramDiagnostics } from '../lib/telegram';
 
 const appearanceIcons: Record<AppearancePreference, LucideIcon> = {
   light: Sun,
@@ -43,8 +43,8 @@ const appearanceIcons: Record<AppearancePreference, LucideIcon> = {
 
 const currencySymbols: Record<SettingsCurrency, string> = {
   USD: '$',
-  EUR: '€',
-  GBP: '£',
+  EUR: 'â‚¬',
+  GBP: 'Â£',
   IDR: 'Rp',
 };
 
@@ -68,8 +68,10 @@ export function SettingsPage() {
   const [telegram, setTelegram] = useState<TelegramConnection>({ status: 'not_connected' });
   const [telegramBusy, setTelegramBusy] = useState(false);
   const [telegramError, setTelegramError] = useState('');
+  const [telegramDiagnostics, setTelegramDiagnostics] = useState<TelegramDiagnostics | null>(null);
+  const [testingTelegram, setTestingTelegram] = useState(false);
   const [telegramNotifications, setTelegramNotifications] = useState<TelegramBudgetNotificationPreferences>({ nearLimit: false, overLimit: false, dailySummary: false, weeklySummary: false });
-  useEffect(() => { void Promise.all([loadSettings(), loadTelegramConnection()]).then(async ([loadedSettings, connection]) => { setSettings(loadedSettings); setTelegram(connection); setTelegramNotifications(await loadTelegramBudgetNotificationPreferences(connection.status === 'connected')); }).catch((reason) => setError(settingsErrorMessage(reason))).finally(() => setLoading(false)); }, []);
+  useEffect(() => { void Promise.all([loadSettings(), loadTelegramConnection()]).then(async ([loadedSettings, connection]) => { setSettings(loadedSettings); setTelegram(connection); setTelegramNotifications(await loadTelegramBudgetNotificationPreferences(connection.status === 'connected')); setTelegramDiagnostics(await loadTelegramDiagnostics()); }).catch((reason) => setError(settingsErrorMessage(reason))).finally(() => setLoading(false)); }, []);
   const [activeModal, setActiveModal] = useState<'security' | null>(null);
 
   const updateProfile = (field: keyof SettingsProfile, value: string) => {
@@ -91,6 +93,7 @@ export function SettingsPage() {
     catch { setTelegramError('We could not generate a Telegram link code. Confirm that you are signed in and try again.'); }
     finally { setTelegramBusy(false); }
   };
+  const handleTestTelegram = async () => { setTestingTelegram(true); setTelegramError(''); try { const result = await sendTelegramTestNotification(); setSaveMessage(result === 'queued' ? 'Test notification queued.' : 'A test notification was recently queued.'); setTelegramDiagnostics(await loadTelegramDiagnostics()); } catch { setTelegramError('We could not queue a test notification.'); } finally { setTestingTelegram(false); } };
   const handleDisconnectTelegram = async () => {
     setTelegramBusy(true); setError(''); setSaveMessage(''); setTelegramError('');
     try { await disconnectTelegram(); setTelegram({ status: 'not_connected' }); setTelegramNotifications({ nearLimit: false, overLimit: false, dailySummary: false, weeklySummary: false }); setSaveMessage('Telegram disconnected. Link codes and active Telegram sessions were invalidated.'); }
@@ -162,7 +165,8 @@ export function SettingsPage() {
               <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary"><i className="bi bi-telegram text-lg" aria-hidden="true" /></div><div><p className="text-sm font-semibold text-primary">Telegram</p><p className="mt-1 text-xs text-secondary">{telegram.status === 'connected' ? 'Your Telegram account is linked.' : telegram.status === 'link_code_ready' ? 'Send the code below to the Finexy bot.' : 'Generate a one-time code to link your account.'}</p><div className="mt-2"><StatusBadge status={telegram.status === 'connected' ? 'active' : telegram.status === 'link_code_ready' ? 'in_progress' : 'inactive'} label={telegram.status === 'connected' ? 'Connected' : telegram.status === 'link_code_ready' ? 'Link Code Ready' : 'Not Connected'} /></div></div></div>
               {telegram.status === 'connected' ? <Button variant="outline" size="sm" disabled={telegramBusy} onClick={handleDisconnectTelegram}>Disconnect Telegram</Button> : <Button variant="accent" size="sm" disabled={telegramBusy} onClick={handleGenerateTelegramCode}>{telegramBusy ? 'Generating...' : 'Generate Link Code'}</Button>}
             </div>
-            {telegramError && <div role="alert" className="mt-4 rounded-xl border border-danger/25 bg-danger/10 px-3.5 py-3 text-xs font-medium text-danger">{telegramError}</div>}
+{telegramError && <div role="alert" className="mt-4 rounded-xl border border-danger/25 bg-danger/10 px-3.5 py-3 text-xs font-medium text-danger">{telegramError}</div>}
+            <div className="mt-4 rounded-2xl border border-border bg-surface p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-primary">Telegram health</p><p className="mt-1 text-xs text-secondary">{telegramDiagnostics?.worker === 'healthy' ? 'Healthy' : telegram.status === 'connected' ? 'Needs attention' : 'Disconnected'}</p></div>{telegram.status === 'connected' && <Button variant="outline" size="sm" disabled={testingTelegram} onClick={handleTestTelegram}>{testingTelegram ? 'Queueing...' : 'Send test notification'}</Button>}</div>{telegram.status === 'connected' && telegramDiagnostics && <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs"><div><p className="font-semibold text-primary">{telegramDiagnostics.pending}</p><p className="text-secondary">Pending</p></div><div><p className="font-semibold text-primary">{telegramDiagnostics.retryable}</p><p className="text-secondary">Retrying</p></div><div><p className="font-semibold text-primary">{telegramDiagnostics.failed}</p><p className="text-secondary">Failed</p></div></div>}<p className="mt-3 text-[11px] text-secondary">Last delivery: {telegramDiagnostics?.last_delivered_at ? new Date(telegramDiagnostics.last_delivered_at).toLocaleString() : 'None yet'}{telegramDiagnostics?.last_failed_at ? ` · Last failure: ${telegramDiagnostics.failure_class ?? 'Needs attention'}` : ''}</p></div>
             <div className="mt-4 rounded-2xl border border-border bg-surface p-4">
               <div className="flex items-center gap-2"><i className="bi bi-bell text-sm text-primary" aria-hidden="true" /><p className="text-sm font-semibold text-primary">Telegram notifications</p></div>
               {telegram.status === 'connected' ? <div className="mt-3 divide-y divide-border">
