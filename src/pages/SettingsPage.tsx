@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Bell,
-  CalendarDays,
-  Check,
+  Bell,  Check,
   CircleDollarSign,
   FileText,
   Globe2,
@@ -85,7 +83,8 @@ export function SettingsPage() {
   };
 
   const handleSave = async () => { setSaving(true); setError(''); setSaveMessage(''); try { await saveSettings(settings); if (telegram.status === 'connected') await saveTelegramBudgetNotificationPreferences(telegramNotifications); setSaveMessage('Settings saved.'); } catch (reason) { setError(settingsErrorMessage(reason)); } finally { setSaving(false); } };
-  const enabledNotifications = settings.notifications.filter((notification) => notification.enabled).length;
+  const enabledInAppNotifications = settings.notifications.filter((notification) => notification.enabled).length;
+  const enabledTelegramNotifications = Object.values(telegramNotifications).filter(Boolean).length;
   const handleGenerateTelegramCode = async () => {
     setTelegramBusy(true); setError(''); setSaveMessage(''); setTelegramError('');
     try { setTelegram(await generateTelegramLinkCode()); }
@@ -181,15 +180,15 @@ export function SettingsPage() {
             <p className="mt-4 text-[11px] leading-relaxed text-secondary">Security controls will be connected only when authentication is introduced. This screen does not accept or retain passwords.</p>
           </SettingsSection>
 
-          <SettingsSection icon={Bell} eyebrow="Stay informed" title="Notifications" description="Choose which personal finance moments deserve a gentle reminder in the app.">
+          <SettingsSection icon={Bell} eyebrow="Stay informed" title="In-app notifications" description="Saved preference controls for future in-app delivery. Telegram delivery is configured separately above.">
             <div className="divide-y divide-border">{settings.notifications.map((notification) => <PreferenceToggle key={notification.id} id={`settings-${notification.id}`} title={notification.title} description={notification.description} checked={notification.enabled} onChange={(enabled) => updateNotification(notification.id, enabled)} />)}</div>
-            <div className="mt-4 flex items-center gap-2 border-t border-border pt-4 text-[11px] text-secondary"><CalendarDays className="h-4 w-4" aria-hidden="true" /><span>{enabledNotifications} of {settings.notifications.length} notification preferences enabled</span></div>
+            <div className="mt-4 flex items-center gap-2 border-t border-border pt-4 text-[11px] text-secondary"><i className="bi bi-bell" aria-hidden="true" /><span>In-app: {enabledInAppNotifications} of {settings.notifications.length} enabled</span></div>
           </SettingsSection>
         </div>
 
         <aside className="space-y-6 xl:sticky xl:top-6">
-          <Card padding="lg"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-dark text-white"><Sparkles className="h-5 w-5" aria-hidden="true" /></div><div><h2 className="text-sm font-semibold text-primary">Your preferences</h2><p className="mt-0.5 text-xs text-secondary">A quick local snapshot</p></div></div><dl className="mt-5 space-y-4"><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Currency</dt><dd className="text-xs font-semibold text-primary">{settings.currency} {currencySymbols[settings.currency]}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Region</dt><dd className="text-xs font-semibold text-primary">{settings.region}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Appearance</dt><dd className="text-xs font-semibold capitalize text-primary">{settings.appearance}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Alerts</dt><dd className="text-xs font-semibold text-primary">{enabledNotifications} enabled</dd></div></dl></Card>
-          <Card padding="lg" className="border-dark bg-dark text-white"><div className="flex items-center gap-2 text-accent"><FileText className="h-4 w-4" aria-hidden="true" /><span className="text-[10px] font-semibold uppercase tracking-[0.16em]">Prototype boundaries</span></div><p className="mt-3 text-sm font-semibold">Everything here is safe to explore.</p><ul className="mt-3 space-y-2.5 text-xs leading-relaxed text-white/65"><li>Changes live in local React state.</li><li>Refreshing the page resets this demo.</li><li>No bank, OAuth, password, or secret data is used.</li></ul></Card>
+          <Card padding="lg"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-dark text-white"><Sparkles className="h-5 w-5" aria-hidden="true" /></div><div><h2 className="text-sm font-semibold text-primary">Your preferences</h2><p className="mt-0.5 text-xs text-secondary">Saved settings snapshot</p></div></div><dl className="mt-5 space-y-4"><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Currency</dt><dd className="text-xs font-semibold text-primary">{settings.currency} {currencySymbols[settings.currency]}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Region</dt><dd className="text-xs font-semibold text-primary">{settings.region}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Appearance</dt><dd className="text-xs font-semibold capitalize text-primary">{settings.appearance}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">In-app alerts</dt><dd className="text-xs font-semibold text-primary">{enabledInAppNotifications} enabled</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Telegram alerts</dt><dd className="text-xs font-semibold text-primary">{telegram.status === 'connected' ? `${enabledTelegramNotifications} enabled` : 'Not connected'}</dd></div></dl></Card>
+          <Card padding="lg" className="border-dark bg-dark text-white"><div className="flex items-center gap-2 text-accent"><FileText className="h-4 w-4" aria-hidden="true" /><span className="text-[10px] font-semibold uppercase tracking-[0.16em]">Settings storage</span></div><p className="mt-3 text-sm font-semibold">Preferences are saved to your Finexy account.</p><ul className="mt-3 space-y-2.5 text-xs leading-relaxed text-white/65"><li>Profile, regional, and notification preferences persist in Supabase.</li><li>Telegram preferences control server-side notification delivery.</li><li>Two-factor authentication remains a clearly marked demo control.</li></ul></Card>
         </aside>
       </div>
 
