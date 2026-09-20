@@ -65,6 +65,24 @@ defaults to the actual current month. The UI always includes the current month
 in its selector and groups monetary summaries by currency without FX
 conversion.
 
+## Phase 17 overview read model
+
+The Overview service is a frontend read model over the authenticated wallet,
+transaction, and budget services. It reads the persisted `default_currency`
+preference (falling back to USD) as its reporting currency. Monetary KPI cards,
+category spending, and cash-flow trend include only completed, active,
+non-transfer ledger rows in that currency. Total balance reuses the wallet
+ledger-balance calculation and includes active wallets in the reporting
+currency only. Wallet previews retain each wallet's native currency and are
+never added into a cross-currency grand total.
+
+The default reporting month is the actual current month; it is never replaced
+with the April 2026 demo period. Available persisted transaction and budget
+months can be selected explicitly. Budget progress delegates to the Phase 16
+derived budget read model, so transfers and non-settled ledger rows are
+excluded consistently. These pure period, financial-total, category, and trend
+helpers are intentionally reusable by the future Reports phase.
+
 ## Ownership and deletion
 
 Every user-owned table carries `user_id` and has RLS policies based on

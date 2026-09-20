@@ -1,58 +1,7 @@
-import { MoreVertical } from 'lucide-react';
 import type { Wallet } from '../../types/finance';
 import { StatusBadge } from '../ui/StatusBadge';
 import { cn } from '../../lib/utils';
-
-export interface WalletCardProps {
-  wallet: Wallet;
-  onActionClick?: (walletId: string) => void;
-  className?: string;
-}
-
-export function WalletCard({ wallet, onActionClick, className }: WalletCardProps) {
-  const formattedBalance = `${wallet.symbol}${wallet.balance.toLocaleString()}`;
-  const formattedLimit = wallet.monthlyLimit === null ? 'No monthly limit' : `Limit ${wallet.symbol}${wallet.monthlyLimit >= 1000 ? (wallet.monthlyLimit / 1000).toFixed(0) + 'k' : wallet.monthlyLimit}/mo`;
-
-  return (
-    <div
-      className={cn(
-        'p-3 sm:p-3.5 rounded-2xl bg-surface border border-border/80 hover:border-border transition-all flex items-center justify-between gap-3 group',
-        className
-      )}
-    >
-      {/* Left: Flag & Currency Info */}
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-white border border-border flex items-center justify-center text-base shadow-xs shrink-0 select-none">
-          {wallet.flag}
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-primary">{wallet.currency}</span>
-            <span className="text-xs font-semibold text-primary">{formattedBalance}</span>
-          </div>
-          <span className="text-[11px] text-secondary">{formattedLimit}</span>
-        </div>
-      </div>
-
-      {/* Right: Status & Overflow menu */}
-      <div className="flex items-center gap-2 shrink-0">
-        <StatusBadge
-          status={wallet.status === 'Active' ? 'active' : 'inactive'}
-          label={wallet.status}
-          className="text-[10px] py-0.5 px-2"
-        />
-
-        <button
-          type="button"
-          onClick={() => onActionClick?.(wallet.id)}
-          aria-label={`Wallet actions for ${wallet.currency}`}
-          className="w-7 h-7 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-white transition-colors cursor-pointer"
-        >
-          <MoreVertical className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
+import { formatWalletAmount } from '../../lib/overview';
+export interface WalletCardProps { wallet: Wallet; onActionClick?: (walletId: string) => void; className?: string; }
+export function WalletCard({ wallet, onActionClick, className }: WalletCardProps) { const limit = wallet.monthlyLimit === null ? 'No monthly limit' : `Limit ${formatWalletAmount(wallet.monthlyLimit, wallet.currency)}/mo`; return <div className={cn('group flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-surface p-3 transition-all hover:border-border sm:p-3.5', className)}><div className="flex min-w-0 items-center gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-white text-secondary shadow-xs"><i className="bi bi-wallet2" aria-hidden="true" /></div><div className="min-w-0"><div className="flex items-center gap-2"><span className="truncate text-sm font-bold text-primary">{wallet.name}</span><span className="text-xs font-semibold text-primary">{formatWalletAmount(wallet.balance, wallet.currency)}</span></div><span className="text-[11px] text-secondary">{wallet.currency} · {limit}</span></div></div><div className="flex shrink-0 items-center gap-2"><StatusBadge status={wallet.status === 'Active' ? 'active' : 'inactive'} label={wallet.status} className="px-2 py-0.5 text-[10px]" /><button type="button" onClick={() => onActionClick?.(wallet.id)} aria-label={`Open ${wallet.name}`} className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-secondary transition-colors hover:bg-white hover:text-primary"><i className="bi bi-chevron-right text-xs" aria-hidden="true" /></button></div></div>; }
 export default WalletCard;
