@@ -23,11 +23,11 @@ export function PreferenceToggle({ id, title, description, checked, onChange }: 
         aria-label={title}
         onClick={() => onChange(!checked)}
         className={cn(
-          'relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-[background-color,border-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
-          checked ? 'border-dark bg-dark' : 'border-border bg-surface'
+          'relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition-[background-color,border-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:ring-offset-2',
+          checked ? 'border-dark/10 bg-dark shadow-sm' : 'border-border bg-canvas hover:border-border-hover'
         )}
       >
-        <span className={cn('absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform duration-200', checked ? 'translate-x-6' : 'translate-x-1')} />
+        <span className={cn('absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out', checked ? 'translate-x-6' : 'translate-x-1')} />
       </button>
     </div>
   );

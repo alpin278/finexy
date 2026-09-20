@@ -3,7 +3,7 @@ import { cn } from '../../lib/utils';
 import { Icon } from './Icon';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'accent' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'accent' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'selected';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   leftIcon?: ReactNode;
@@ -28,19 +28,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
+      'inline-flex items-center justify-center font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer active:translate-y-px active:scale-[0.99]';
 
     const variants = {
       primary:
-        'bg-dark text-white hover:bg-dark-hover active:scale-[0.98] shadow-sm',
+        'bg-dark text-white shadow-sm hover:bg-dark-hover hover:-translate-y-px hover:shadow-card',
       accent:
-        'bg-accent text-white hover:bg-accent-hover active:scale-[0.98] shadow-sm',
+        'bg-accent text-white shadow-sm hover:bg-accent-hover hover:-translate-y-px hover:shadow-card',
       secondary:
-        'bg-surface text-primary border border-border hover:bg-canvas active:scale-[0.98]',
+        'bg-surface text-primary border border-border hover:border-border-hover hover:bg-white hover:-translate-y-px hover:shadow-sm',
       outline:
-        'border border-border bg-transparent text-primary hover:bg-surface active:scale-[0.98]',
+        'border border-border bg-transparent text-primary hover:border-border-hover hover:bg-surface hover:-translate-y-px hover:shadow-sm',
       ghost:
-        'bg-transparent text-secondary hover:text-primary hover:bg-border/40 active:scale-[0.98]',
+        'bg-transparent text-secondary hover:text-primary hover:bg-surface active:bg-border/40',
+      destructive:
+        'border border-danger/25 bg-danger/5 text-danger hover:border-danger/40 hover:bg-danger/10 hover:-translate-y-px',
+      selected:
+        'border border-dark/10 bg-dark text-white shadow-sm hover:bg-dark-hover',
     };
 
     const sizes = {

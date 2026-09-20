@@ -105,10 +105,10 @@ export function TopNavigation({
               onClick={() => onNavigate?.(tab.id)}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'px-3 xl:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-150',
+                'px-3 xl:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-[background-color,color,border-color,box-shadow,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:translate-y-px active:scale-[0.99]',
                 isActive
-                  ? 'bg-dark text-white shadow-xs'
-                  : 'text-secondary hover:text-primary hover:bg-border/40'
+                  ? 'border border-dark/10 bg-dark text-white shadow-sm'
+                  : 'border border-transparent text-secondary hover:border-border hover:bg-surface hover:text-primary hover:shadow-sm'
               )}
             >
               {tab.label}
@@ -156,7 +156,7 @@ export function TopNavigation({
         <button
           type="button"
           aria-label="Notifications"
-          className="relative w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-border/60 transition-colors cursor-pointer"
+          className="relative w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface hover:shadow-sm transition-[background-color,color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
         >
           <Icon name="bell" className="text-sm" />
           <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-accent" />
@@ -166,7 +166,7 @@ export function TopNavigation({
         <button
           type="button"
           aria-label="System Information"
-          className="w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-border/60 transition-colors cursor-pointer hidden sm:flex"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface hover:shadow-sm transition-[background-color,color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 hidden sm:flex"
         >
           <Icon name="info-circle" className="text-sm" />
         </button>

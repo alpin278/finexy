@@ -66,7 +66,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
         className={cn(
           'w-full max-w-[1600px] h-screen sm:h-[calc(100vh-24px)] md:h-[calc(100vh-32px)] lg:h-[calc(100vh-48px)]',
           'bg-surface sm:rounded-[28px] border border-border',
-          'shadow-[0_12px_48px_-12px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col',
+          'shadow-[0_12px_48px_-12px_rgba(23,23,20,0.08)] overflow-hidden flex flex-col',
           className
         )}
       >
@@ -137,10 +137,10 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                         closeMobileMenu();
                       }}
                       className={cn(
-                        'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors text-left',
+                        'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:translate-y-px',
                         isActive
-                          ? 'bg-dark text-white shadow-xs'
-                          : 'text-secondary hover:text-primary hover:bg-surface'
+                          ? 'border border-dark/10 bg-dark text-white shadow-sm'
+                          : 'text-secondary hover:text-primary hover:bg-white hover:shadow-sm'
                       )}
                     >
                       <Icon name={tab.icon} className="text-base" />
@@ -163,10 +163,10 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                           closeMobileMenu();
                         }}
                         className={cn(
-                          'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors text-left',
-                          isActive
-                            ? 'bg-dark text-white shadow-xs'
-                            : 'text-secondary hover:text-primary hover:bg-surface'
+                        'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:translate-y-px',
+                        isActive
+                          ? 'border border-dark/10 bg-dark text-white shadow-sm'
+                          : 'text-secondary hover:text-primary hover:bg-white hover:shadow-sm'
                         )}
                       >
                         <Icon name={tab.icon} className="text-base" />

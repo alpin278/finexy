@@ -32,7 +32,6 @@ export function Sidebar({
     path?: string;
     icon: string;
   }[] = [
-    { id: 'calendar', label: 'Calendar', path: '/overview', icon: 'calendar3' },
     { id: 'categories', label: 'Categories', tab: 'categories', path: '/categories', icon: 'layers' },
     { id: 'settings', label: 'Settings', tab: 'settings', path: '/settings', icon: 'gear' },
   ];
@@ -52,7 +51,7 @@ export function Sidebar({
             type="button"
             onClick={onToggleTheme}
             aria-label="Toggle theme"
-            className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-border/60 transition-colors cursor-pointer"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface hover:shadow-sm transition-[background-color,color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
           >
             <Icon name={isDarkTheme ? 'sun' : 'moon'} className="text-base" />
           </button>
@@ -76,10 +75,10 @@ export function Sidebar({
                     aria-label={item.label}
                     aria-current={isActive ? 'page' : undefined}
                     className={cn(
-                      'w-10 h-10 rounded-full flex items-center justify-center transition-all duration-150',
+                      'w-10 h-10 rounded-full flex items-center justify-center transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
                       isActive
-                        ? 'bg-dark text-white shadow-sm'
-                        : 'text-secondary hover:text-primary hover:bg-border/60 active:scale-95'
+                        ? 'border border-dark/10 bg-dark text-white shadow-sm'
+                        : 'text-secondary hover:text-primary hover:bg-surface hover:shadow-sm active:scale-[0.97]'
                     )}
                   >
                     <Icon name={item.icon} className="text-base" />
@@ -93,7 +92,7 @@ export function Sidebar({
                 <button
                   type="button"
                   aria-label={item.label}
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-border/60 active:scale-95 transition-all cursor-pointer"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface active:scale-[0.97] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
                 >
                   <Icon name={item.icon} className="text-base" />
                 </button>
@@ -109,7 +108,7 @@ export function Sidebar({
           <button
             type="button"
             aria-label="Help & Support"
-            className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-border/60 transition-colors cursor-pointer"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface hover:shadow-sm transition-[background-color,color,box-shadow,transform] duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
           >
             <Icon name="question-circle" className="text-base" />
           </button>
@@ -125,7 +124,7 @@ export function Sidebar({
               }
             }}
             aria-label="Log out"
-            className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/25"
           >
             <Icon name="box-arrow-right" className="text-base" />
           </button>

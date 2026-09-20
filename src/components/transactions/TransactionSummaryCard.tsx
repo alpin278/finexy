@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 
 export interface TransactionSummaryCardProps {
   label: string;
-  value: string;
+  value: ReactNode;
   detail: string;
   trend?: string;
   trendTone?: 'positive' | 'negative' | 'neutral';
@@ -45,7 +45,7 @@ export function TransactionSummaryCard({
         </span>
       </div>
       <div>
-        <p className="text-xl sm:text-[22px] font-bold tracking-tight text-primary">{value}</p>
+        <div className="min-w-0 text-xl font-bold tracking-tight text-primary sm:text-[22px]">{value}</div>
         <p className="text-[11px] text-secondary mt-1">
           {trend && <span className={cn('font-semibold mr-1.5', trendTones[trendTone])}>{trend}</span>}
           {detail}

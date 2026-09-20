@@ -1,11 +1,12 @@
 import { TransactionSummaryCard } from './TransactionSummaryCard';
 import { Icon } from '../ui/Icon';
 import type { TransactionSummaryData } from '../../lib/transactions';
+import type { ReactNode } from 'react';
 
-function formatTotals(values: Record<string, number>) {
+function formatTotals(values: Record<string, number>): ReactNode {
   const entries = Object.entries(values);
-  if (!entries.length) return '—';
-  return entries.map(([currency, amount]) => new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2 }).format(amount)).join(' · ');
+  if (!entries.length) return <span className="text-secondary">—</span>;
+  return <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">{entries.map(([currency, amount]) => <span key={currency} className="inline-flex max-w-full items-baseline gap-1.5"><span className="rounded-md bg-surface px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-secondary">{currency}</span><span className="break-words">{new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol', minimumFractionDigits: 2 }).format(amount)}</span></span>)}</div>;
 }
 
 export function TransactionSummary({ summary }: { summary: TransactionSummaryData }) {

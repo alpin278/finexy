@@ -2,13 +2,58 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { BalanceCard, WalletList, MetricCard, ProfitLossChart, SpendingLimitCard, RecentActivityTable, SpendingInsightCard, QuickActions } from '../components/dashboard';
+import { Button, Select } from '../components/ui';
 import { currentBudgetPeriod, periodLabel } from '../lib/budget-utils';
 import { loadOverviewPage, overviewErrorMessage, type OverviewPageData } from '../lib/overview';
 
 export function OverviewPage() {
-  const navigate = useNavigate(); const [period, setPeriod] = useState(currentBudgetPeriod()); const [data, setData] = useState<OverviewPageData | null>(null); const [error, setError] = useState<string | null>(null); const [loading, setLoading] = useState(true);
-  const refresh = async (nextPeriod: string) => { setLoading(true); setError(null); try { setData(await loadOverviewPage(nextPeriod)); } catch (reason) { setError(overviewErrorMessage(reason)); setData(null); } finally { setLoading(false); } };
-  useEffect(() => { const timer = window.setTimeout(() => { void refresh(period); }, 0); return () => window.clearTimeout(timer); }, [period]);
-  return <div className="space-y-6 pb-8 sm:space-y-7"><header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="font-sans text-2xl font-bold tracking-tight text-primary sm:text-[28px] lg:text-[32px]">Your financial overview</h1><p className="mt-0.5 text-xs text-secondary sm:text-sm">A live view of settled balances, spending, and budget progress.</p></div><div className="flex items-center gap-2"><label className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3.5 py-2 text-xs font-semibold text-primary shadow-2xs"><i className="bi bi-calendar3 text-secondary" aria-hidden="true" /><span className="sr-only">Reporting month</span><select value={period} onChange={(event) => setPeriod(event.target.value)} className="cursor-pointer bg-transparent outline-none">{(data?.availablePeriods ?? [period]).map((item) => <option key={item} value={item}>{periodLabel(item)}</option>)}</select></label><button type="button" onClick={() => void refresh(period)} className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-white px-4 py-2 text-xs font-semibold text-primary shadow-2xs transition-colors hover:bg-surface"><i className="bi bi-arrow-clockwise text-secondary" aria-hidden="true" />Refresh</button></div></header>{loading ? <div className="rounded-2xl border border-border bg-white p-10 text-center text-sm text-secondary" role="status">Loading your live financial overview…</div> : null}{!loading && error ? <div className="rounded-2xl border border-danger/30 bg-white p-8 text-center"><p className="text-sm text-danger">{error}</p><button type="button" onClick={() => void refresh(period)} className="mt-3 text-xs font-semibold text-accent">Try again</button></div> : null}{!loading && !error && data ? <><section aria-label="Financial summary" className="grid items-stretch gap-5 sm:gap-6 md:grid-cols-2 xl:grid-cols-12"><div className="flex min-w-0 flex-col gap-5 sm:gap-6 md:col-span-1 xl:col-span-4"><BalanceCard amount={data.totalBalance} currency={data.reportingCurrency} period={periodLabel(data.period)} className="h-full" /><WalletList wallets={data.wallets} onAddWallet={() => navigate('/wallets')} onWalletAction={() => navigate('/wallets')} className="h-full" /></div><div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-1 xl:col-span-4">{data.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} currency={data.reportingCurrency} className="h-full" />)}</div><div className="h-full min-w-0 md:col-span-2 xl:col-span-4"><ProfitLossChart data={data.cashFlowTrend} currency={data.reportingCurrency} className="h-full min-h-[340px]" /></div></section><section aria-label="Planning and activity" className="grid items-stretch gap-5 sm:gap-6 xl:grid-cols-12"><div className="flex min-w-0 flex-col gap-5 sm:gap-6 xl:col-span-4"><SpendingLimitCard data={data.budgetProgress} currency={data.reportingCurrency} onViewBudget={() => navigate('/budgets')} /><SpendingInsightCard categories={data.categorySpending} currency={data.reportingCurrency} /><QuickActions /></div><div className="min-w-0 xl:col-span-8"><RecentActivityTable activities={data.recentTransactions} className="h-full" /></div></section></> : null}</div>;
+  const navigate = useNavigate();
+  const [period, setPeriod] = useState(currentBudgetPeriod());
+  const [data, setData] = useState<OverviewPageData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = async (nextPeriod: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      setData(await loadOverviewPage(nextPeriod));
+    } catch (reason) {
+      setError(overviewErrorMessage(reason));
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void refresh(period); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [period]);
+
+  return <div className="min-w-0 space-y-6 pb-8 sm:space-y-7">
+    <header className="flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="min-w-0">
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-accent">Personal finance cockpit</p>
+        <h1 className="font-sans text-[clamp(1.55rem,2.2vw,2rem)] font-bold tracking-[-0.04em] text-primary">Your financial overview</h1>
+        <p className="mt-1 max-w-2xl text-xs leading-5 text-secondary sm:text-sm">A live view of settled balances, spending, and budget progress.</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Select aria-label="Reporting month" value={period} onChange={(event) => setPeriod(event.target.value)} options={(data?.availablePeriods ?? [period]).map((item) => ({ value: item, label: periodLabel(item) }))} icon={<i className="bi bi-calendar3 text-secondary" aria-hidden="true" />} />
+        <Button variant="secondary" size="sm" onClick={() => void refresh(period)} leftIcon={<i className="bi bi-arrow-clockwise text-secondary" aria-hidden="true" />}>Refresh</Button>
+      </div>
+    </header>
+    {loading ? <div className="rounded-2xl border border-border bg-white p-10 text-center text-sm text-secondary" role="status">Loading your live financial overview…</div> : null}
+    {!loading && error ? <div className="rounded-2xl border border-danger/30 bg-white p-8 text-center"><p className="text-sm text-danger">{error}</p><Button variant="ghost" size="sm" onClick={() => void refresh(period)} className="mt-3 text-accent">Try again</Button></div> : null}
+    {!loading && !error && data ? <>
+      <section aria-label="Financial summary" className="grid min-w-0 items-stretch gap-4 sm:gap-5 xl:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-4 sm:gap-5 md:col-span-1 xl:col-span-4"><BalanceCard amount={data.totalBalance} currency={data.reportingCurrency} period={periodLabel(data.period)} className="h-full" /><WalletList wallets={data.wallets} onAddWallet={() => navigate('/wallets')} onWalletAction={() => navigate('/wallets')} className="h-full" /></div>
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-1 xl:col-span-4">{data.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} currency={data.reportingCurrency} className="h-full" />)}</div>
+        <div className="h-full min-w-0 md:col-span-2 xl:col-span-4"><ProfitLossChart data={data.cashFlowTrend} currency={data.reportingCurrency} className="h-full min-h-[320px]" /></div>
+      </section>
+      <section aria-label="Planning and activity" className="grid min-w-0 items-stretch gap-4 sm:gap-5 xl:grid-cols-12"><div className="flex min-w-0 flex-col gap-4 sm:gap-5 xl:col-span-4"><SpendingLimitCard data={data.budgetProgress} currency={data.reportingCurrency} onViewBudget={() => navigate('/budgets')} /><SpendingInsightCard categories={data.categorySpending} currency={data.reportingCurrency} /><QuickActions /></div><div className="min-w-0 xl:col-span-8"><RecentActivityTable activities={data.recentTransactions} className="h-full" /></div></section>
+    </> : null}
+  </div>;
 }
+
 export default OverviewPage;

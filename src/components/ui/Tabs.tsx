@@ -18,7 +18,7 @@ export function Tabs({ tabs, activeTab, onChange, className, size = 'md' }: Tabs
   return (
     <div
       className={cn(
-        'inline-flex items-center p-1 bg-surface border border-border rounded-full',
+        'inline-flex items-center gap-0.5 p-1 bg-surface border border-border rounded-full shadow-sm',
         className
       )}
     >
@@ -33,10 +33,10 @@ export function Tabs({ tabs, activeTab, onChange, className, size = 'md' }: Tabs
             className={cn(
               'relative inline-flex items-center gap-1.5 rounded-full font-medium transition-[background-color,color,box-shadow,transform] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
               size === 'sm' ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-xs sm:text-sm',
-              isActive ? 'text-white' : 'text-secondary hover:text-primary hover:bg-border/40'
+              isActive ? 'text-white' : 'text-secondary hover:text-primary hover:bg-white'
             )}
           >
-            {isActive && <span className="absolute inset-0 rounded-full bg-dark shadow-sm" aria-hidden="true" />}
+            {isActive && <span className="absolute inset-0 rounded-full border border-dark/10 bg-dark shadow-sm" aria-hidden="true" />}
             <span className="relative z-[1] inline-flex items-center gap-1.5">
               <span>{tab.label}</span>
               {typeof tab.count === 'number' && (
