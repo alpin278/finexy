@@ -5,15 +5,15 @@ export type TransactionTab = 'all' | 'income' | 'expense';
 export interface TransactionTabsProps {
   activeTab: TransactionTab;
   onChange: (tab: TransactionTab) => void;
+  counts: { all: number; income: number; expense: number };
 }
 
-const tabs: TabItem[] = [
-  { id: 'all', label: 'All Transactions', count: 1248 },
-  { id: 'income', label: 'Income', count: 412 },
-  { id: 'expense', label: 'Expenses', count: 836 },
-];
-
-export function TransactionTabs({ activeTab, onChange }: TransactionTabsProps) {
+export function TransactionTabs({ activeTab, onChange, counts }: TransactionTabsProps) {
+  const tabs: TabItem[] = [
+    { id: 'all', label: 'All Transactions', count: counts.all },
+    { id: 'income', label: 'Income', count: counts.income },
+    { id: 'expense', label: 'Expenses', count: counts.expense },
+  ];
   return (
     <Tabs
       tabs={tabs}

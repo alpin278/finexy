@@ -783,7 +783,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      perform_wallet_transfer: {
+        Args: {
+          p_amount: number
+          p_destination_wallet_id: string
+          p_idempotency_key?: string | null
+          p_note?: string | null
+          p_source_wallet_id: string
+        }
+        Returns: {
+          created_at: string
+          destination_amount: number
+          destination_transaction_id: string
+          destination_wallet_id: string
+          reference: string | null
+          source_amount: number
+          source_transaction_id: string
+          source_wallet_id: string
+          status: Database["public"]["Enums"]["transfer_status"]
+          transfer_id: string
+        }[]
+      }
     }
     Enums: {
       category_rule_field: "payee" | "description"

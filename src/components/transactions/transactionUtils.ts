@@ -18,6 +18,7 @@ export function formatTransactionAmount(transaction: Transaction) {
     minimumFractionDigits: 2,
   }).format(transaction.amount);
 
+  if (transaction.type === 'transfer') return amount;
   return `${transaction.type === 'income' ? '+' : '-'}${amount}`;
 }
 

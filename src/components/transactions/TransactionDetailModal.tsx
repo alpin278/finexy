@@ -22,12 +22,22 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
           <div className="rounded-2xl bg-surface border border-border p-4">
             <p className="text-sm font-semibold text-primary">{transaction.description}</p>
             <p className="text-xs text-secondary mt-1">{transaction.payee}</p>
-            <p className={transaction.type === 'income' ? 'text-xl font-bold text-success mt-4' : 'text-xl font-bold text-primary mt-4'}>
+            <p className={transaction.type === 'income' ? 'text-xl font-bold text-success mt-4' : transaction.type === 'transfer' ? 'text-xl font-bold text-accent mt-4' : 'text-xl font-bold text-primary mt-4'}>
               {formatTransactionAmount(transaction)}
             </p>
           </div>
 
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
+            {transaction.type === 'transfer' && <>
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-secondary">From Wallet</dt>
+                <dd className="text-xs text-primary mt-1">{transaction.transferSourceWallet ?? transaction.wallet}</dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-secondary">To Wallet</dt>
+                <dd className="text-xs text-primary mt-1">{transaction.transferDestinationWallet ?? 'Another wallet'}</dd>
+              </div>
+            </>}
             <div>
               <dt className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Reference ID</dt>
               <dd className="text-xs font-mono text-primary mt-1">{transaction.reference}</dd>
@@ -37,8 +47,8 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
               <dd className="text-xs text-primary mt-1 capitalize">{transaction.type}</dd>
             </div>
             <div>
-              <dt className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Category</dt>
-              <dd className="text-xs text-primary mt-1">{transaction.category}</dd>
+              <dt className="text-[10px] font-semibold uppercase tracking-wider text-secondary">{transaction.type === 'transfer' ? 'Transfer Reference' : 'Category'}</dt>
+              <dd className="text-xs text-primary mt-1">{transaction.type === 'transfer' ? transaction.transferReference ?? transaction.reference : transaction.category}</dd>
             </div>
             <div>
               <dt className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Wallet</dt>

@@ -29,6 +29,7 @@ export const transactionStatuses: { value: TransactionStatus; label: string }[] 
 export const transactionTypeLabels: Record<TransactionType, string> = {
   income: 'Income',
   expense: 'Expense',
+  transfer: 'Transfer',
 };
 
 // These seven visible records are deterministic seed input for the Supabase

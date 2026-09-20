@@ -10,6 +10,7 @@ import { supabase } from './supabase';
 type TransactionRow = Tables<'transactions'>;
 type TransactionStatusDb = Enums<'transaction_status'>;
 type CurrencyDb = Enums<'currency_code'>;
+type TransferRow = Tables<'wallet_transfers'>;
 
 interface JoinedTransactionRow extends TransactionRow {
   wallet: { id: string; name: string; currency: CurrencyDb } | null;
@@ -59,10 +60,17 @@ async function listTransactionRows(userId: string) {
     .select('*, wallet:wallets(id, name, currency), category:categories(id, name, type)')
     .eq('user_id', userId)
     .is('deleted_at', null)
-    .in('type', ['income', 'expense'])
     .order('occurred_at', { ascending: false });
   if (error) throw error;
   return data as unknown as JoinedTransactionRow[];
+}
+
+async function listTransferRows(userId: string, transferIds?: string[]) {
+  let query = supabase.from('wallet_transfers').select('*').eq('user_id', userId).is('deleted_at', null);
+  if (transferIds?.length) query = query.in('id', transferIds);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
 }
 
 function formatTime(value: string) {
@@ -78,23 +86,32 @@ function mapSource(source: string) {
   return source === 'web' ? 'Web entry' : `${source.charAt(0).toUpperCase()}${source.slice(1)} entry`;
 }
 
-function mapTransaction(row: JoinedTransactionRow): Transaction {
+function mapTransaction(row: JoinedTransactionRow, transfer?: TransferRow, walletNames?: Map<string, string>): Transaction {
   const description = row.description ?? row.payee ?? 'Untitled transaction';
+  const isTransfer = row.type === 'transfer';
+  const transferSourceWallet = transfer ? walletNames?.get(transfer.source_wallet_id) : undefined;
+  const transferDestinationWallet = transfer ? walletNames?.get(transfer.destination_wallet_id) : undefined;
+  const transferDescription = row.transfer_leg === 'outbound'
+    ? `Transfer to ${transferDestinationWallet ?? 'another wallet'}`
+    : `Transfer from ${transferSourceWallet ?? 'another wallet'}`;
   return {
     id: row.id,
-    description,
-    payee: row.payee ?? description,
+    description: isTransfer ? transferDescription : description,
+    payee: isTransfer ? transferDescription : row.payee ?? description,
     reference: row.reference ?? row.id.slice(0, 8),
     secondaryReference: row.note ?? 'No note',
-    type: row.type === 'income' ? 'income' : 'expense',
-    category: row.category?.name ?? 'Uncategorized',
+    type: row.type === 'income' ? 'income' : row.type === 'expense' ? 'expense' : 'transfer',
+    category: isTransfer ? 'Transfer' : row.category?.name ?? 'Uncategorized',
     wallet: row.wallet?.name ?? 'Unknown wallet',
-    method: mapSource(row.source),
+    method: isTransfer ? 'Wallet transfer' : mapSource(row.source),
     date: row.occurred_at.slice(0, 10),
     time: formatTime(row.occurred_at),
     amount: Number(row.amount),
     currency: row.currency,
     status: mapStatus(row.status),
+    ...(isTransfer && transferSourceWallet ? { transferSourceWallet } : {}),
+    ...(isTransfer && transferDestinationWallet ? { transferDestinationWallet } : {}),
+    ...(isTransfer && transfer?.reference ? { transferReference: transfer.reference } : {}),
   };
 }
 
@@ -102,6 +119,7 @@ function buildSummary(transactions: Transaction[]): TransactionSummaryData {
   const income: Record<string, number> = {};
   const expenses: Record<string, number> = {};
   for (const transaction of transactions) {
+    if (transaction.type === 'transfer') continue;
     const target = transaction.type === 'income' ? income : expenses;
     target[transaction.currency] = (target[transaction.currency] ?? 0) + transaction.amount;
   }
@@ -187,7 +205,7 @@ async function bootstrapDefaultTransactions(userId: string, walletRows: Tables<'
     if (seedId) categoriesBySeed.set(seedId, category);
   }
   const resolved = defaultTransactionSeeds.map((transaction) => {
-    const type = transaction.type;
+    const type = transaction.type === 'income' ? 'income' : 'expense';
     const walletSeed = walletSeedForMockName(transaction.wallet);
     const categorySeed = categorySeedForMockName(transaction.category, type);
     return { transaction, wallet: walletSeed ? walletsBySeed.get(walletSeed) : undefined, category: categorySeed ? categoriesBySeed.get(categorySeed) : undefined };
@@ -228,7 +246,10 @@ export async function loadTransactionsPage(): Promise<TransactionPageData> {
   const categoryOptions = categoryPage.categories.filter((category) => category.status === 'active').map((category) => ({ id: category.id, name: category.name, type: category.type }));
   await bootstrapDefaultTransactions(userId, await listRawWallets(userId), categoryOptions, activeRows);
   const rows = await listTransactionRows(userId);
-  const transactions = rows.map(mapTransaction);
+  const transferRows = await listTransferRows(userId, rows.flatMap((row) => row.transfer_id ? [row.transfer_id] : []));
+  const walletNames = new Map(walletOptions.map((wallet) => [wallet.id, wallet.name]));
+  const transfersById = new Map(transferRows.map((transfer) => [transfer.id, transfer]));
+  const transactions = rows.map((row) => mapTransaction(row, row.transfer_id ? transfersById.get(row.transfer_id) : undefined, walletNames));
   return { transactions, categories: categoryOptions, wallets: walletOptions, summary: buildSummary(transactions) };
 }
 
@@ -242,7 +263,10 @@ export async function getTransaction(transactionId: string) {
   const userId = await requireUserId();
   const { data, error } = await supabase.from('transactions').select('*, wallet:wallets(id, name, currency), category:categories(id, name, type)').eq('id', transactionId).eq('user_id', userId).is('deleted_at', null).maybeSingle();
   if (error) throw error;
-  return data ? mapTransaction(data as unknown as JoinedTransactionRow) : null;
+  if (!data) return null;
+  const row = data as unknown as JoinedTransactionRow;
+  const transfer = row.transfer_id ? (await listTransferRows(userId, [row.transfer_id]))[0] : undefined;
+  return mapTransaction(row, transfer);
 }
 
 async function walletCurrency(userId: string, walletId: string) {

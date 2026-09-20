@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, MoreHorizontal } from 'lucide-react';
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, MoreHorizontal } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { IconButton } from '../ui/IconButton';
 import { StatusBadge } from '../ui/StatusBadge';
@@ -30,7 +30,8 @@ export function TransactionRow({
   onDelete,
 }: TransactionRowProps) {
   const isIncome = transaction.type === 'income';
-  const DirectionIcon = isIncome ? ArrowDownLeft : ArrowUpRight;
+  const isTransfer = transaction.type === 'transfer';
+  const DirectionIcon = isTransfer ? ArrowLeftRight : isIncome ? ArrowDownLeft : ArrowUpRight;
 
   return (
     <TableRow className="group hover:bg-surface/70">
@@ -39,7 +40,9 @@ export function TransactionRow({
           <span
             className={cn(
               'w-8 h-8 mt-0.5 rounded-full flex items-center justify-center shrink-0 border',
-              isIncome
+              isTransfer
+                ? 'bg-accent/10 text-accent border-accent/20'
+                : isIncome
                 ? 'bg-success/10 text-success border-success/20'
                 : 'bg-surface text-primary border-border'
             )}
@@ -74,7 +77,7 @@ export function TransactionRow({
       </TableCell>
 
       <TableCell className="text-right min-w-[125px] whitespace-nowrap">
-        <span className={cn('text-sm font-bold tracking-tight', isIncome ? 'text-success' : 'text-primary')}>
+        <span className={cn('text-sm font-bold tracking-tight', isTransfer ? 'text-accent' : isIncome ? 'text-success' : 'text-primary')}>
           {formatTransactionAmount(transaction)}
         </span>
       </TableCell>
@@ -107,20 +110,20 @@ export function TransactionRow({
               >
                 View Details
               </button>
-              <button
+              {!isTransfer && <button
                 type="button"
                 onClick={onEdit}
                 className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface cursor-pointer"
               >
                 Edit
-              </button>
-              <button
+              </button>}
+              {!isTransfer && <button
                 type="button"
                 onClick={onDelete}
                 className="w-full px-3 py-2 text-left text-xs font-medium text-danger hover:bg-danger/10 cursor-pointer"
               >
                 Delete
-              </button>
+              </button>}
             </div>
           )}
         </div>

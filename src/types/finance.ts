@@ -87,7 +87,7 @@ export interface RecentActivity {
   date: string;
 }
 
-export type TransactionType = 'income' | 'expense';
+export type TransactionType = 'income' | 'expense' | 'transfer';
 
 export type TransactionStatus = 'completed' | 'pending' | 'canceled';
 
@@ -106,4 +106,7 @@ export interface Transaction {
   amount: number;
   currency: CurrencyCode;
   status: TransactionStatus;
+  transferSourceWallet?: string;
+  transferDestinationWallet?: string;
+  transferReference?: string;
 }
