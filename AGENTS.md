@@ -143,6 +143,9 @@ Shared primitives include:
 - Avatar
 - Tooltip
 
+Bootstrap Icons are the standard UI icon library. Do not use emoji as UI icons;
+icon-only controls require an `aria-label`.
+
 Do not duplicate primitives without a clear reason.
 
 ---

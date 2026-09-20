@@ -4,6 +4,7 @@ import { currentBudgetPeriod, periodLabel, periodRange } from './budget-utils';
 import { loadBudgetPage, type BudgetSummaryData } from './budgets';
 import { supabase } from './supabase';
 import { formatWalletAmount, loadWalletsPage } from './wallets';
+import { calculateFinancialTotals, isSettledFinancialTransaction } from './financial-analytics';
 
 type TransactionRow = Tables<'transactions'>;
 type Currency = WalletCurrencyCode;
@@ -80,25 +81,8 @@ function rowPeriod(row: TransactionRow) {
   return row.occurred_at.slice(0, 7) as BudgetPeriod;
 }
 
-export function isSettledFinancialTransaction(row: TransactionRow, period: BudgetPeriod, currency: Currency) {
-  return row.deleted_at === null
-    && row.status === 'completed'
-    && row.currency === currency
-    && rowPeriod(row) === period
-    && row.transfer_id === null
-    && (row.type === 'income' || row.type === 'expense');
-}
-
 export function calculatePeriodFinancials(rows: TransactionRow[], period: BudgetPeriod, currency: Currency) {
-  let income = 0;
-  let expenses = 0;
-  for (const row of rows) {
-    if (!isSettledFinancialTransaction(row, period, currency)) continue;
-    if (row.type === 'income') income += Number(row.amount);
-    if (row.type === 'expense') expenses += Number(row.amount);
-  }
-  const net = income - expenses;
-  return { income, expenses, net, savingsRate: income > 0 ? (net / income) * 100 : 0 };
+  return calculateFinancialTotals(rows, periodRange(period), currency);
 }
 
 const spendingColors = ['#FF5A36', '#F29B62', '#E8CF56', '#55B88B', '#777771'];
@@ -106,7 +90,7 @@ const spendingColors = ['#FF5A36', '#F29B62', '#E8CF56', '#55B88B', '#777771'];
 export function aggregateCategorySpending(rows: OverviewTransactionRow[], period: BudgetPeriod, currency: Currency): OverviewCategorySpending[] {
   const totals = new Map<string, { label: string; amount: number }>();
   for (const row of rows) {
-    if (!isSettledFinancialTransaction(row, period, currency) || row.type !== 'expense') continue;
+    if (!isSettledFinancialTransaction(row, periodRange(period), currency) || row.type !== 'expense') continue;
     const id = row.category_id ?? 'uncategorized';
     const current = totals.get(id) ?? { label: row.category?.name ?? 'Uncategorized', amount: 0 };
     current.amount += Number(row.amount);
