@@ -45,8 +45,8 @@ const appearanceIcons: Record<AppearancePreference, LucideIcon> = {
 
 const currencySymbols: Record<SettingsCurrency, string> = {
   USD: '$',
-  EUR: 'Ã¢â€šÂ¬',
-  GBP: 'Ã‚£',
+  EUR: '€',
+  GBP: '£',
   IDR: 'Rp',
 };
 
@@ -64,7 +64,7 @@ function createInitialSettings(): SettingsState {
 export function SettingsPage() {
   const [settings, setSettings] = useState<SettingsState>(createInitialSettings);
   const [loading, setLoading] = useState(true);
-  const [Saving�etSaving� useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
   const [telegram, setTelegram] = useState<TelegramConnection>({ status: 'not_connected' });
@@ -82,7 +82,7 @@ export function SettingsPage() {
     setSaveMessage('');
   };
 
-  const handleSave = async () => { setSaving�ue); setError(''); setSaveMessage(''); try { await saveSettings(settings); setSaveMessage('Settings saved. Reporting currency updates on the next Overview or Reports load.'); } catch (reason) { setError(settingsErrorMessage(reason)); } finally { setSaving�lse); } };
+  const handleSave = async () => { setSaving(true); setError(''); setSaveMessage(''); try { await saveSettings(settings); setSaveMessage('Settings saved. Reporting currency updates on the next Overview or Reports load.'); } catch (reason) { setError(settingsErrorMessage(reason)); } finally { setSaving(false); } };
   const enabledNotifications = settings.notifications.filter((notification) => notification.enabled).length;
   const handleGenerateTelegramCode = async () => {
     setTelegramBusy(true); setError(''); setSaveMessage('');
@@ -97,7 +97,7 @@ export function SettingsPage() {
     finally { setTelegramBusy(false); }
   };
 
-  if (loading) return <div role="status" className="rounded-2xl border border-border bg-white p-10 text-center text-sm text-secondary">Loading your saved preferencesÃ¢€Â¦</div>;
+  if (loading) return <div role="status" className="rounded-2xl border border-border bg-white p-10 text-center text-sm text-secondary">Loading your saved preferences...</div>;
   return (
     <div className="space-y-6 pb-8 animate-in fade-in-50 duration-200">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -108,7 +108,7 @@ export function SettingsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status="in_progress" label="Supabase preferences" />
-          <Button variant="primary" size="sm" leftIcon={<Save className="h-3.5 w-3.5" />} onClick={handleSave}>{Saving�'Saving�¿Â½' : 'Save Changes'}</Button>
+          <Button variant="primary" size="sm" leftIcon={<Save className="h-3.5 w-3.5" />} onClick={handleSave}>{saving ? 'Saving...' : 'Save Changes'}</Button>
         </div>
       </header>
 
@@ -159,7 +159,7 @@ export function SettingsPage() {
           <SettingsSection icon={WalletCards} eyebrow="Connections" title="Telegram" description="Link Telegram to your signed-in Finexy account. This foundation does not expose financial data or accept financial commands.">
             <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary"><i className="bi bi-telegram text-lg" aria-hidden="true" /></div><div><p className="text-sm font-semibold text-primary">Telegram</p><p className="mt-1 text-xs text-secondary">{telegram.status === 'connected' ? 'Your Telegram account is linked.' : telegram.status === 'link_code_ready' ? 'Send the code below to the Finexy bot.' : 'Generate a one-time code to link your account.'}</p><div className="mt-2"><StatusBadge status={telegram.status === 'connected' ? 'active' : telegram.status === 'link_code_ready' ? 'in_progress' : 'inactive'} label={telegram.status === 'connected' ? 'Connected' : telegram.status === 'link_code_ready' ? 'Link Code Ready' : 'Not Connected'} /></div></div></div>
-              {telegram.status === 'connected' ? <Button variant="outline" size="sm" disabled={telegramBusy} onClick={handleDisconnectTelegram}>Disconnect Telegram</Button> : <Button variant="accent" size="sm" disabled={telegramBusy} onClick={handleGenerateTelegramCode}>{telegramBusy ? 'Generating…' : 'Generate Link Code'}</Button>}
+              {telegram.status === 'connected' ? <Button variant="outline" size="sm" disabled={telegramBusy} onClick={handleDisconnectTelegram}>Disconnect Telegram</Button> : <Button variant="accent" size="sm" disabled={telegramBusy} onClick={handleGenerateTelegramCode}>{telegramBusy ? 'Generating...' : 'Generate Link Code'}</Button>}
             </div>
             {telegram.status === 'link_code_ready' && <div className="mt-4 rounded-xl border border-accent/20 bg-accent/10 p-3.5"><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary">One-time link code</p><p className="mt-1 font-mono text-lg font-bold tracking-[0.16em] text-primary">{telegram.code}</p><p className="mt-1.5 text-xs text-secondary">Send <span className="font-semibold text-primary">/link {telegram.code}</span> to the Finexy bot. Expires {new Date(telegram.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.</p></div>}
           </SettingsSection>
@@ -177,7 +177,7 @@ export function SettingsPage() {
 
         <aside className="space-y-6 xl:sticky xl:top-6">
           <Card padding="lg"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-dark text-white"><Sparkles className="h-5 w-5" aria-hidden="true" /></div><div><h2 className="text-sm font-semibold text-primary">Your preferences</h2><p className="mt-0.5 text-xs text-secondary">A quick local snapshot</p></div></div><dl className="mt-5 space-y-4"><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Currency</dt><dd className="text-xs font-semibold text-primary">{settings.currency} {currencySymbols[settings.currency]}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Region</dt><dd className="text-xs font-semibold text-primary">{settings.region}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Appearance</dt><dd className="text-xs font-semibold capitalize text-primary">{settings.appearance}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Alerts</dt><dd className="text-xs font-semibold text-primary">{enabledNotifications} enabled</dd></div></dl></Card>
-          <Card padding="lg" className="border-dark bg-dark text-white"><div className="flex items-center gap-2 text-accent"><FileText className="h-4 w-4" aria-hidden="true" /><span className="text-[10px] font-semibold uppercase tracking-[0.16em]">Prototype boundaries</span></div><p className="mt-3 text-sm font-semibold">Everything here is safe to explore.</p><ul className="mt-3 space-y-2.5 text-xs leading-relaxed text-white/65"><li>Ã¢€Â¢ Changes live in local React state.</li><li>Ã¢€Â¢ Refreshing the page resets this demo.</li><li>Ã¢€Â¢ No bank, OAuth, password, or secret data is used.</li></ul></Card>
+          <Card padding="lg" className="border-dark bg-dark text-white"><div className="flex items-center gap-2 text-accent"><FileText className="h-4 w-4" aria-hidden="true" /><span className="text-[10px] font-semibold uppercase tracking-[0.16em]">Prototype boundaries</span></div><p className="mt-3 text-sm font-semibold">Everything here is safe to explore.</p><ul className="mt-3 space-y-2.5 text-xs leading-relaxed text-white/65"><li>Changes live in local React state.</li><li>Refreshing the page resets this demo.</li><li>No bank, OAuth, password, or secret data is used.</li></ul></Card>
         </aside>
       </div>
 
