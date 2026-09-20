@@ -783,6 +783,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_telegram_link_code: {
+        Args: Record<PropertyKey, never>
+        Returns: { code: string; expires_at: string }[]
+      }
+      unlink_telegram: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       perform_wallet_transfer: {
         Args: {
           p_amount: number
