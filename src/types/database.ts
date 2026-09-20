@@ -791,6 +791,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      telegram_wallet_transfer_session: {
+        Args: {
+          p_action: string
+          p_telegram_chat_id: string
+          p_telegram_user_id: string
+          p_value?: string | null
+        }
+        Returns: Json
+      }
       perform_wallet_transfer: {
         Args: {
           p_amount: number
