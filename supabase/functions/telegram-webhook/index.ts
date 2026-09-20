@@ -11,6 +11,45 @@ function logFailure(stage: string, error: unknown) {
   console.error(JSON.stringify({ stage, error_name: safeError.name }));
 }
 
+function safeDiagnosticText(value: unknown) {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (!normalized) return undefined;
+  return normalized
+    .replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, '[redacted-uuid]')
+    .replace(/\b(?:telegram|finexy)?[_ -]?(?:user|chat|update|rule|session|integration)?[_ -]?id\s*[:=]\s*[^\s,;)]*/gi, '[redacted-id]')
+    .replace(/\b(?:token|secret|authorization|headers?|payload)\s*[:=][^,;]*/gi, '[redacted]')
+    .replace(/\b\d{6,}\b/g, '[redacted-number]')
+    .slice(0, 240);
+}
+
+function safeDiagnosticCode(value: unknown) {
+  if (typeof value !== 'string' || !/^[A-Za-z0-9._-]{1,32}$/.test(value)) return undefined;
+  return value;
+}
+
+function logRecurringListFailure(error: unknown) {
+  const outer = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+  const cause = outer.cause && typeof outer.cause === 'object' ? outer.cause as Record<string, unknown> : undefined;
+  const source = cause ?? outer;
+  const errorName = typeof source.name === 'string'
+    ? source.name
+    : error instanceof Error ? error.name : 'Error';
+  const diagnostic: Record<string, string> = {
+    stage: 'recurring_list_load',
+    operation: 'telegram_recurring_session',
+    error_name: safeDiagnosticText(errorName) ?? 'Error',
+    error_message: safeDiagnosticText(source.message) ?? safeDiagnosticText(error instanceof Error ? error.message : undefined) ?? 'Unknown runtime error',
+  };
+  const code = safeDiagnosticCode(source.code);
+  const details = safeDiagnosticText(source.details);
+  const hint = safeDiagnosticText(source.hint);
+  if (code) diagnostic.error_code = code;
+  if (details) diagnostic.error_details = details;
+  if (hint) diagnostic.error_hint = hint;
+  console.error(JSON.stringify(diagnostic));
+}
+
 function logDiagnostic(stage: string, details: Record<string, string | number | boolean>) {
   console.info(JSON.stringify({ stage, ...details }));
 }
@@ -197,7 +236,9 @@ async function recurringSession(db: ReturnType<typeof createClient>, user:string
       result = 'error';
       logDiagnostic('recurring_session_init', { action, result: 'failed' });
       if (action === 'list') logDiagnostic('recurring_list_load', { result: 'failed', rules_count: 0 });
-      throw new Error(`Recurring RPC failed: ${error.message}`);
+      const wrappedError = new Error(`Recurring RPC failed: ${error.message}`);
+      (wrappedError as Error & { cause?: unknown }).cause = error;
+      throw wrappedError;
     }
     const session = (data??{status:'unlinked'}) as RecurringSession;
     logDiagnostic('recurring_session_init', { action, result: session.status === 'linked' ? 'linked' : 'unlinked', step: session.step ?? 'none' });
@@ -350,7 +391,7 @@ Deno.serve(async (request) => {
           recurring = await recurringSessionWithDeadline(db, telegramUserId, telegramChatId, 'list');
         } catch (error) {
           stage = 'recurring_list_load';
-          logFailure(stage, error);
+          logRecurringListFailure(error);
           await replyRecurringError(botToken, telegramChatId, requestStartedAt);
           return finishResponse('ok');
         }
