@@ -35,16 +35,23 @@ const menuMarkup = { inline_keyboard: [
   [{ text: 'Transaksi Rutin', callback_data: 'finexy:recurring' }],
 ] };
 const backMarkup = { inline_keyboard: [[{ text: 'Kembali', callback_data: 'finexy:menu' }]] };
+const CALLBACK_ACK_TIMEOUT_MS = 3000;
+const RECURRING_OPERATION_TIMEOUT_MS = 5000;
+const RECURRING_TELEGRAM_TIMEOUT_MS = 5000;
 
-async function telegramApi(botToken: string, method: string, body: Record<string, unknown>) {
+async function telegramApi(botToken: string, method: string, body: Record<string, unknown>, timeoutMs?: number) {
   const timingStage = method === 'answerCallbackQuery' ? 'telegram_answerCallbackQuery' : method === 'sendMessage' ? 'telegram_sendMessage' : method === 'editMessageText' ? 'telegram_editMessageText' : `telegram_${method}`;
   const startedAt = performance.now();
+  const controller = timeoutMs ? new AbortController() : undefined;
+  const timeoutHandle = timeoutMs ? setTimeout(() => controller?.abort(), timeoutMs) : undefined;
   let response: Response;
   try {
-    response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), ...(controller ? { signal: controller.signal } : {}) });
   } catch (error) {
-    logTiming(timingStage, startedAt, { result: 'network_error' });
+    logTiming(timingStage, startedAt, { result: controller?.signal.aborted ? 'timeout' : 'network_error' });
     throw error;
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
   }
   if (!response.ok) {
     logTiming(timingStage, startedAt, { result: 'http_error', http_status: response.status });
@@ -53,17 +60,17 @@ async function telegramApi(botToken: string, method: string, body: Record<string
   logTiming(timingStage, startedAt, { result: 'ok', http_status: response.status });
 }
 
-async function reply(botToken: string, chatId: string, text: string, replyMarkup?: object) {
-  await telegramApi(botToken, 'sendMessage', { chat_id: chatId, text, ...(replyMarkup ? { reply_markup: replyMarkup } : {}) });
+async function reply(botToken: string, chatId: string, text: string, replyMarkup?: object, timeoutMs?: number) {
+  await telegramApi(botToken, 'sendMessage', { chat_id: chatId, text, ...(replyMarkup ? { reply_markup: replyMarkup } : {}) }, timeoutMs);
 }
 
-async function answerCallback(botToken: string, callbackId: string) {
-  await telegramApi(botToken, 'answerCallbackQuery', { callback_query_id: callbackId });
+async function answerCallback(botToken: string, callbackId: string, timeoutMs = CALLBACK_ACK_TIMEOUT_MS) {
+  await telegramApi(botToken, 'answerCallbackQuery', { callback_query_id: callbackId }, timeoutMs);
 }
 
-function acknowledgeCallback(botToken: string, callbackId: string | undefined, requestStartedAt: number) {
+function acknowledgeCallback(botToken: string, callbackId: string | undefined, requestStartedAt: number, timeoutMs = CALLBACK_ACK_TIMEOUT_MS) {
   if (!callbackId) return;
-  void answerCallback(botToken, callbackId)
+  void answerCallback(botToken, callbackId, timeoutMs)
     .then(() => logTiming('callback_acknowledged', requestStartedAt, { result: 'ok' }))
     .catch((error) => {
       logTiming('callback_acknowledged', requestStartedAt, { result: 'error' });
@@ -205,7 +212,23 @@ async function recurringSession(db: ReturnType<typeof createClient>, user:string
     logTiming('session_load', startedAt, { flow: 'recurring', action, result });
   }
 }
-async function replyRecurring(botToken: string, chatId: string, session: RecurringSession, callback: TelegramCallback | undefined, requestStartedAt: number) {
+function recurringSessionWithDeadline(db: ReturnType<typeof createClient>, user: string, chat: string, action: string, value?: string) {
+  return new Promise<RecurringSession>((resolve, reject) => {
+    const timeoutHandle = setTimeout(() => {
+      logDiagnostic('recurring_session_init', { action, result: 'timeout' });
+      if (action === 'list') logDiagnostic('recurring_list_load', { result: 'timeout', rules_count: 0 });
+      reject(new Error('Recurring session timed out.'));
+    }, RECURRING_OPERATION_TIMEOUT_MS);
+    recurringSession(db, user, chat, action, value).then((session) => {
+      clearTimeout(timeoutHandle);
+      resolve(session);
+    }).catch((error) => {
+      clearTimeout(timeoutHandle);
+      reject(error);
+    });
+  });
+}
+async function replyRecurring(botToken: string, chatId: string, session: RecurringSession, requestStartedAt: number) {
   const markup = recurringMarkup(session);
   if (session.step === 'list') {
     const lastRow = markup.inline_keyboard[markup.inline_keyboard.length - 1];
@@ -213,11 +236,22 @@ async function replyRecurring(botToken: string, chatId: string, session: Recurri
   }
   logDiagnostic('telegram_reply', { flow: 'recurring', result: 'started', step: session.step ?? 'none', rules_count: session.rules?.length ?? 0 });
   try {
-    await visibleResponse(botToken, chatId, recurringText(session), markup, callback, requestStartedAt, 'recurring');
+    await reply(botToken, chatId, recurringText(session), markup, RECURRING_TELEGRAM_TIMEOUT_MS);
     logDiagnostic('telegram_reply', { flow: 'recurring', result: 'sent', step: session.step ?? 'none', rules_count: session.rules?.length ?? 0 });
+    logTiming('first_visible_response', requestStartedAt, { flow: 'recurring', transport: 'sendMessage' });
   } catch (error) {
-    logFailure('telegram_reply', error);
+    logFailure('recurring_render', error);
     throw error;
+  }
+}
+async function replyRecurringError(botToken: string, chatId: string, requestStartedAt: number) {
+  logDiagnostic('telegram_reply', { flow: 'recurring_error', result: 'started' });
+  try {
+    await reply(botToken, chatId, 'Transaksi Rutin sedang tidak tersedia. Silakan tekan Kembali atau coba lagi.', backMarkup, RECURRING_TELEGRAM_TIMEOUT_MS);
+    logDiagnostic('telegram_reply', { flow: 'recurring_error', result: 'sent' });
+    logTiming('first_visible_response', requestStartedAt, { flow: 'recurring_error', transport: 'sendMessage' });
+  } catch (error) {
+    logFailure('recurring_error_reply', error);
   }
 }
 function recurringMarkup(s:RecurringSession){if(s.step==='list')return{inline_keyboard:[[{text:'Buat Pengeluaran Rutin',callback_data:'rr:new:expense'},{text:'Buat Pemasukan Rutin',callback_data:'rr:new:income'}],...(s.rules??[]).map(r=>[{text:`${r.type==='expense'?'Pengeluaran':'Pemasukan'} ${formatMoney(r.amount,r.currency)} Ã‚· ${r.active?'Aktif':'Jeda'}`,callback_data:`rr:d:${r.ref}`}]),[{text:'Menu',callback_data:'finexy:menu'}]]};if(s.step==='detail')return{inline_keyboard:[[{text:s.active?'Pause':'Resume',callback_data:`rr:t:${s.ref}`},{text:'Edit',callback_data:`rr:e:${s.ref}`}],[{text:'Archive',callback_data:`rr:a:${s.ref}`}],[{text:'Kembali',callback_data:'finexy:recurring'}]]};if(s.step==='archive_confirm')return{inline_keyboard:[[{text:'Archive',callback_data:`rr:x:${s.ref}`},{text:'Batal',callback_data:'finexy:recurring'}]]};if(s.step==='wallet')return{inline_keyboard:[...(s.wallets??[]).map(w=>[{text:`${w.name} (${w.currency})`,callback_data:`rr:w:${w.ref}`}]),[{text:'Kembali',callback_data:'rr:back'},{text:'Batal',callback_data:'rr:cancel'}]]};if(s.step==='category')return{inline_keyboard:[...(s.categories??[]).map(c=>[{text:c.name,callback_data:`rr:c:${c.ref}`}]),[{text:'Kembali',callback_data:'rr:back'},{text:'Batal',callback_data:'rr:cancel'}]]};if(s.step==='frequency')return{inline_keyboard:[[{text:'Mingguan',callback_data:'rr:f:weekly'},{text:'Bulanan',callback_data:'rr:f:monthly'}],[{text:'Kembali',callback_data:'rr:back'},{text:'Batal',callback_data:'rr:cancel'}]]};if(s.step==='schedule_day'){if(s.frequency==='weekly')return{inline_keyboard:[['Sen','Sel','Rab','Kam','Jum','Sab','Min'].map((d,i)=>({text:d,callback_data:'rr:y:'+String(i+1)})),[{text:'Kembali',callback_data:'rr:back'},{text:'Batal',callback_data:'rr:cancel'}]]};return{inline_keyboard:[Array.from({length:31},(_,i)=>({text:String(i+1),callback_data:'rr:m:'+String(i+1)})),[{text:'Kembali',callback_data:'rr:back'},{text:'Batal',callback_data:'rr:cancel'}]]};}if(s.step==='schedule_time'||s.step==='amount'||s.step==='note')return{inline_keyboard:[...(s.step==='note'?[{text:'Lewati catatan',callback_data:'rr:skip'}]:[]),[{text:'Kembali',callback_data:'rr:back'},{text:'Batal',callback_data:'rr:cancel'}]]};if(s.step==='edit_field')return{inline_keyboard:[['wallet','category','amount'].map(x=>({text:x==='wallet'?'Wallet':x==='category'?'Kategori':'Jumlah',callback_data:`rr:field:${x}`})),[{text:'Frekuensi',callback_data:'rr:field:frequency'},{text:'Jadwal',callback_data:'rr:field:schedule'}],[{text:'Catatan',callback_data:'rr:field:note'},{text:'Review',callback_data:'rr:review'}],[{text:'Batal',callback_data:'rr:cancel'}]]};if(s.step==='confirm')return{inline_keyboard:[[{text:'Confirm',callback_data:'rr:confirm'},{text:'Batal',callback_data:'rr:cancel'}],[{text:'Kembali',callback_data:'rr:back'}]]};return backMarkup;}
@@ -227,32 +261,40 @@ Deno.serve(async (request) => {
   const requestStartedAt = performance.now();
   logTiming('request_start', requestStartedAt, { method: request.method });
   logTiming('webhook_received', requestStartedAt, { method: request.method });
+  let responseStatus = 500;
+  const finishResponse = (body: string, status = 200) => {
+    responseStatus = status;
+    return new Response(body, { status });
+  };
   let stage = 'configuration';
   try {
     const { botToken, webhookSecret, supabaseUrl, serviceRoleKey } = runtimeConfig();
     stage = 'webhook_secret';
-    if (request.headers.get('x-telegram-bot-api-secret-token') !== webhookSecret) return new Response('forbidden', { status: 403 });
+    if (request.headers.get('x-telegram-bot-api-secret-token') !== webhookSecret) return finishResponse('forbidden', 403);
 
     stage = 'update_parse';
     let update: TelegramUpdate;
-    try { update = await request.json(); } catch { return new Response('bad request', { status: 400 }); }
+    try { update = await request.json(); } catch { return finishResponse('bad request', 400); }
     const callback = update.callback_query;
     const message = update.message;
     const fromId = callback?.from?.id ?? message?.from?.id;
     const chatId = callback?.message?.chat?.id ?? message?.chat?.id;
-    if (!fromId || !chatId || !Number.isInteger(update.update_id)) return new Response('ok');
+    if (!fromId || !chatId || !Number.isInteger(update.update_id)) return finishResponse('ok');
 
     const text = (message?.text ?? '').trim();
     const telegramUserId = String(fromId);
     const telegramChatId = String(chatId);
     const updateId = String(update.update_id);
     const db = createClient(supabaseUrl, serviceRoleKey);
-    const isRecurringMenuCallback = callback?.data === 'finexy:recurring';
+    const callbackData = callback?.data;
+    const isRecurringMenuCallback = callbackData === 'finexy:recurring';
+    const isRecurringCallback = isRecurringMenuCallback || Boolean(callbackData?.startsWith('rr:'));
     if (isRecurringMenuCallback) logDiagnostic('recurring_menu_callback', { result: 'received', callback_route: 'finexy:recurring' });
+    if (isRecurringCallback) logDiagnostic('recurring_callback', { result: 'received' });
 
     // Start acknowledgement before database work so inline buttons never appear stuck.
     // It is intentionally non-blocking: a Telegram API failure must not delay the action.
-    acknowledgeCallback(botToken, callback?.id, requestStartedAt);
+    acknowledgeCallback(botToken, callback?.id, requestStartedAt, isRecurringCallback ? RECURRING_TELEGRAM_TIMEOUT_MS : CALLBACK_ACK_TIMEOUT_MS);
 
     const linkMatch = /^\/link\s+([A-Fa-f0-9]{12})\s*$/.exec(text);
 
@@ -260,7 +302,7 @@ Deno.serve(async (request) => {
       stage = 'link_rpc';
       const { data: result, error } = await db.rpc('consume_telegram_link_code', { p_telegram_user_id: telegramUserId, p_telegram_chat_id: telegramChatId, p_code: linkMatch[1].toUpperCase(), p_update_id: updateId });
       if (error) throw new Error(`Link RPC failed: ${error.message}`);
-      if (result === 'duplicate') return new Response('ok');
+      if (result === 'duplicate') return finishResponse('ok');
       stage = 'link_reply';
       const linkText = result === 'linked'
         ? 'Akun Finexy berhasil terhubung. Ketik /menu untuk mulai.'
@@ -268,7 +310,7 @@ Deno.serve(async (request) => {
           ? 'Akun Telegram ini sudah terhubung. Ketik /menu untuk membuka Finexy.'
           : 'Kode link tidak valid, kedaluwarsa, atau sudah digunakan.';
       await visibleResponse(botToken, telegramChatId, linkText, undefined, undefined, requestStartedAt, 'link');
-      return new Response('ok');
+      return finishResponse('ok');
     }
 
     stage = 'update_claim';
@@ -280,36 +322,69 @@ Deno.serve(async (request) => {
     if (claim === 'duplicate') {
       if (isRecurringMenuCallback) {
         logDiagnostic('recurring_menu_callback', { result: 'duplicate_retry', callback_route: 'finexy:recurring' });
-        const retrySession = await recurringSession(db, telegramUserId, telegramChatId, 'list');
-        await replyRecurring(botToken, telegramChatId, retrySession, callback, requestStartedAt);
-        return new Response('ok');
+        try {
+          const retrySession = await recurringSessionWithDeadline(db, telegramUserId, telegramChatId, 'list');
+          await replyRecurring(botToken, telegramChatId, retrySession, requestStartedAt);
+        } catch (error) {
+          stage = 'recurring_replay';
+          logFailure(stage, error);
+          await replyRecurringError(botToken, telegramChatId, requestStartedAt);
+        }
+        return finishResponse('ok');
       }
       if (callback?.data === 'tx:confirm') {
         stage = 'telegram_reply';
         await visibleResponse(botToken, telegramChatId, 'Konfirmasi sudah diproses. Periksa Transaksi Terakhir untuk hasilnya.', backMarkup, callback, requestStartedAt, 'transaction_duplicate');
       }
       else if (callback) await removeCallbackKeyboard(botToken, callback, telegramChatId);
-      return new Response('ok');
+      return finishResponse('ok');
     }
 
     const requested = callback ? callbackAction(callback.data) : isMenuCommand(text) ? 'menu' : null;
     if (isRecurringMenuCallback) logDiagnostic('recurring_menu_callback', { result: requested === 'recurring' ? 'matched' : 'unmatched', callback_route: requested ?? 'none' });
-    const txData = callback?.data;
+    const txData = callbackData;
     let session: TransactionSession | null = null; let recurring: RecurringSession | null = null;
     if (claim === 'claimed') {
-      if (requested === 'recurring') recurring = await recurringSession(db, telegramUserId, telegramChatId, 'list'); else if (txData?.startsWith('rr:')) { const [,kind,ref] = txData.split(':'); const map:any={d:'detail',t:'toggle',a:'archive_request',x:'archive_confirm',e:'edit',new:ref==='expense'?'start_expense':'start_income',w:'wallet',c:'category',f:'frequency',y:'weekday',m:'monthday',field:'edit_field',review:'review',confirm:'confirm',cancel:'cancel',back:'back',skip:'skip_note'}; const action=map[kind]??'state'; recurring=await recurringSession(db,telegramUserId,telegramChatId,action,kind==='new'?null:ref); } else if (requested === 'menu') { await transactionSession(db, telegramUserId, telegramChatId, 'cancel'); } else if (requested === 'expense' || requested === 'income') session = await transactionSession(db, telegramUserId, telegramChatId, requested === 'expense' ? 'start_expense' : 'start_income');
+      if (requested === 'recurring') {
+        try {
+          recurring = await recurringSessionWithDeadline(db, telegramUserId, telegramChatId, 'list');
+        } catch (error) {
+          stage = 'recurring_list_load';
+          logFailure(stage, error);
+          await replyRecurringError(botToken, telegramChatId, requestStartedAt);
+          return finishResponse('ok');
+        }
+      } else if (txData?.startsWith('rr:')) {
+        try {
+          const [,kind,ref] = txData.split(':');
+          const map:any={d:'detail',t:'toggle',a:'archive_request',x:'archive_confirm',e:'edit',new:ref==='expense'?'start_expense':'start_income',w:'wallet',c:'category',f:'frequency',y:'weekday',m:'monthday',field:'edit_field',review:'review',confirm:'confirm',cancel:'cancel',back:'back',skip:'skip_note'};
+          const action=map[kind]??'state';
+          recurring=await recurringSession(db,telegramUserId,telegramChatId,action,kind==='new'?null:ref);
+        } catch (error) {
+          stage = 'recurring_session';
+          logFailure(stage, error);
+          await replyRecurringError(botToken, telegramChatId, requestStartedAt);
+          return finishResponse('ok');
+        }
+      } else if (requested === 'menu') { await transactionSession(db, telegramUserId, telegramChatId, 'cancel'); } else if (requested === 'expense' || requested === 'income') session = await transactionSession(db, telegramUserId, telegramChatId, requested === 'expense' ? 'start_expense' : 'start_income');
       else if (txData?.startsWith('tx:w:')) session = await transactionSession(db, telegramUserId, telegramChatId, 'wallet', txData.slice(5));
       else if (txData?.startsWith('tx:c:')) session = await transactionSession(db, telegramUserId, telegramChatId, 'category', txData.slice(5));
       else if (txData === 'tx:skip') session = await transactionSession(db, telegramUserId, telegramChatId, 'skip_note');
-      else if (txData === 'tx:confirm') { stage = 'confirm_callback'; console.info(JSON.stringify({ stage })); try { stage = 'session_load'; console.info(JSON.stringify({ stage })); stage = 'transaction_create'; console.info(JSON.stringify({ stage })); session = await transactionSession(db, telegramUserId, telegramChatId, 'confirm'); stage = session.step === 'completed' ? 'session_complete' : 'transaction_result'; console.info(JSON.stringify({ stage, result: session.step === 'completed' ? 'completed' : 'not_completed' })); } catch (confirmError) { logFailure(stage, confirmError); stage = 'telegram_reply'; await visibleResponse(botToken, telegramChatId, 'Transaksi belum dapat disimpan. Periksa data lalu coba Confirm lagi.', undefined, callback, requestStartedAt, 'transaction_error'); return new Response('ok'); } }
+      else if (txData === 'tx:confirm') { stage = 'confirm_callback'; console.info(JSON.stringify({ stage })); try { stage = 'session_load'; console.info(JSON.stringify({ stage })); stage = 'transaction_create'; console.info(JSON.stringify({ stage })); session = await transactionSession(db, telegramUserId, telegramChatId, 'confirm'); stage = session.step === 'completed' ? 'session_complete' : 'transaction_result'; console.info(JSON.stringify({ stage, result: session.step === 'completed' ? 'completed' : 'not_completed' })); } catch (confirmError) { logFailure(stage, confirmError); stage = 'telegram_reply'; await visibleResponse(botToken, telegramChatId, 'Transaksi belum dapat disimpan. Periksa data lalu coba Confirm lagi.', undefined, callback, requestStartedAt, 'transaction_error'); return finishResponse('ok'); } }
       else if (txData === 'tx:cancel') session = await transactionSession(db, telegramUserId, telegramChatId, 'cancel');
       else if (txData === 'tx:back') session = await transactionSession(db, telegramUserId, telegramChatId, 'back');
       else if (!callback && !requested && text) { const rs = await recurringSession(db, telegramUserId, telegramChatId, 'state'); if (rs.status === 'linked' && ['amount','schedule_time','note'].includes(rs.step??'')) recurring = await recurringSession(db, telegramUserId, telegramChatId, rs.step === 'schedule_time' ? 'time' : rs.step!, text); else { const state = await transactionSession(db, telegramUserId, telegramChatId, 'state'); if (state.step === 'amount' || state.step === 'note') session = await transactionSession(db, telegramUserId, telegramChatId, state.step, text); else if (state.status !== 'linked') session = state; } }
     }
     if (recurring) {
       logTiming('business_data_ready', requestStartedAt, { flow: 'recurring', result: recurring.status === 'linked' ? 'linked' : 'unlinked' });
-      await replyRecurring(botToken, telegramChatId, recurring, callback, requestStartedAt);
-      return new Response('ok');
+      try {
+        await replyRecurring(botToken, telegramChatId, recurring, requestStartedAt);
+      } catch (error) {
+        stage = 'recurring_render';
+        logFailure(stage, error);
+        await replyRecurringError(botToken, telegramChatId, requestStartedAt);
+      }
+      return finishResponse('ok');
     }
     if (session) {
       const sessionText = session.status !== 'linked' ? 'Akun Telegram ini belum terhubung ke Finexy.' : txText(session);
@@ -317,12 +392,12 @@ Deno.serve(async (request) => {
       if (session.step === 'completed') { stage = 'telegram_reply'; console.info(JSON.stringify({ stage, result: 'success' })); }
       logTiming('business_data_ready', requestStartedAt, { flow: 'transaction', result: session.status === 'linked' ? 'linked' : 'unlinked' });
       await visibleResponse(botToken, telegramChatId, sessionText, sessionMarkup, callback, requestStartedAt, 'transaction');
-      return new Response('ok');
+      return finishResponse('ok');
     }
     if (!requested || claim !== 'claimed') {
       logTiming('business_data_ready', requestStartedAt, { flow: 'unrecognized', result: 'ready' });
       await visibleResponse(botToken, telegramChatId, 'Pesan belum dikenali. Ketik /menu untuk membuka menu Finexy.', undefined, callback, requestStartedAt, 'unrecognized');
-      return new Response('ok');
+      return finishResponse('ok');
     }
 
     stage = 'finance_authorization';
@@ -331,7 +406,7 @@ Deno.serve(async (request) => {
     logTiming('business_data_ready', requestStartedAt, { flow: 'finance', result: snapshot.status === 'linked' ? 'linked' : 'unlinked' });
     if (snapshot.status !== 'linked') {
       await visibleResponse(botToken, telegramChatId, 'Akun Telegram ini belum terhubung ke Finexy.', undefined, callback, requestStartedAt, 'finance_unlinked');
-      return new Response('ok');
+      return finishResponse('ok');
     }
     stage = 'finance_reply';
     const financeText = requested === 'menu'
@@ -345,11 +420,12 @@ Deno.serve(async (request) => {
             : 'Pencatatan transaksi akan tersedia pada fase berikutnya.';
     const financeMarkup = requested === 'menu' ? menuMarkup : backMarkup;
     await visibleResponse(botToken, telegramChatId, financeText, financeMarkup, callback, requestStartedAt, `finance_${requested}`);
-    return new Response('ok');
+    return finishResponse('ok');
   } catch (error) {
     logFailure(stage, error);
-    return new Response('internal error', { status: 500 });
+    return finishResponse('internal error', 500);
   } finally {
+    logDiagnostic('webhook_response', { http_status: responseStatus, stage });
     logTiming('request_total_duration', requestStartedAt, { stage });
   }
 });
