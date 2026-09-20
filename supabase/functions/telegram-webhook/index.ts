@@ -67,9 +67,10 @@ function runtimeConfig() {
   return { botToken, webhookSecret, supabaseUrl, serviceRoleKey };
 }
 
+const TRANSFER_MENU_CALLBACK_DATA = 'finexy:transfer';
 const menuMarkup = { inline_keyboard: [
   [{ text: 'Pengeluaran', callback_data: 'finexy:expense' }, { text: 'Pemasukan', callback_data: 'finexy:income' }],
-  [{ text: 'Transfer', callback_data: 'finexy:transfer' }],
+  [{ text: 'Transfer', callback_data: TRANSFER_MENU_CALLBACK_DATA }],
   [{ text: 'Saldo', callback_data: 'finexy:wallets' }, { text: 'Budget', callback_data: 'finexy:budgets' }],
   [{ text: 'Transaksi Terakhir', callback_data: 'finexy:transactions' }],
   [{ text: 'Transaksi Rutin', callback_data: 'finexy:recurring' }],
@@ -78,6 +79,7 @@ const backMarkup = { inline_keyboard: [[{ text: 'Kembali', callback_data: 'finex
 const CALLBACK_ACK_TIMEOUT_MS = 3000;
 const RECURRING_OPERATION_TIMEOUT_MS = 5000;
 const RECURRING_TELEGRAM_TIMEOUT_MS = 5000;
+const TRANSFER_TELEGRAM_TIMEOUT_MS = 5000;
 
 async function telegramApi(botToken: string, method: string, body: Record<string, unknown>, timeoutMs?: number) {
   const timingStage = method === 'answerCallbackQuery' ? 'telegram_answerCallbackQuery' : method === 'sendMessage' ? 'telegram_sendMessage' : method === 'editMessageText' ? 'telegram_editMessageText' : `telegram_${method}`;
@@ -234,11 +236,17 @@ async function transferSession(db: ReturnType<typeof createClient>, user: string
     const { data, error } = await db.rpc('telegram_wallet_transfer_session', { p_telegram_user_id: user, p_telegram_chat_id: chat, p_action: action, p_value: value ?? null });
     if (error) {
       result = 'error';
+      logDiagnostic('transfer_session', { action, result: 'error' });
       throw new Error(`Wallet transfer session RPC failed: ${error.message}`);
     }
-    return (data ?? { status: 'unlinked' }) as TransferSession;
+    const session = (data ?? { status: 'unlinked' }) as TransferSession;
+    logDiagnostic('transfer_session', { action, result: session.status === 'linked' ? 'ok' : 'unlinked', step: session.step ?? 'none' });
+    return session;
   } catch (error) {
     result = 'error';
+    if (!(error instanceof Error && error.message.startsWith('Wallet transfer session RPC failed:'))) {
+      logDiagnostic('transfer_session', { action, result: 'error' });
+    }
     throw error;
   } finally {
     logTiming('linked_identity_lookup', startedAt, { flow: 'wallet_transfer', result: result === 'ok' ? 'rpc_boundary' : result });
@@ -276,7 +284,29 @@ function transferText(session: TransferSession) {
   if (session.step === 'canceled') return 'Transfer dibatalkan. Pilih Menu untuk tindakan lain.';
   return 'Sesi transfer sudah berakhir. Pilih Transfer untuk mulai lagi.';
 }
-function transferSuccessMarkup() { return { inline_keyboard: [[{ text: 'Transfer Lagi', callback_data: 'finexy:transfer' }, { text: 'Saldo', callback_data: 'finexy:wallets' }], [{ text: 'Menu', callback_data: 'finexy:menu' }]] }; }
+function transferSuccessMarkup() { return { inline_keyboard: [[{ text: 'Transfer Lagi', callback_data: TRANSFER_MENU_CALLBACK_DATA }, { text: 'Saldo', callback_data: 'finexy:wallets' }], [{ text: 'Menu', callback_data: 'finexy:menu' }]] }; }
+async function replyTransfer(botToken: string, chatId: string, session: TransferSession, requestStartedAt: number) {
+  const transferTextValue = session.status !== 'linked' ? 'Akun Telegram ini belum terhubung ke Finexy.' : transferText(session);
+  const transferMarkupValue = session.status !== 'linked' ? undefined : session.step === 'completed' ? transferSuccessMarkup() : transferMarkup(session);
+  logDiagnostic('transfer_render', { result: 'started', step: session.step ?? 'none' });
+  try {
+    await reply(botToken, chatId, transferTextValue, transferMarkupValue, TRANSFER_TELEGRAM_TIMEOUT_MS);
+    logDiagnostic('transfer_render', { result: 'sent', step: session.step ?? 'none' });
+    logTiming('first_visible_response', requestStartedAt, { flow: 'wallet_transfer', transport: 'sendMessage' });
+  } catch (error) {
+    logFailure('transfer_render', error);
+    throw error;
+  }
+}
+async function replyTransferError(botToken: string, chatId: string, requestStartedAt: number) {
+  try {
+    await reply(botToken, chatId, 'Transfer sedang tidak tersedia. Silakan tekan Kembali atau coba lagi.', backMarkup, TRANSFER_TELEGRAM_TIMEOUT_MS);
+    logDiagnostic('transfer_render', { result: 'error_reply_sent', step: 'error' });
+    logTiming('first_visible_response', requestStartedAt, { flow: 'wallet_transfer_error', transport: 'sendMessage' });
+  } catch (error) {
+    logFailure('transfer_error_reply', error);
+  }
+}
 type RecurringSession = { status?:string; step?:string; mode?:string; ref?:string; type?:string; amount?:number|string; currency?:string; wallet?:string; category?:string; frequency?:string; start_date?:string; local_time?:string; next_due?:string; timezone?:string; active?:boolean; note?:string|null; wallets?:Array<{ref:string;name:string;currency:string}>; categories?:Array<{ref:string;name:string}>; rules?:Array<{ref:string;type:string;amount:number|string;currency:string;wallet:string;category:string;frequency:string;next_due:string;active:boolean}>; error?:string };
 async function recurringSession(db: ReturnType<typeof createClient>, user:string, chat:string, action:string, value?:string) {
   const startedAt = performance.now();
@@ -295,6 +325,9 @@ async function recurringSession(db: ReturnType<typeof createClient>, user:string
     const session = (data??{status:'unlinked'}) as RecurringSession;
     logDiagnostic('recurring_session_init', { action, result: session.status === 'linked' ? 'linked' : 'unlinked', step: session.step ?? 'none' });
     if (action === 'list') logDiagnostic('recurring_list_load', { result: session.status === 'linked' ? 'loaded' : 'unlinked', rules_count: session.rules?.length ?? 0 });
+    if (action === 'time') logDiagnostic('recurring_note', { result: session.step === 'note' ? 'ready' : 'unexpected_step', step: session.step ?? 'none' });
+    if (action === 'note' || action === 'skip_note') logDiagnostic('recurring_note', { result: 'advanced', step: session.step ?? 'none' });
+    if (action === 'review' || session.step === 'confirm') logDiagnostic('recurring_review', { result: 'ready', step: session.step ?? 'none' });
     return session;
   } catch (error) {
     result = 'error';
@@ -304,6 +337,12 @@ async function recurringSession(db: ReturnType<typeof createClient>, user:string
     logTiming('recurring_rpc', startedAt, { action, result });
     logTiming('session_load', startedAt, { flow: 'recurring', action, result });
   }
+}
+function recurringMarkupSafe(s: RecurringSession) {
+  if (s.step === 'note') {
+    return { inline_keyboard: [[{ text: 'Lewati catatan', callback_data: 'rr:skip' }], [{ text: 'Kembali', callback_data: 'rr:back' }, { text: 'Batal', callback_data: 'rr:cancel' }]] };
+  }
+  return recurringMarkup(s);
 }
 function recurringSessionWithDeadline(db: ReturnType<typeof createClient>, user: string, chat: string, action: string, value?: string) {
   return new Promise<RecurringSession>((resolve, reject) => {
@@ -322,14 +361,18 @@ function recurringSessionWithDeadline(db: ReturnType<typeof createClient>, user:
   });
 }
 async function replyRecurring(botToken: string, chatId: string, session: RecurringSession, requestStartedAt: number) {
-  const markup = recurringMarkup(session);
+  const markup = recurringMarkupSafe(session);
   if (session.step === 'list') {
     const lastRow = markup.inline_keyboard[markup.inline_keyboard.length - 1];
     if (lastRow?.[0]) lastRow[0].text = 'Kembali';
   }
+  logDiagnostic('recurring_render', { result: 'started', step: session.step ?? 'none' });
+  if (session.step === 'note') logDiagnostic('recurring_note', { result: 'render_started', step: session.step });
+  if (session.step === 'confirm') logDiagnostic('recurring_review', { result: 'render_started', step: session.step });
   logDiagnostic('telegram_reply', { flow: 'recurring', result: 'started', step: session.step ?? 'none', rules_count: session.rules?.length ?? 0 });
   try {
     await reply(botToken, chatId, recurringText(session), markup, RECURRING_TELEGRAM_TIMEOUT_MS);
+    logDiagnostic('recurring_render', { result: 'sent', step: session.step ?? 'none' });
     logDiagnostic('telegram_reply', { flow: 'recurring', result: 'sent', step: session.step ?? 'none', rules_count: session.rules?.length ?? 0 });
     logTiming('first_visible_response', requestStartedAt, { flow: 'recurring', transport: 'sendMessage' });
   } catch (error) {
@@ -382,12 +425,13 @@ Deno.serve(async (request) => {
     const callbackData = callback?.data;
     const isRecurringMenuCallback = callbackData === 'finexy:recurring';
     const isRecurringCallback = isRecurringMenuCallback || Boolean(callbackData?.startsWith('rr:'));
-    const isTransferMenuCallback = callbackData === 'finexy:transfer';
+    const isTransferMenuCallback = callbackData === TRANSFER_MENU_CALLBACK_DATA;
     const isTransferCallback = isTransferMenuCallback || Boolean(callbackData?.startsWith('tw:'));
     if (isRecurringMenuCallback) logDiagnostic('recurring_menu_callback', { result: 'received', callback_route: 'finexy:recurring' });
     if (isRecurringCallback) logDiagnostic('recurring_callback', { result: 'received' });
     if (isTransferMenuCallback) logDiagnostic('wallet_transfer_menu_callback', { result: 'received' });
     if (isTransferCallback) logDiagnostic('wallet_transfer_callback', { result: 'received' });
+    if (isTransferCallback) logDiagnostic('transfer_callback', { result: 'received', route: isTransferMenuCallback ? 'menu' : 'session' });
 
     // Start acknowledgement before database work so inline buttons never appear stuck.
     // It is intentionally non-blocking: a Telegram API failure must not delay the action.
@@ -433,8 +477,13 @@ Deno.serve(async (request) => {
         stage = 'telegram_reply';
         await visibleResponse(botToken, telegramChatId, 'Konfirmasi sudah diproses. Periksa Transaksi Terakhir untuk hasilnya.', backMarkup, callback, requestStartedAt, 'transaction_duplicate');
       } else if (callback?.data === 'tw:confirm') {
-        stage = 'telegram_reply';
-        await visibleResponse(botToken, telegramChatId, 'Konfirmasi transfer sudah diproses. Tekan Saldo untuk melihat hasilnya.', transferSuccessMarkup(), callback, requestStartedAt, 'wallet_transfer_duplicate');
+        stage = 'transfer_render';
+        try {
+          await reply(botToken, telegramChatId, 'Konfirmasi transfer sudah diproses. Tekan Saldo untuk melihat hasilnya.', transferSuccessMarkup(), TRANSFER_TELEGRAM_TIMEOUT_MS);
+          logDiagnostic('transfer_render', { result: 'duplicate_sent', step: 'completed' });
+        } catch (error) {
+          logFailure(stage, error);
+        }
       }
       else if (callback) await removeCallbackKeyboard(botToken, callback, telegramChatId);
       return finishResponse('ok');
@@ -445,7 +494,16 @@ Deno.serve(async (request) => {
     const txData = callbackData;
     let session: TransactionSession | null = null; let recurring: RecurringSession | null = null; let transfer: TransferSession | null = null;
     if (claim === 'claimed') {
-      if (requested === 'recurring') {
+      if (isTransferMenuCallback) {
+        stage = 'transfer_session';
+        try {
+          transfer = await transferSession(db, telegramUserId, telegramChatId, 'start');
+        } catch (error) {
+          logFailure(stage, error);
+          await replyTransferError(botToken, telegramChatId, requestStartedAt);
+          return finishResponse('ok');
+        }
+      } else if (requested === 'recurring') {
         try {
           recurring = await recurringSessionWithDeadline(db, telegramUserId, telegramChatId, 'list');
         } catch (error) {
@@ -473,12 +531,24 @@ Deno.serve(async (request) => {
       else if (txData === 'tx:confirm') { stage = 'confirm_callback'; console.info(JSON.stringify({ stage })); try { stage = 'session_load'; console.info(JSON.stringify({ stage })); stage = 'transaction_create'; console.info(JSON.stringify({ stage })); session = await transactionSession(db, telegramUserId, telegramChatId, 'confirm'); stage = session.step === 'completed' ? 'session_complete' : 'transaction_result'; console.info(JSON.stringify({ stage, result: session.step === 'completed' ? 'completed' : 'not_completed' })); } catch (confirmError) { logFailure(stage, confirmError); stage = 'telegram_reply'; await visibleResponse(botToken, telegramChatId, 'Transaksi belum dapat disimpan. Periksa data lalu coba Confirm lagi.', undefined, callback, requestStartedAt, 'transaction_error'); return finishResponse('ok'); } }
       else if (txData === 'tx:cancel') session = await transactionSession(db, telegramUserId, telegramChatId, 'cancel');
       else if (txData === 'tx:back') session = await transactionSession(db, telegramUserId, telegramChatId, 'back');
-      else if (txData?.startsWith('tw:s:')) transfer = await transferSession(db, telegramUserId, telegramChatId, 'source', txData.slice(5));
-      else if (txData?.startsWith('tw:d:')) transfer = await transferSession(db, telegramUserId, telegramChatId, 'destination', txData.slice(5));
-      else if (txData === 'tw:skip') transfer = await transferSession(db, telegramUserId, telegramChatId, 'skip_note');
-      else if (txData === 'tw:confirm') { stage = 'transfer_confirm_callback'; try { transfer = await transferSession(db, telegramUserId, telegramChatId, 'confirm'); stage = transfer.step === 'completed' ? 'transfer_session_complete' : 'transfer_result'; } catch (confirmError) { logFailure(stage, confirmError); stage = 'telegram_reply'; await visibleResponse(botToken, telegramChatId, 'Transfer belum dapat diproses. Periksa kembali data lalu coba lagi.', undefined, callback, requestStartedAt, 'wallet_transfer_error'); return finishResponse('ok'); } }
-      else if (txData === 'tw:cancel') transfer = await transferSession(db, telegramUserId, telegramChatId, 'cancel');
-      else if (txData === 'tw:back') transfer = await transferSession(db, telegramUserId, telegramChatId, 'back');
+      else if (isTransferCallback) {
+        stage = 'transfer_session';
+        try {
+          if (txData?.startsWith('tw:s:')) transfer = await transferSession(db, telegramUserId, telegramChatId, 'source', txData.slice(5));
+          else if (txData?.startsWith('tw:d:')) transfer = await transferSession(db, telegramUserId, telegramChatId, 'destination', txData.slice(5));
+          else if (txData === 'tw:skip') transfer = await transferSession(db, telegramUserId, telegramChatId, 'skip_note');
+          else if (txData === 'tw:confirm') {
+            stage = 'transfer_confirm_callback';
+            transfer = await transferSession(db, telegramUserId, telegramChatId, 'confirm');
+            stage = transfer.step === 'completed' ? 'transfer_session_complete' : 'transfer_result';
+          } else if (txData === 'tw:cancel') transfer = await transferSession(db, telegramUserId, telegramChatId, 'cancel');
+          else if (txData === 'tw:back') transfer = await transferSession(db, telegramUserId, telegramChatId, 'back');
+        } catch (transferErrorValue) {
+          logFailure(stage, transferErrorValue);
+          await replyTransferError(botToken, telegramChatId, requestStartedAt);
+          return finishResponse('ok');
+        }
+      }
       else if (!callback && !requested && text) { const transferState = await transferSession(db, telegramUserId, telegramChatId, 'state'); if (transferState.status === 'linked' && ['amount','note'].includes(transferState.step??'')) transfer = await transferSession(db, telegramUserId, telegramChatId, transferState.step!, text); else { const rs = await recurringSession(db, telegramUserId, telegramChatId, 'state'); if (rs.status === 'linked' && ['amount','schedule_time','note'].includes(rs.step??'')) recurring = await recurringSession(db, telegramUserId, telegramChatId, rs.step === 'schedule_time' ? 'time' : rs.step!, text); else { const state = await transactionSession(db, telegramUserId, telegramChatId, 'state'); if (state.step === 'amount' || state.step === 'note') session = await transactionSession(db, telegramUserId, telegramChatId, state.step, text); else if (state.status !== 'linked') session = state; } } }
     }
     if (recurring) {
@@ -493,10 +563,14 @@ Deno.serve(async (request) => {
       return finishResponse('ok');
     }
     if (transfer) {
-      const transferTextValue = transfer.status !== 'linked' ? 'Akun Telegram ini belum terhubung ke Finexy.' : transferText(transfer);
-      const transferMarkupValue = transfer.status !== 'linked' ? undefined : transfer.step === 'completed' ? transferSuccessMarkup() : transferMarkup(transfer);
       logTiming('business_data_ready', requestStartedAt, { flow: 'wallet_transfer', result: transfer.status === 'linked' ? 'linked' : 'unlinked' });
-      await visibleResponse(botToken, telegramChatId, transferTextValue, transferMarkupValue, callback, requestStartedAt, 'wallet_transfer');
+      try {
+        await replyTransfer(botToken, telegramChatId, transfer, requestStartedAt);
+      } catch (error) {
+        stage = 'transfer_render';
+        logFailure(stage, error);
+        await replyTransferError(botToken, telegramChatId, requestStartedAt);
+      }
       return finishResponse('ok');
     }
     if (session) {
