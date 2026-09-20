@@ -5,6 +5,7 @@ type TelegramCallback = { id?: string; data?: string; from?: { id?: number }; me
 type TelegramUpdate = { update_id?: number; message?: TelegramMessage; callback_query?: TelegramCallback };
 type FinanceAction = 'menu' | 'wallets' | 'budgets' | 'transactions';
 type FinanceSnapshot = { status?: string; wallets?: Array<{ name: string; currency: string; balance: number | string }>; budgets?: Array<{ category: string; currency: string; spent: number | string; limit: number | string; remaining: number | string; progress: number | string; status: string }>; transactions?: Array<{ type: string; amount: number | string; currency: string; category: string; wallet: string; occurred_at: string }> };
+type BudgetNotification = { notification_id: string; threshold: 'budget_near_limit' | 'budget_over_limit'; category: string; spent: number | string; limit: number | string; currency: string; progress: number | string };
 
 function logFailure(stage: string, error: unknown) {
   const safeError = error instanceof Error ? error : new Error('Unknown runtime error');
@@ -57,6 +58,31 @@ function formatMoney(value: number | string, currency: string) {
   return new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol', ...digits }).format(Number.isFinite(amount) ? amount : 0).replace(/\u00a0/g, ' ');
 }
 
+function formatBudgetNotification(notification: BudgetNotification) {
+  const heading = notification.threshold === 'budget_over_limit' ? 'Budget telah melewati batas' : 'Budget hampir mencapai batas';
+  const progress = Math.round(Number(notification.progress) * 10) / 10;
+  return `${heading}\n\nKategori: ${notification.category}\nTerpakai: ${formatMoney(notification.spent, notification.currency)} / ${formatMoney(notification.limit, notification.currency)}\nProgress: ${progress}%`;
+}
+
+async function deliverPendingBudgetNotification(db: ReturnType<typeof createClient>, botToken: string, telegramUserId: string, telegramChatId: string) {
+  try {
+    const { data, error } = await db.rpc('claim_telegram_budget_notification', { p_telegram_user_id: telegramUserId, p_telegram_chat_id: telegramChatId });
+    if (error) throw new Error(`Budget notification claim failed: ${error.message}`);
+    const notification = data as BudgetNotification | null;
+    if (!notification?.notification_id) return;
+    try {
+      await reply(botToken, telegramChatId, formatBudgetNotification(notification));
+      const { error: completeError } = await db.rpc('complete_telegram_budget_notification', { p_telegram_user_id: telegramUserId, p_telegram_chat_id: telegramChatId, p_notification_id: notification.notification_id, p_delivered: true });
+      if (completeError) throw new Error(`Budget notification completion failed: ${completeError.message}`);
+    } catch (error) {
+      logFailure('budget_notification_delivery', error);
+      const { error: releaseError } = await db.rpc('complete_telegram_budget_notification', { p_telegram_user_id: telegramUserId, p_telegram_chat_id: telegramChatId, p_notification_id: notification.notification_id, p_delivered: false });
+      if (releaseError) logFailure('budget_notification_release', releaseError);
+    }
+  } catch (error) {
+    logFailure('budget_notification_claim', error);
+  }
+}
 function formatWallets(snapshot: FinanceSnapshot) {
   const wallets = snapshot.wallets ?? [];
   if (!wallets.length) return 'Saldo\n\nBelum ada wallet aktif.';
@@ -160,7 +186,7 @@ Deno.serve(async (request) => {
       else if (txData === 'tx:back') session = await transactionSession(db, telegramUserId, telegramChatId, 'back');
       else if (!callback && !requested && text) { const state = await transactionSession(db, telegramUserId, telegramChatId, 'state'); if (state.step === 'amount' || state.step === 'note') session = await transactionSession(db, telegramUserId, telegramChatId, state.step, text); else if (state.status !== 'linked') session = state; }
     }
-    if (session) { if (session.status !== 'linked') await reply(botToken, telegramChatId, 'Akun Telegram ini belum terhubung ke Finexy.'); else if (session.step === 'completed') { stage = 'telegram_reply'; console.info(JSON.stringify({ stage, result: 'success' })); await reply(botToken, telegramChatId, txText(session), successMarkup(session.mode)); } else await reply(botToken, telegramChatId, txText(session), txMarkup(session)); return new Response('ok'); }
+    if (session) { if (session.status !== 'linked') await reply(botToken, telegramChatId, 'Akun Telegram ini belum terhubung ke Finexy.'); else if (session.step === 'completed') { stage = 'telegram_reply'; console.info(JSON.stringify({ stage, result: 'success' })); await reply(botToken, telegramChatId, txText(session), successMarkup(session.mode)); await deliverPendingBudgetNotification(db, botToken, telegramUserId, telegramChatId); } else await reply(botToken, telegramChatId, txText(session), txMarkup(session)); return new Response('ok'); }
     if (!requested || claim !== 'claimed') { await reply(botToken, telegramChatId, 'Pesan belum dikenali. Ketik /menu untuk membuka menu Finexy.'); return new Response('ok'); }
 
     stage = 'finance_authorization';

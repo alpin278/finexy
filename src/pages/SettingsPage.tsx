@@ -35,7 +35,7 @@ import { PreferenceToggle, SettingsSection } from '../components/settings';
 import type { AppearancePreference, SettingsCurrency, SettingsProfile, SettingsState } from '../types/settings';
 import { cn } from '../lib/utils';
 import { loadSettings, saveSettings, settingsErrorMessage } from '../lib/settings';
-import { disconnectTelegram, generateTelegramLinkCode, loadTelegramConnection, type TelegramConnection } from '../lib/telegram';
+import { disconnectTelegram, generateTelegramLinkCode, loadTelegramBudgetNotificationPreferences, loadTelegramConnection, saveTelegramBudgetNotificationPreferences, type TelegramBudgetNotificationPreferences, type TelegramConnection } from '../lib/telegram';
 
 const appearanceIcons: Record<AppearancePreference, LucideIcon> = {
   light: Sun,
@@ -70,7 +70,8 @@ export function SettingsPage() {
   const [telegram, setTelegram] = useState<TelegramConnection>({ status: 'not_connected' });
   const [telegramBusy, setTelegramBusy] = useState(false);
   const [telegramError, setTelegramError] = useState('');
-  useEffect(() => { void Promise.all([loadSettings(), loadTelegramConnection()]).then(([loadedSettings, connection]) => { setSettings(loadedSettings); setTelegram(connection); }).catch((reason) => setError(settingsErrorMessage(reason))).finally(() => setLoading(false)); }, []);
+  const [telegramNotifications, setTelegramNotifications] = useState<TelegramBudgetNotificationPreferences>({ nearLimit: false, overLimit: false });
+  useEffect(() => { void Promise.all([loadSettings(), loadTelegramConnection()]).then(async ([loadedSettings, connection]) => { setSettings(loadedSettings); setTelegram(connection); setTelegramNotifications(await loadTelegramBudgetNotificationPreferences(connection.status === 'connected')); }).catch((reason) => setError(settingsErrorMessage(reason))).finally(() => setLoading(false)); }, []);
   const [activeModal, setActiveModal] = useState<'security' | null>(null);
 
   const updateProfile = (field: keyof SettingsProfile, value: string) => {
@@ -83,7 +84,7 @@ export function SettingsPage() {
     setSaveMessage('');
   };
 
-  const handleSave = async () => { setSaving(true); setError(''); setSaveMessage(''); try { await saveSettings(settings); setSaveMessage('Settings saved. Reporting currency updates on the next Overview or Reports load.'); } catch (reason) { setError(settingsErrorMessage(reason)); } finally { setSaving(false); } };
+  const handleSave = async () => { setSaving(true); setError(''); setSaveMessage(''); try { await saveSettings(settings); if (telegram.status === 'connected') await saveTelegramBudgetNotificationPreferences(telegramNotifications); setSaveMessage('Settings saved.'); } catch (reason) { setError(settingsErrorMessage(reason)); } finally { setSaving(false); } };
   const enabledNotifications = settings.notifications.filter((notification) => notification.enabled).length;
   const handleGenerateTelegramCode = async () => {
     setTelegramBusy(true); setError(''); setSaveMessage(''); setTelegramError('');
@@ -93,7 +94,7 @@ export function SettingsPage() {
   };
   const handleDisconnectTelegram = async () => {
     setTelegramBusy(true); setError(''); setSaveMessage(''); setTelegramError('');
-    try { await disconnectTelegram(); setTelegram({ status: 'not_connected' }); setSaveMessage('Telegram disconnected. Link codes and active Telegram sessions were invalidated.'); }
+    try { await disconnectTelegram(); setTelegram({ status: 'not_connected' }); setTelegramNotifications({ nearLimit: false, overLimit: false }); setSaveMessage('Telegram disconnected. Link codes and active Telegram sessions were invalidated.'); }
     catch (reason) { setError(settingsErrorMessage(reason)); }
     finally { setTelegramBusy(false); }
   };
@@ -163,6 +164,7 @@ export function SettingsPage() {
               {telegram.status === 'connected' ? <Button variant="outline" size="sm" disabled={telegramBusy} onClick={handleDisconnectTelegram}>Disconnect Telegram</Button> : <Button variant="accent" size="sm" disabled={telegramBusy} onClick={handleGenerateTelegramCode}>{telegramBusy ? 'Generating...' : 'Generate Link Code'}</Button>}
             </div>
             {telegramError && <div role="alert" className="mt-4 rounded-xl border border-danger/25 bg-danger/10 px-3.5 py-3 text-xs font-medium text-danger">{telegramError}</div>}
+            <div className="mt-4 rounded-2xl border border-border bg-surface p-4"><div className="flex items-center gap-2"><i className="bi bi-bell text-sm text-primary" aria-hidden="true" /><p className="text-sm font-semibold text-primary">Telegram budget notifications</p></div>{telegram.status === 'connected' ? <div className="mt-3 divide-y divide-border"><PreferenceToggle id="telegram-budget-near-limit" title="Budget hampir mencapai batas" description="Kirim notifikasi saat budget mencapai 80%." checked={telegramNotifications.nearLimit} onChange={(nearLimit) => { setTelegramNotifications((current) => ({ ...current, nearLimit })); setSaveMessage(''); }} /><PreferenceToggle id="telegram-budget-over-limit" title="Budget melewati batas" description="Kirim notifikasi saat budget mencapai atau melebihi 100%." checked={telegramNotifications.overLimit} onChange={(overLimit) => { setTelegramNotifications((current) => ({ ...current, overLimit })); setSaveMessage(''); }} /></div> : <p className="mt-2 text-xs text-secondary">Hubungkan Telegram terlebih dahulu untuk mengatur notifikasi budget.</p>}</div>
             {telegram.status === 'link_code_ready' && <div className="mt-4 rounded-xl border border-accent/20 bg-accent/10 p-3.5"><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary">One-time link code</p><p className="mt-1 font-mono text-lg font-bold tracking-[0.16em] text-primary">{telegram.code}</p><p className="mt-1.5 text-xs text-secondary">Send <span className="font-semibold text-primary">/link {telegram.code}</span> to the Finexy bot. Expires {new Date(telegram.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.</p></div>}
           </SettingsSection>
 
