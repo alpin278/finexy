@@ -82,6 +82,10 @@ function callbackAction(data: string | undefined): FinanceAction | 'expense' | '
   return ['menu', 'wallets', 'budgets', 'transactions', 'expense', 'income'].includes(action) ? action as FinanceAction | 'expense' | 'income' : null;
 }
 
+type TransactionSession = { status?: string; step?: string; mode?: string; wallet_name?: string; category_name?: string; amount?: string; currency?: string; note?: string; error?: string; wallets?: Array<{id:string;name:string;currency:string}>; categories?: Array<{id:string;name:string}>; transaction_id?: string };
+async function transactionSession(db: ReturnType<typeof createClient>, user: string, chat: string, action: string, value?: string) { const { data, error } = await db.rpc('telegram_transaction_session',{p_telegram_user_id:user,p_telegram_chat_id:chat,p_action:action,p_value:value ?? null}); if(error) throw new Error(`Transaction session RPC failed: ${error.message}`); return (data ?? {status:'unlinked'}) as TransactionSession; }
+function txMarkup(session: TransactionSession) { if(session.step==='wallet') return {inline_keyboard:[...(session.wallets??[]).map(w=>[{text:`${w.name} (${w.currency})`,callback_data:`tx:w:${w.id}`}]),[{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='category') return {inline_keyboard:[...(session.categories??[]).map(c=>[{text:c.name,callback_data:`tx:c:${c.id}`}]),[{text:'Kembali',callback_data:'tx:back'},{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='note') return {inline_keyboard:[[{text:'Lewati catatan',callback_data:'tx:skip'}],[{text:'Kembali',callback_data:'tx:back'},{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='confirm') return {inline_keyboard:[[{text:'Confirm',callback_data:'tx:confirm'},{text:'Cancel',callback_data:'tx:cancel'}],[{text:'Kembali',callback_data:'tx:back'}]]}; return {inline_keyboard:[[{text:'Cancel',callback_data:'tx:cancel'}]]}; }
+function txText(session: TransactionSession) { if(session.error) return session.error; if(session.step==='wallet') return `Pilih wallet untuk ${session.mode==='expense'?'pengeluaran':'pemasukan'}.`; if(session.step==='category') return 'Pilih kategori.'; if(session.step==='amount') return `Masukkan nominal positif dalam ${session.currency}.`; if(session.step==='note') return 'Kirim catatan, atau pilih Lewati catatan.'; if(session.step==='confirm') return `Konfirmasi\nTipe: ${session.mode==='expense'?'Pengeluaran':'Pemasukan'}\nWallet: ${session.wallet_name}\nKategori: ${session.category_name}\nJumlah: ${formatMoney(session.amount??'0',session.currency??'USD')}\nCatatan: ${session.note||'-'}`; if(session.step==='completed') return `Transaksi berhasil disimpan: ${formatMoney(session.amount??'0',session.currency??'USD')}.`; if(session.step==='canceled') return 'Pencatatan dibatalkan.'; return 'Tidak ada pencatatan aktif.'; }
 Deno.serve(async (request) => {
   let stage = 'configuration';
   try {
@@ -123,21 +127,26 @@ Deno.serve(async (request) => {
     if (claim === 'duplicate') return new Response('ok');
 
     const requested = callback ? callbackAction(callback.data) : text.startsWith('/menu') ? 'menu' : null;
-    if (!requested || claim !== 'claimed') {
-      if (callback?.id) await answerCallback(botToken, callback.id);
-      await reply(botToken, telegramChatId, text.startsWith('/start') ? 'Selamat datang di Finexy. Hubungkan akun dari Settings terlebih dahulu.' : 'Akun Telegram ini belum terhubung ke Finexy.');
-      return new Response('ok');
+    const txData = callback?.data;
+    let session: TransactionSession | null = null;
+    if (claim === 'claimed') {
+      if (requested === 'expense' || requested === 'income') session = await transactionSession(db, telegramUserId, telegramChatId, requested === 'expense' ? 'start_expense' : 'start_income');
+      else if (txData?.startsWith('tx:w:')) session = await transactionSession(db, telegramUserId, telegramChatId, 'wallet', txData.slice(5));
+      else if (txData?.startsWith('tx:c:')) session = await transactionSession(db, telegramUserId, telegramChatId, 'category', txData.slice(5));
+      else if (txData === 'tx:skip') session = await transactionSession(db, telegramUserId, telegramChatId, 'skip_note');
+      else if (txData === 'tx:confirm') session = await transactionSession(db, telegramUserId, telegramChatId, 'confirm');
+      else if (txData === 'tx:cancel') session = await transactionSession(db, telegramUserId, telegramChatId, 'cancel');
+      else if (txData === 'tx:back') session = await transactionSession(db, telegramUserId, telegramChatId, 'back');
+      else if (!callback && !requested && text) { const state = await transactionSession(db, telegramUserId, telegramChatId, 'state'); if (state.step === 'amount' || state.step === 'note') session = await transactionSession(db, telegramUserId, telegramChatId, state.step, text); }
     }
+    if (session) { if (callback?.id) await answerCallback(botToken, callback.id); if (session.status !== 'linked') await reply(botToken, telegramChatId, 'Akun Telegram ini belum terhubung ke Finexy.'); else if (session.step === 'completed') await reply(botToken, telegramChatId, txText(session), {inline_keyboard:[[{text:'Menu',callback_data:'finexy:menu'},{text:session.mode==='expense'?'Tambah Pengeluaran':'Tambah Pemasukan',callback_data:session.mode==='expense'?'finexy:expense':'finexy:income'}]]}); else await reply(botToken, telegramChatId, txText(session), txMarkup(session)); return new Response('ok'); }
+    if (!requested || claim !== 'claimed') { if (callback?.id) await answerCallback(botToken, callback.id); await reply(botToken, telegramChatId, text.startsWith('/start') ? 'Selamat datang di Finexy. Hubungkan akun dari Settings terlebih dahulu.' : 'Akun Telegram ini belum terhubung ke Finexy.'); return new Response('ok'); }
 
     stage = 'finance_authorization';
     const action: FinanceAction = requested === 'expense' || requested === 'income' ? 'menu' : requested;
     const snapshot = await financeSnapshot(db, telegramUserId, telegramChatId, action);
     if (callback?.id) await answerCallback(botToken, callback.id);
-    if (snapshot.status !== 'linked') {
-      await reply(botToken, telegramChatId, 'Akun Telegram ini belum terhubung ke Finexy.');
-      return new Response('ok');
-    }
-
+    if (snapshot.status !== 'linked') { await reply(botToken, telegramChatId, 'Akun Telegram ini belum terhubung ke Finexy.'); return new Response('ok'); }
     stage = 'finance_reply';
     if (requested === 'menu') await reply(botToken, telegramChatId, 'Menu Finexy', menuMarkup);
     else if (requested === 'wallets') await reply(botToken, telegramChatId, formatWallets(snapshot), backMarkup);
