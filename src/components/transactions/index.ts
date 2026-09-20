@@ -7,3 +7,6 @@ export * from './TransactionRow';
 export * from './TransactionFormModal';
 export * from './TransactionDetailModal';
 export * from './DeleteTransactionDialog';
+
+export { RecurringTransactions } from './RecurringTransactions';
+

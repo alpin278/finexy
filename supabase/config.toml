@@ -3,3 +3,7 @@ verify_jwt = false
 
 [functions.telegram-notification-worker]
 verify_jwt = false
+
+[functions.recurring-transaction-worker]
+verify_jwt = false
+
