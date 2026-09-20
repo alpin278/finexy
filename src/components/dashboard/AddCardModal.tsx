@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { CreditCard } from 'lucide-react';
+import { Icon } from '../ui/Icon';
 
 export interface AddCardModalProps {
   isOpen: boolean;
@@ -42,7 +42,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard }: AddCardModalProps) 
             variant="primary"
             size="sm"
             onClick={handleSubmit}
-            leftIcon={<CreditCard className="w-3.5 h-3.5" />}
+            leftIcon={<Icon name="credit-card" />}
           >
             {isSuccess ? 'Adding...' : 'Add Card'}
           </Button>

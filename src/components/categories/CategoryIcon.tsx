@@ -1,7 +1,7 @@
 import { categoryIconMap } from './categoryUtils';
 import type { CategoryIconName } from '../../types/categories';
+import { Icon } from '../ui/Icon';
 
 export function CategoryIcon({ name, className }: { name: CategoryIconName; className?: string }) {
-  const Icon = categoryIconMap[name];
-  return <Icon className={className} aria-hidden="true" />;
+  return <Icon name={categoryIconMap[name]} className={className} />;
 }

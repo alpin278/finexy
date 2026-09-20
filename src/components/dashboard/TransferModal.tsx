@@ -3,7 +3,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
-import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Icon } from '../ui/Icon';
 
 export interface TransferModalProps {
   isOpen: boolean;
@@ -46,7 +46,7 @@ export function TransferModal({ isOpen, mode, onClose }: TransferModalProps) {
             variant="primary"
             size="sm"
             onClick={handleSubmit}
-            leftIcon={isTransfer ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownLeft className="w-3.5 h-3.5" />}
+            leftIcon={<Icon name={isTransfer ? 'arrow-up-right' : 'arrow-down-left'} />}
           >
             {isSuccess ? 'Processing...' : isTransfer ? 'Confirm Transfer' : 'Send Request'}
           </Button>

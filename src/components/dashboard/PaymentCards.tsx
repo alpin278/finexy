@@ -1,7 +1,7 @@
 import { Card } from '../ui/Card';
 import { PaymentCard } from './PaymentCard';
 import type { PaymentCardData } from '../../types/finance';
-import { Plus } from 'lucide-react';
+import { Icon } from '../ui/Icon';
 import { cn } from '../../lib/utils';
 
 export interface PaymentCardsProps {
@@ -22,7 +22,7 @@ export function PaymentCards({ cards, onAddCard, className }: PaymentCardsProps)
           onClick={onAddCard}
           className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:text-accent-hover transition-colors cursor-pointer"
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Icon name="plus-lg" />
           <span>Add new</span>
         </button>
       </div>

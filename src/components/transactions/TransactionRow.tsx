@@ -1,6 +1,6 @@
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, MoreHorizontal } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 import { IconButton } from '../ui/IconButton';
+import { Icon } from '../ui/Icon';
 import { StatusBadge } from '../ui/StatusBadge';
 import { TableCell, TableRow } from '../ui/Table';
 import type { Transaction } from '../../types/finance';
@@ -31,7 +31,7 @@ export function TransactionRow({
 }: TransactionRowProps) {
   const isIncome = transaction.type === 'income';
   const isTransfer = transaction.type === 'transfer';
-  const DirectionIcon = isTransfer ? ArrowLeftRight : isIncome ? ArrowDownLeft : ArrowUpRight;
+  const directionIcon = isTransfer ? 'arrow-left-right' : isIncome ? 'arrow-down-left' : 'arrow-up-right';
 
   return (
     <TableRow className="group hover:bg-surface/70">
@@ -48,7 +48,7 @@ export function TransactionRow({
             )}
             aria-hidden="true"
           >
-            <DirectionIcon className="w-3.5 h-3.5" />
+            <Icon name={directionIcon} />
           </span>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-primary truncate">{transaction.description}</p>
@@ -98,7 +98,7 @@ export function TransactionRow({
             aria-expanded={isActionMenuOpen}
             onClick={onToggleActionMenu}
           >
-            <MoreHorizontal className="w-4 h-4" />
+            <Icon name="three-dots" />
           </IconButton>
 
           {isActionMenuOpen && (

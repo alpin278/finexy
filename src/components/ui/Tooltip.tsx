@@ -31,7 +31,7 @@ export function Tooltip({ content, children, position = 'right', className }: To
         <div
           role="tooltip"
           className={cn(
-            'absolute z-50 px-2.5 py-1 text-xs font-medium text-white bg-primary rounded-md shadow-md pointer-events-none whitespace-nowrap animate-in fade-in-50 duration-150',
+            'absolute z-50 px-2.5 py-1 text-xs font-medium text-white bg-primary rounded-md shadow-md pointer-events-none whitespace-nowrap menu-enter',
             positions[position],
             className
           )}

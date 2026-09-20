@@ -1,5 +1,5 @@
 import type { PaymentCardData } from '../../types/finance';
-import { Wifi } from 'lucide-react';
+import { Icon } from '../ui/Icon';
 import { cn } from '../../lib/utils';
 
 export interface PaymentCardProps {
@@ -42,7 +42,7 @@ export function PaymentCard({ card, className }: PaymentCardProps) {
             <div className="w-4 h-3 border border-amber-300/60 rounded-xs" />
           </div>
           {/* Contactless symbol */}
-          <Wifi className="w-4 h-4 text-white/80 rotate-90" />
+          <Icon name="wifi" className="text-sm text-white/80 rotate-90" />
         </div>
 
         <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/20 text-white backdrop-blur-xs">

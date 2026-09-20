@@ -13,3 +13,5 @@ export * from './Table';
 export * from './Modal';
 export * from './Avatar';
 export * from './Tooltip';
+export * from './Icon';
+export * from './LoadingState';

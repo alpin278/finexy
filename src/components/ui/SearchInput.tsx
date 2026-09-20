@@ -1,6 +1,6 @@
 import { forwardRef, type InputHTMLAttributes } from 'react';
-import { Search, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Icon } from './Icon';
 
 export interface SearchInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
@@ -15,7 +15,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
 
     return (
       <div className={cn('relative flex items-center w-full max-w-xs', className)}>
-        <Search className="absolute left-3.5 w-4 h-4 text-secondary pointer-events-none" />
+        <Icon name="search" className="absolute left-3.5 text-sm text-secondary pointer-events-none" />
         <input
           ref={ref}
           type="text"
@@ -25,7 +25,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           className={cn(
             'w-full h-9 pl-9 pr-8 bg-surface hover:bg-white border border-border rounded-full text-xs text-primary',
             'placeholder:text-secondary transition-all duration-150',
-            'focus:outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary'
+            'focus:outline-none focus:bg-white focus:border-accent focus:ring-2 focus:ring-accent/15'
           )}
           {...props}
         />
@@ -36,7 +36,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
             className="absolute right-3 p-0.5 rounded-full text-secondary hover:text-primary hover:bg-border/60 cursor-pointer"
             aria-label="Clear search"
           >
-            <X className="w-3.5 h-3.5" />
+            <Icon name="x-lg" className="text-xs" />
           </button>
         )}
       </div>

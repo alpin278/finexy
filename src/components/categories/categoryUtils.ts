@@ -1,5 +1,3 @@
-import type { ComponentType } from 'react';
-import { Briefcase, Car, DollarSign, Gamepad2, Gift, GraduationCap, HeartPulse, Home, Plane, ShoppingBag, Utensils, Wallet } from 'lucide-react';
 import { getBudgetStatus } from '../../lib/budget-utils';
 import type { BudgetStatus } from '../../types/finance';
 import type { CategoryAccent, CategoryIconName, RuleOperator } from '../../types/categories';
@@ -10,19 +8,19 @@ export const money = (value: number, currency: 'USD' | 'EUR' | 'GBP' | 'IDR' = '
   return `${symbol}${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-export const categoryIconMap: Record<CategoryIconName, ComponentType<{ className?: string }>> = {
-  utensils: Utensils,
-  home: Home,
-  plane: Plane,
-  'shopping-bag': ShoppingBag,
-  gamepad: Gamepad2,
-  'heart-pulse': HeartPulse,
-  'graduation-cap': GraduationCap,
-  car: Car,
-  wallet: Wallet,
-  briefcase: Briefcase,
-  'dollar-sign': DollarSign,
-  gift: Gift,
+export const categoryIconMap: Record<CategoryIconName, string> = {
+  utensils: 'fork-knife',
+  home: 'house',
+  plane: 'airplane',
+  'shopping-bag': 'bag',
+  gamepad: 'controller',
+  'heart-pulse': 'heart-pulse',
+  'graduation-cap': 'mortarboard',
+  car: 'car-front',
+  wallet: 'wallet2',
+  briefcase: 'briefcase',
+  'dollar-sign': 'currency-dollar',
+  gift: 'gift',
 };
 
 export const accentOptions: { value: CategoryAccent; label: string; className: string }[] = [

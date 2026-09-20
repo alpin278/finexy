@@ -1,6 +1,6 @@
 import { forwardRef, type SelectHTMLAttributes, type ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Icon } from './Icon';
 
 export interface SelectOption {
   value: string;
@@ -15,8 +15,10 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, options, icon, ...props }, ref) => {
+    const fullWidth = className?.split(/\s+/).includes('w-full');
+
     return (
-      <div className="relative inline-flex items-center">
+      <div className={cn('relative items-center', fullWidth ? 'flex w-full' : 'inline-flex')}>
         {icon && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center">
             {icon}
@@ -26,7 +28,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           className={cn(
             'appearance-none h-8 pl-3 pr-8 bg-surface hover:bg-canvas border border-border rounded-full text-xs font-medium text-primary',
-            'transition-colors duration-150 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary',
+            'transition-[background-color,border-color,color,box-shadow] duration-150 cursor-pointer focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15',
             icon && 'pl-8',
             className
           )}
@@ -38,7 +40,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-secondary pointer-events-none" />
+        <Icon name="chevron-down" className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-secondary pointer-events-none" />
       </div>
     );
   }

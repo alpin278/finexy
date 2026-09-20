@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Bell, Info, ChevronDown, Menu, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../ui/Avatar';
+import { Icon } from '../ui/Icon';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
 import { useAuth } from '../../context/useAuth';
 
@@ -66,7 +66,7 @@ export function TopNavigation({
             aria-label="Open navigation menu"
             className="lg:hidden p-2 rounded-full text-secondary hover:text-primary hover:bg-border/60 cursor-pointer"
           >
-            <Menu className="w-5 h-5" />
+            <Icon name="list" className="text-base" />
           </button>
         )}
 
@@ -128,7 +128,7 @@ export function TopNavigation({
             )}
           >
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary pointer-events-none" />
+              <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-secondary pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
@@ -145,7 +145,7 @@ export function TopNavigation({
                   aria-label="Clear search"
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-primary cursor-pointer"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <Icon name="x-lg" className="text-xs" />
                 </button>
               )}
             </div>
@@ -158,7 +158,7 @@ export function TopNavigation({
           aria-label="Notifications"
           className="relative w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-border/60 transition-colors cursor-pointer"
         >
-          <Bell className="w-4 h-4" />
+          <Icon name="bell" className="text-sm" />
           <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-accent" />
         </button>
 
@@ -168,7 +168,7 @@ export function TopNavigation({
           aria-label="System Information"
           className="w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-border/60 transition-colors cursor-pointer hidden sm:flex"
         >
-          <Info className="w-4 h-4" />
+          <Icon name="info-circle" className="text-sm" />
         </button>
 
         {/* User Profile Chip */}
@@ -194,18 +194,13 @@ export function TopNavigation({
                 {profileEmail}
               </p>
             </div>
-            <ChevronDown
-              className={cn(
-                'w-3.5 h-3.5 text-secondary transition-transform duration-150',
-                isProfileOpen && 'rotate-180'
-              )}
-            />
+            <Icon name="chevron-down" className={cn('text-xs text-secondary transition-transform duration-150', isProfileOpen && 'rotate-180')} />
           </button>
 
           {/* Profile Dropdown Menu */}
           {isProfileOpen && (
             <div
-              className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-border shadow-[0_10px_30px_-5px_rgba(0,0,0,0.08)] py-2 z-50 animate-in fade-in-80 duration-150"
+              className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-border shadow-[0_10px_30px_-5px_rgba(0,0,0,0.08)] py-2 z-50 menu-enter"
               onMouseLeave={() => setIsProfileOpen(false)}
             >
               <div className="px-4 py-2.5 border-b border-border/60">

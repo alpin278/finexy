@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Check, Plus, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { attachCategoryBudgets, categoryErrorMessage, archiveCategory, buildCategorySummary, createCategory, createCategoryRule, loadCategoriesPage, setCategoryRuleEnabled, updateCategory, type CategoryPageData } from '../lib/categories';
 import { loadCategoryBudgetLayer } from '../lib/budgets';
 import type { CategoryRule, CategorySummaryData, FinanceCategory } from '../types/categories';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { Icon } from '../components/ui/Icon';
+import { LoadingState } from '../components/ui/LoadingState';
 import {
   CategoryDetailModal,
   CategoryFilters,
@@ -175,7 +176,7 @@ export function CategoriesPage() {
   };
 
   if (isLoading) {
-    return <div className="flex min-h-[420px] items-center justify-center text-sm text-secondary" role="status">Loading your categories…</div>;
+    return <LoadingState label="Loading your categories" />;
   }
 
   if (loadError && !categories.length) {
@@ -194,14 +195,14 @@ export function CategoriesPage() {
           <p className="mt-3 max-w-2xl text-xs leading-5 text-secondary sm:text-sm">Organize, color-tag, and define automated sorting rules for personal transactions across your accounts.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <Button variant="secondary" size="sm" leftIcon={<RotateCcw className={`h-3.5 w-3.5 ${isReindexing ? 'animate-spin' : ''}`} />} onClick={runPrototypeReindex} disabled={isReindexing}>{isReindexing ? 'Scanning...' : reindexFeedback ? 'Prototype scan complete' : 'Re-index Transactions'}</Button>
-          <Button variant="accent" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={openCreateCategory}>Create New Category</Button>
+          <Button variant="secondary" size="sm" leftIcon={<Icon name="arrow-counterclockwise" className={isReindexing ? 'motion-safe:animate-spin' : ''} />} onClick={runPrototypeReindex} disabled={isReindexing}>{isReindexing ? 'Scanning...' : reindexFeedback ? 'Prototype scan complete' : 'Re-index Transactions'}</Button>
+          <Button variant="accent" size="sm" leftIcon={<Icon name="plus-lg" />} onClick={openCreateCategory}>Create New Category</Button>
         </div>
       </header>
 
       {actionError && <div role="alert" className="rounded-xl border border-danger/20 bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{actionError}</div>}
       {loadError && <div role="alert" className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs font-medium text-primary">Some category data may be stale. {loadError}</div>}
-      {reindexFeedback && <div role="status" className="flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 px-3 py-2 text-xs font-medium text-[#328864]"><Check className="h-4 w-4" aria-hidden="true" /> Prototype categorization scan completed. No transaction data was changed.</div>}
+      {reindexFeedback && <div role="status" className="flex items-center gap-2 rounded-xl border border-success/20 bg-success/10 px-3 py-2 text-xs font-medium text-[#328864]"><Icon name="check-lg" /> Prototype categorization scan completed. No transaction data was changed.</div>}
 
       <CategorySummary summary={summary} />
 
@@ -214,7 +215,7 @@ export function CategoriesPage() {
 
         <aside className="min-w-0 space-y-5">
           <RuleEngine rules={rules} categories={categories} onAdd={() => setIsRuleFormOpen(true)} onToggle={(rule) => void toggleRule(rule)} />
-          <Card padding="md" className="min-w-0"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-secondary">Pending classification</p><h2 className="mt-1 text-lg font-bold tracking-tight text-primary">Uncategorized Transactions</h2><p className="mt-1 text-xs leading-5 text-secondary">{summary.uncategorizedCount === null ? 'Transaction data remains on the prototype bridge.' : `${summary.uncategorizedCount} items require manual review.`}</p></div><span className="rounded-full bg-warning/15 px-2.5 py-1 text-xs font-semibold text-[#9E8314]">{uncategorizedLabel}</span></div><Button variant="outline" size="sm" rightIcon={<ArrowRight className="h-3.5 w-3.5" />} onClick={() => navigate('/transactions')} className="mt-4">Review Transactions</Button></Card>
+          <Card padding="md" className="min-w-0"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-secondary">Pending classification</p><h2 className="mt-1 text-lg font-bold tracking-tight text-primary">Uncategorized Transactions</h2><p className="mt-1 text-xs leading-5 text-secondary">{summary.uncategorizedCount === null ? 'Transaction data remains on the prototype bridge.' : `${summary.uncategorizedCount} items require manual review.`}</p></div><span className="rounded-full bg-warning/15 px-2.5 py-1 text-xs font-semibold text-[#9E8314]">{uncategorizedLabel}</span></div><Button variant="outline" size="sm" rightIcon={<Icon name="arrow-right" />} onClick={() => navigate('/transactions')} className="mt-4">Review Transactions</Button></Card>
           <Card padding="md" className="min-w-0 border-accent/20 bg-accent/5"><p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">Category organization tip</p><h2 className="mt-1 text-base font-bold text-primary">Keep categories easy to scan</h2><p className="mt-2 text-xs leading-5 text-secondary">Categories with many different merchants may be easier to understand when split into more specific groups.</p></Card>
         </aside>
       </div>

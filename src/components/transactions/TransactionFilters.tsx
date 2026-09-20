@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Calendar, SlidersHorizontal } from 'lucide-react';
 import { SearchInput } from '../ui/SearchInput';
 import { Select, type SelectOption } from '../ui/Select';
+import { Icon } from '../ui/Icon';
 import { cn } from '../../lib/utils';
 import { transactionStatuses } from '../../data/transactions';
 
@@ -64,7 +64,7 @@ export function TransactionFilters({
       <div className="flex flex-col xl:flex-row xl:items-center gap-3">
         <div className="flex flex-wrap items-center gap-2.5 flex-1">
           <div className="flex items-center gap-2 text-xs font-semibold text-primary mr-1">
-            <Calendar className="w-4 h-4 text-secondary" />
+            <Icon name="calendar3" className="text-secondary" />
             <Select
               aria-label="Date period"
               value={datePeriod}
@@ -85,7 +85,7 @@ export function TransactionFilters({
                 : 'border-border bg-surface text-secondary hover:text-primary hover:bg-canvas'
             )}
           >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <Icon name="sliders" />
             <span>Filter</span>
             {hasActiveFilter && <span className="w-1.5 h-1.5 rounded-full bg-accent" />}
           </button>

@@ -21,14 +21,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           disabled={disabled}
           className={cn(
             'w-full h-10 px-3.5 bg-white border border-border rounded-[12px] text-sm text-primary',
-            'placeholder:text-secondary/70 transition-all duration-150',
-            'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary',
+            'placeholder:text-secondary/70 transition-[border-color,background-color,box-shadow] duration-150',
+            'focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15',
             'disabled:bg-surface disabled:cursor-not-allowed disabled:text-secondary',
             leftIcon && 'pl-10',
             rightIcon && 'pr-10',
-            error && 'border-danger focus:border-danger focus:ring-danger',
+            error && 'border-danger focus:border-danger focus:ring-2 focus:ring-danger/15',
             className
           )}
+          aria-invalid={error ? true : undefined}
           {...props}
         />
         {rightIcon && (

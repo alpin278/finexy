@@ -6,16 +6,7 @@ import { TopNavigation } from './TopNavigation';
 import { MainContent } from './MainContent';
 import { useAuth } from '../../context/useAuth';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
-import {
-  X,
-  LayoutDashboard,
-  ArrowLeftRight,
-  Wallet,
-  Target,
-  BarChart3,
-  Layers,
-  Settings,
-} from 'lucide-react';
+import { Icon } from '../ui/Icon';
 
 export interface AppShellProps {
   currentTab?: NavigationTab;
@@ -26,6 +17,7 @@ export interface AppShellProps {
 
 export function AppShell({ currentTab, onNavigate, children, className }: AppShellProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const { user, profile } = useAuth();
 
@@ -34,28 +26,36 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
 
   const location = useLocation();
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
+  const openMobileMenu = () => {
+    setIsMobileMenuMounted(true);
+    window.requestAnimationFrame(() => setIsMobileMenuOpen(true));
+  };
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    window.setTimeout(() => setIsMobileMenuMounted(false), 180);
+  };
 
   const primaryNavTabs: {
     id: NavigationTab;
     label: string;
     path: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: string;
   }[] = [
-    { id: 'overview', label: 'Overview', path: '/overview', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Transactions', path: '/transactions', icon: ArrowLeftRight },
-    { id: 'wallets', label: 'Wallets', path: '/wallets', icon: Wallet },
-    { id: 'budgets', label: 'Budgets', path: '/budgets', icon: Target },
-    { id: 'reports', label: 'Reports', path: '/reports', icon: BarChart3 },
+    { id: 'overview', label: 'Overview', path: '/overview', icon: 'grid-1x2' },
+    { id: 'transactions', label: 'Transactions', path: '/transactions', icon: 'arrow-left-right' },
+    { id: 'wallets', label: 'Wallets', path: '/wallets', icon: 'wallet2' },
+    { id: 'budgets', label: 'Budgets', path: '/budgets', icon: 'bullseye' },
+    { id: 'reports', label: 'Reports', path: '/reports', icon: 'bar-chart' },
   ];
 
   const utilityNavTabs: {
     id: NavigationTab;
     label: string;
     path: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: string;
   }[] = [
-    { id: 'categories', label: 'Categories', path: '/categories', icon: Layers },
-    { id: 'settings', label: 'Settings', path: '/settings', icon: Settings },
+    { id: 'categories', label: 'Categories', path: '/categories', icon: 'layers' },
+    { id: 'settings', label: 'Settings', path: '/settings', icon: 'gear' },
   ];
 
   return (
@@ -74,7 +74,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
         <TopNavigation
           currentTab={activeTab || undefined}
           onNavigate={onNavigate}
-          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+          onOpenMobileMenu={openMobileMenu}
         />
 
         {/* Middle Body: Sidebar + Main Content */}
@@ -90,21 +90,23 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
 
           {/* Main content scrollable viewport */}
           <MainContent>
-            {children || <Outlet />}
+            <div key={location.pathname} className="route-enter h-full">
+              {children || <Outlet />}
+            </div>
           </MainContent>
         </div>
 
         {/* Mobile Slide-over Drawer for navigation */}
-        {isMobileMenuOpen && (
+        {isMobileMenuMounted && (
           <div className="fixed inset-0 z-50 sm:hidden">
             {/* Backdrop */}
             <div
-              className="fixed inset-0 bg-primary/40 backdrop-blur-xs transition-opacity duration-200"
-              onClick={() => setIsMobileMenuOpen(false)}
+              className={cn('fixed inset-0 bg-primary/40', isMobileMenuOpen ? 'mobile-drawer-backdrop-open' : 'mobile-drawer-backdrop-close')}
+              onClick={closeMobileMenu}
             />
 
             {/* Drawer Panel */}
-            <div className="fixed inset-y-0 left-0 w-4/5 max-w-xs bg-white shadow-xl flex flex-col p-6 z-10 animate-in slide-in-from-left duration-200">
+            <div className={cn('mobile-drawer-panel fixed inset-y-0 left-0 z-10 flex w-4/5 max-w-xs flex-col bg-white p-6 shadow-xl', isMobileMenuOpen && 'mobile-drawer-panel-open')}>
               <div className="flex items-center justify-between pb-4 border-b border-border">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
@@ -114,18 +116,17 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={closeMobileMenu}
                   aria-label="Close menu"
                   className="p-1.5 rounded-full text-secondary hover:text-primary hover:bg-border/60 cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  <Icon name="x-lg" className="text-base" />
                 </button>
               </div>
 
               {/* Mobile Navigation Links */}
               <div className="py-6 flex flex-col gap-1.5 flex-1">
                 {primaryNavTabs.map((tab) => {
-                  const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
                   return (
                     <Link
@@ -133,7 +134,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                       to={tab.path}
                       onClick={() => {
                         onNavigate?.(tab.id);
-                        setIsMobileMenuOpen(false);
+                        closeMobileMenu();
                       }}
                       className={cn(
                         'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors text-left',
@@ -142,7 +143,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                           : 'text-secondary hover:text-primary hover:bg-surface'
                       )}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon name={tab.icon} className="text-base" />
                       <span>{tab.label}</span>
                     </Link>
                   );
@@ -152,7 +153,6 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                     Utilities
                   </p>
                   {utilityNavTabs.map((tab) => {
-                    const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
                     return (
                       <Link
@@ -160,7 +160,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                         to={tab.path}
                         onClick={() => {
                           onNavigate?.(tab.id);
-                          setIsMobileMenuOpen(false);
+                          closeMobileMenu();
                         }}
                         className={cn(
                           'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors text-left',
@@ -169,7 +169,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                             : 'text-secondary hover:text-primary hover:bg-surface'
                         )}
                       >
-                        <Icon className="w-5 h-5" />
+                        <Icon name={tab.icon} className="text-base" />
                         <span>{tab.label}</span>
                       </Link>
                     );

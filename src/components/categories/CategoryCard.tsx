@@ -1,4 +1,3 @@
-import { MoreHorizontal } from 'lucide-react';
 import type { FinanceCategory } from '../../types/categories';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
@@ -7,6 +6,7 @@ import { ProgressBar } from '../ui/ProgressBar';
 import { StatusBadge } from '../ui/StatusBadge';
 import { accentSurfaceClasses, budgetStatusCopy, getCategoryBudgetStatus, money } from './categoryUtils';
 import { CategoryIcon } from './CategoryIcon';
+import { Icon } from '../ui/Icon';
 
 export interface CategoryCardProps {
   category: FinanceCategory;
@@ -40,7 +40,7 @@ export function CategoryCard({ category, matchingRuleCount, menuOpen, onToggleMe
         </div>
         <div className="relative shrink-0">
           <IconButton type="button" size="sm" aria-label={`Actions for ${category.name}`} aria-expanded={menuOpen} onClick={onToggleMenu}>
-            <MoreHorizontal className="h-4 w-4" />
+            <Icon name="three-dots" />
           </IconButton>
           {menuOpen && (
             <div className="absolute right-0 top-9 z-20 w-36 rounded-xl border border-border bg-white py-1 shadow-lg">

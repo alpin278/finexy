@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
 import { Card } from '../ui/Card';
+import { Icon } from '../ui/Icon';
 
 interface SettingsSectionProps {
-  icon: LucideIcon;
+  icon: string;
   eyebrow: string;
   title: string;
   description: string;
@@ -11,12 +11,12 @@ interface SettingsSectionProps {
   className?: string;
 }
 
-export function SettingsSection({ icon: Icon, eyebrow, title, description, children, className }: SettingsSectionProps) {
+export function SettingsSection({ icon, eyebrow, title, description, children, className }: SettingsSectionProps) {
   return (
     <Card className={className} padding="none">
       <div className="flex items-start gap-3 border-b border-border px-5 py-5 sm:px-6">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-          <Icon className="h-5 w-5" aria-hidden="true" />
+          <Icon name={icon} className="text-lg" />
         </div>
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary">{eyebrow}</p>

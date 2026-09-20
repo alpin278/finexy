@@ -21,7 +21,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center rounded-full transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0';
+      'inline-flex items-center justify-center rounded-full transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0';
 
     const variants = {
       primary: 'bg-dark text-white hover:bg-dark-hover active:scale-95 shadow-sm',

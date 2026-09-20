@@ -1,5 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../../lib/utils';
+import { Icon } from './Icon';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'accent' | 'secondary' | 'outline' | 'ghost';
@@ -7,6 +8,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
+  loading?: boolean;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -18,6 +20,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       fullWidth = false,
       leftIcon,
       rightIcon,
+      loading = false,
       children,
       disabled,
       ...props
@@ -25,7 +28,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
+      'inline-flex items-center justify-center font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer';
 
     const variants = {
       primary:
@@ -49,7 +52,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        disabled={disabled}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
         className={cn(
           baseStyles,
           variants[variant],
@@ -59,7 +63,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...props}
       >
-        {leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>}
+        {loading ? <Icon name="arrow-repeat" className="motion-safe:animate-spin" /> : leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>}
         <span>{children}</span>
         {rightIcon && <span className="inline-flex shrink-0">{rightIcon}</span>}
       </button>

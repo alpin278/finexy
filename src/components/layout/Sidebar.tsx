@@ -1,16 +1,7 @@
-import type { ComponentType } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Sun,
-  Moon,
-  Calendar,
-  Layers,
-  Settings,
-  HelpCircle,
-  LogOut,
-} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Tooltip } from '../ui/Tooltip';
+import { Icon } from '../ui/Icon';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
 import { useAuth } from '../../context/useAuth';
 
@@ -39,11 +30,11 @@ export function Sidebar({
     label: string;
     tab?: NavigationTab;
     path?: string;
-    icon: ComponentType<{ className?: string }>;
+    icon: string;
   }[] = [
-    { id: 'calendar', label: 'Calendar', path: '/overview', icon: Calendar },
-    { id: 'categories', label: 'Categories', tab: 'categories', path: '/categories', icon: Layers },
-    { id: 'settings', label: 'Settings', tab: 'settings', path: '/settings', icon: Settings },
+    { id: 'calendar', label: 'Calendar', path: '/overview', icon: 'calendar3' },
+    { id: 'categories', label: 'Categories', tab: 'categories', path: '/categories', icon: 'layers' },
+    { id: 'settings', label: 'Settings', tab: 'settings', path: '/settings', icon: 'gear' },
   ];
 
   return (
@@ -63,7 +54,7 @@ export function Sidebar({
             aria-label="Toggle theme"
             className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-border/60 transition-colors cursor-pointer"
           >
-            {isDarkTheme ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            <Icon name={isDarkTheme ? 'sun' : 'moon'} className="text-base" />
           </button>
         </Tooltip>
 
@@ -72,7 +63,6 @@ export function Sidebar({
         {/* Main Nav Items */}
         <nav className="flex flex-col items-center gap-2">
           {mainNavItems.map((item) => {
-            const Icon = item.icon;
             const isActive = item.tab ? activeTab === item.tab : false;
 
             if (item.path) {
@@ -92,7 +82,7 @@ export function Sidebar({
                         : 'text-secondary hover:text-primary hover:bg-border/60 active:scale-95'
                     )}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon name={item.icon} className="text-base" />
                   </Link>
                 </Tooltip>
               );
@@ -105,7 +95,7 @@ export function Sidebar({
                   aria-label={item.label}
                   className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-border/60 active:scale-95 transition-all cursor-pointer"
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon name={item.icon} className="text-base" />
                 </button>
               </Tooltip>
             );
@@ -121,7 +111,7 @@ export function Sidebar({
             aria-label="Help & Support"
             className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-border/60 transition-colors cursor-pointer"
           >
-            <HelpCircle className="w-5 h-5" />
+            <Icon name="question-circle" className="text-base" />
           </button>
         </Tooltip>
 
@@ -137,7 +127,7 @@ export function Sidebar({
             aria-label="Log out"
             className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-danger hover:bg-danger/10 transition-colors cursor-pointer"
           >
-            <LogOut className="w-5 h-5" />
+            <Icon name="box-arrow-right" className="text-base" />
           </button>
         </Tooltip>
       </div>

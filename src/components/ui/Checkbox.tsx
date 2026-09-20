@@ -1,6 +1,6 @@
 import { forwardRef, type InputHTMLAttributes } from 'react';
-import { Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Icon } from './Icon';
 
 export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
@@ -38,7 +38,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
               'hover:border-secondary'
             )}
           />
-          <Check className="absolute w-3 h-3 text-white stroke-[2.5] opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
+          <Icon name="check-lg" className="absolute text-[11px] text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
         </div>
         {label && <span className="text-xs text-primary font-medium">{label}</span>}
       </label>

@@ -1,7 +1,12 @@
-import { CircleAlert, Layers3, ListChecks, WalletCards } from 'lucide-react';
 import type { CategorySummaryData } from '../../types/categories';
 import { Card } from '../ui/Card';
 import { money } from './categoryUtils';
+import { Icon } from '../ui/Icon';
+
+const Layers3 = ({ className }: { className?: string }) => <Icon name="layers" className={className} />;
+const WalletCards = ({ className }: { className?: string }) => <Icon name="wallet2" className={className} />;
+const ListChecks = ({ className }: { className?: string }) => <Icon name="list-check" className={className} />;
+const CircleAlert = ({ className }: { className?: string }) => <Icon name="exclamation-circle" className={className} />;
 
 function formatBudgetTotals(totals: CategorySummaryData['budgetTotalsByCurrency']) {
   const entries = Object.entries(totals);

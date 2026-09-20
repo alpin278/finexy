@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckCircle2, LockKeyhole, Mail } from 'lucide-react';
 import { AuthPageLayout } from '../components/auth/AuthPageLayout';
 import { Button, Input } from '../components/ui';
+import { Icon } from '../components/ui/Icon';
 import { useAuth } from '../context/useAuth';
 import { authErrorMessage } from '../lib/auth';
 
@@ -65,18 +65,18 @@ export function SignupPage() {
 
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
         {error && <p role="alert" className="rounded-2xl border border-danger/25 bg-danger/10 px-4 py-3 text-xs font-semibold leading-relaxed text-danger">{error}</p>}
-        {success && <p role="status" className="flex items-start gap-2 rounded-2xl border border-success/25 bg-success/10 px-4 py-3 text-xs font-semibold leading-relaxed text-primary"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />{success}</p>}
+        {success && <p role="status" className="flex items-start gap-2 rounded-2xl border border-success/25 bg-success/10 px-4 py-3 text-xs font-semibold leading-relaxed text-primary"><Icon name="check-circle" className="mt-0.5 shrink-0 text-success" />{success}</p>}
         <div>
           <label htmlFor="signup-email" className="mb-1.5 block text-xs font-semibold text-primary">Email address</label>
-          <Input id="signup-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" leftIcon={<Mail className="h-4 w-4" />} />
+          <Input id="signup-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" leftIcon={<Icon name="envelope" />} />
         </div>
         <div>
           <label htmlFor="signup-password" className="mb-1.5 block text-xs font-semibold text-primary">Password</label>
-          <Input id="signup-password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" leftIcon={<LockKeyhole className="h-4 w-4" />} />
+          <Input id="signup-password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" leftIcon={<Icon name="lock" />} />
         </div>
         <div>
           <label htmlFor="signup-confirm-password" className="mb-1.5 block text-xs font-semibold text-primary">Confirm password</label>
-          <Input id="signup-confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Repeat your password" leftIcon={<LockKeyhole className="h-4 w-4" />} />
+          <Input id="signup-confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Repeat your password" leftIcon={<Icon name="lock" />} />
         </div>
         <Button type="submit" variant="primary" className="w-full" disabled={isSubmitting}>{isSubmitting ? 'Creating account...' : 'Create account'}</Button>
       </form>
