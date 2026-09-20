@@ -19,10 +19,10 @@ export interface CategoryCardProps {
 }
 
 export function CategoryCard({ category, matchingRuleCount, menuOpen, onToggleMenu, onView, onEdit, onDelete }: CategoryCardProps) {
-  const hasBudget = category.type === 'expense' && category.budgetLimit !== undefined;
-  const spent = category.spent ?? category.monthlyAverage;
+  const hasBudget = category.type === 'expense' && category.budgetLimit !== undefined && category.budgetCurrency !== undefined;
+  const spent = category.budgetSpent ?? 0;
   const usage = hasBudget ? (spent / category.budgetLimit!) * 100 : 0;
-  const budgetStatus = hasBudget ? getCategoryBudgetStatus(spent, category.budgetLimit!) : null;
+  const budgetStatus = hasBudget ? category.budgetStatus ?? getCategoryBudgetStatus(spent, category.budgetLimit!) : null;
   const remaining = hasBudget ? category.budgetLimit! - spent : 0;
   const statusCopy = budgetStatus ? budgetStatusCopy[budgetStatus] : null;
 
@@ -35,7 +35,7 @@ export function CategoryCard({ category, matchingRuleCount, menuOpen, onToggleMe
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-primary">{category.name}</p>
-            <p className="mt-0.5 text-xs text-secondary">{category.transactionCount} prototype transactions</p>
+            <p className="mt-0.5 text-xs text-secondary">{hasBudget ? `${category.budgetTransactionCount ?? 0} qualifying transactions this period` : `${category.transactionCount} prototype transactions`}</p>
           </div>
         </div>
         <div className="relative shrink-0">
@@ -54,12 +54,12 @@ export function CategoryCard({ category, matchingRuleCount, menuOpen, onToggleMe
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary">{category.type === 'income' ? 'Monthly received' : 'Monthly average'}</p>
-          <p className="mt-1 text-sm font-bold text-primary">{money(category.monthlyAverage)}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary">{hasBudget ? 'Spent this period' : category.type === 'income' ? 'Monthly received' : 'Monthly average'}</p>
+          <p className="mt-1 text-sm font-bold text-primary">{hasBudget ? money(spent, category.budgetCurrency) : money(category.monthlyAverage)}</p>
         </div>
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary">{category.type === 'expense' ? 'Budget' : 'Matching rules'}</p>
-          <p className="mt-1 text-sm font-bold text-primary">{hasBudget ? money(category.budgetLimit!) : category.type === 'expense' ? 'No budget' : matchingRuleCount}</p>
+          <p className="mt-1 text-sm font-bold text-primary">{hasBudget ? money(category.budgetLimit!, category.budgetCurrency) : category.type === 'expense' ? 'No budget' : matchingRuleCount}</p>
         </div>
       </div>
 
@@ -67,7 +67,7 @@ export function CategoryCard({ category, matchingRuleCount, menuOpen, onToggleMe
         <div>
           <div className="flex items-center justify-between gap-3 text-xs">
             <span className="text-secondary">{budgetStatus === 'over_budget' ? 'Exceeded by' : remaining === 0 ? 'Budget remaining' : 'Remaining'}</span>
-            <span className={budgetStatus === 'over_budget' ? 'whitespace-nowrap font-semibold text-danger' : 'whitespace-nowrap font-semibold text-primary'}>{money(Math.abs(remaining))}</span>
+            <span className={budgetStatus === 'over_budget' ? 'whitespace-nowrap font-semibold text-danger' : 'whitespace-nowrap font-semibold text-primary'}>{money(Math.abs(remaining), category.budgetCurrency)}</span>
           </div>
           <ProgressBar value={spent} max={category.budgetLimit} height="sm" color={budgetStatus === 'over_budget' ? 'dark' : 'orange'} className="mt-2" aria-label={`${category.name}: ${usage.toFixed(1)} percent used`} />
           <div className="mt-2.5 flex items-center justify-between gap-2">

@@ -1,12 +1,11 @@
 import type { PostgrestError } from '@supabase/supabase-js';
-import { mockBudgets } from '../data/budgets';
 import { categoryPresentationMetadata, defaultCategoryRuleSeeds, defaultCategorySeeds } from '../data/categories';
-import type { Enums, Tables, TablesInsert, TablesUpdate } from '../types/database';
+import type { Enums, TablesInsert, TablesUpdate } from '../types/database';
 import type { CategoryAccent, CategoryIconName, CategoryRule, CategorySummaryData, FinanceCategory } from '../types/categories';
+import type { Budget } from '../types/finance';
+import { ensureDefaultCategories, listActiveCategoryRuleRows, type CategoryRow, type CategoryRuleRow } from './category-bootstrap';
 import { supabase } from './supabase';
 
-type CategoryRow = Tables<'categories'>;
-type CategoryRuleRow = Tables<'category_rules'>;
 type CategoryType = Enums<'category_type'>;
 type CategoryStatus = Enums<'category_status'>;
 type CategoryRuleField = Enums<'category_rule_field'>;
@@ -36,10 +35,6 @@ export interface CategoryPageData {
   summary: CategorySummaryData;
 }
 
-function isDuplicateError(error: unknown) {
-  return Boolean(error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === '23505');
-}
-
 async function requireUserId() {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) {
@@ -55,11 +50,9 @@ function seedForCategory(row: CategoryRow) {
 function presentationForCategory(row: CategoryRow) {
   const seed = seedForCategory(row);
   const metadata = seed ? categoryPresentationMetadata[seed.seedId] : undefined;
-  const bridgeBudget = mockBudgets.find((budget) => budget.categoryName.toLowerCase() === row.name.toLowerCase() && row.type === 'expense');
   return {
     transactionCount: metadata?.transactionCount ?? 0,
     monthlyAverage: metadata?.monthlyAverage ?? 0,
-    ...(bridgeBudget ? { budgetLimit: bridgeBudget.monthlyLimit, spent: bridgeBudget.spent } : {}),
   };
 }
 
@@ -85,6 +78,23 @@ function mapCategory(row: CategoryRow): FinanceCategory {
   };
 }
 
+export function attachCategoryBudgets(categories: FinanceCategory[], budgets: Budget[]) {
+  const budgetsByCategory = new Map(budgets.map((budget) => [budget.categoryId, budget]));
+  return categories.map((category) => {
+    const budget = category.type === 'expense' ? budgetsByCategory.get(category.id) : undefined;
+    if (!budget) return category;
+    return {
+      ...category,
+      budgetLimit: budget.monthlyLimit,
+      budgetSpent: budget.spent,
+      budgetCurrency: budget.currency,
+      budgetStatus: budget.status,
+      budgetTransactionCount: budget.transactionCount,
+      budgetPeriod: budget.period,
+    };
+  });
+}
+
 function ruleMatchCount(row: CategoryRuleRow, categoryRows: CategoryRow[]) {
   const category = categoryRows.find((item) => item.id === row.category_id);
   const seed = category && seedForCategory(category);
@@ -106,15 +116,15 @@ function mapRule(row: CategoryRuleRow, categoryRows: CategoryRow[]): CategoryRul
   };
 }
 
-function budgetCap(categories: FinanceCategory[]) {
-  const cap = categories.reduce((sum, category) => sum + (category.budgetLimit ?? 0), 0);
-  return cap > 0 ? cap : null;
-}
-
 export function buildCategorySummary(categories: FinanceCategory[]): CategorySummaryData {
+  const budgetTotalsByCurrency = categories.reduce<CategorySummaryData['budgetTotalsByCurrency']>((totals, category) => {
+    if (category.budgetLimit === undefined || !category.budgetCurrency) return totals;
+    totals[category.budgetCurrency] = (totals[category.budgetCurrency] ?? 0) + category.budgetLimit;
+    return totals;
+  }, {});
   return {
     totalCategories: categories.length,
-    monthlyBudgetCap: budgetCap(categories),
+    budgetTotalsByCurrency,
     autoRuleCoverage: null,
     uncategorizedCount: null,
     expenseCategoryCount: categories.filter((category) => category.type === 'expense').length,
@@ -122,92 +132,10 @@ export function buildCategorySummary(categories: FinanceCategory[]): CategorySum
   };
 }
 
-async function listCategoryRows(userId: string) {
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('user_id', userId)
-    .is('archived_at', null)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return data;
-}
-
-async function listRuleRows(userId: string) {
-  const { data, error } = await supabase
-    .from('category_rules')
-    .select('*')
-    .eq('user_id', userId)
-    .is('deleted_at', null)
-    .order('priority', { ascending: true })
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return data;
-}
-
-async function insertDefaultCategory(userId: string, seed: (typeof defaultCategorySeeds)[number]) {
-  const payload: TablesInsert<'categories'> = {
-    user_id: userId,
-    name: seed.name,
-    type: seed.type,
-    icon_identifier: seed.icon,
-    accent_identifier: seed.accent,
-    keywords: seed.keywords,
-    status: seed.status,
-  };
-  const { error } = await supabase.from('categories').insert(payload);
-  if (error && !isDuplicateError(error)) throw error;
-}
-
-async function defaultRuleId(userId: string, seed: (typeof defaultCategoryRuleSeeds)[number]) {
-  const input = `${userId}:${seed.categorySeedId}:${seed.field}:${seed.operator}:${seed.value}`;
-  const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input)));
-  const hex = Array.from(bytes.slice(0, 16), (byte) => byte.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${(8 | (Number.parseInt(hex[16], 16) & 3)).toString(16)}${hex.slice(17, 20)}-${hex.slice(20)}`;
-}
-
-async function bootstrapDefaults(userId: string, categoryRows: CategoryRow[]) {
-  if (categoryRows.length > 0) return categoryRows;
-
-  for (const seed of defaultCategorySeeds) {
-    await insertDefaultCategory(userId, seed);
-  }
-
-  const bootstrappedRows = await listCategoryRows(userId);
-  const categoryIdBySeed = new Map(bootstrappedRows.flatMap((row) => {
-    const seed = seedForCategory(row);
-    return seed ? [[seed.seedId, row.id] as const] : [];
-  }));
-  const existingRules = await listRuleRows(userId);
-
-  for (const seed of defaultCategoryRuleSeeds) {
-    const categoryId = categoryIdBySeed.get(seed.categorySeedId);
-    if (!categoryId) continue;
-    const alreadyExists = existingRules.some((rule) => rule.category_id === categoryId && rule.field === seed.field && rule.operator === seed.operator && rule.value === seed.value);
-    if (alreadyExists) continue;
-    const payload: TablesInsert<'category_rules'> = {
-      id: await defaultRuleId(userId, seed),
-      user_id: userId,
-      category_id: categoryId,
-      field: seed.field,
-      operator: seed.operator,
-      value: seed.value,
-      label: seed.label,
-      enabled: true,
-      priority: 0,
-    };
-    const { error } = await supabase.from('category_rules').upsert(payload, { onConflict: 'id', ignoreDuplicates: true });
-    if (error) throw error;
-  }
-
-  return bootstrappedRows;
-}
-
 export async function loadCategoriesPage(): Promise<CategoryPageData> {
   const userId = await requireUserId();
-  let categoryRows = await listCategoryRows(userId);
-  categoryRows = await bootstrapDefaults(userId, categoryRows);
-  const ruleRows = await listRuleRows(userId);
+  const categoryRows = await ensureDefaultCategories(userId);
+  const ruleRows = await listActiveCategoryRuleRows(userId);
   const categories = categoryRows.map(mapCategory);
   return {
     categories,

@@ -1,1 +1,1 @@
-export const money = (value: number) => `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export * from '../../lib/budget-utils';

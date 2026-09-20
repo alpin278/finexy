@@ -46,6 +46,25 @@ formatted currency symbol.
 Calculated wallet balances, budget usage, overview totals, savings rate, category
 percentages, and report aggregates are not persisted as source-of-truth values.
 
+## Phase 16 budget read model
+
+The frontend budget service persists only the `budgets` configuration row. For a
+selected canonical monthly `period_start`, it derives spend from active ledger
+rows where `type = expense`, `status = completed`, `deleted_at is null`, the
+category matches, and the transaction currency matches the budget currency.
+Transfer legs, income, pending/canceled rows, and transactions outside the
+period are excluded. Status uses the shared `<80%`, `80–<100%`, and `>=100%`
+thresholds.
+
+The deterministic demo transaction seeds are dated April 2026, so the first
+load bootstraps the eight visible default expense budgets into `2026-04` when
+that period has no active budgets. Bootstrap uses persisted category UUIDs,
+deterministic IDs, and the existing database uniqueness index; it never stores
+the old mock spend, average, or transaction-count values. New budget creation
+defaults to the actual current month. The UI always includes the current month
+in its selector and groups monetary summaries by currency without FX
+conversion.
+
 ## Ownership and deletion
 
 Every user-owned table carries `user_id` and has RLS policies based on

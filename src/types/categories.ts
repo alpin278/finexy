@@ -1,3 +1,5 @@
+import type { BudgetStatus, WalletCurrencyCode } from './finance';
+
 export type CategoryType = 'expense' | 'income';
 export type CategoryStatus = 'active' | 'inactive';
 
@@ -26,7 +28,11 @@ export interface FinanceCategory {
   transactionCount: number;
   monthlyAverage: number;
   budgetLimit?: number;
-  spent?: number;
+  budgetSpent?: number;
+  budgetCurrency?: WalletCurrencyCode;
+  budgetStatus?: BudgetStatus;
+  budgetTransactionCount?: number;
+  budgetPeriod?: string;
   keywords: string[];
   status: CategoryStatus;
 }
@@ -47,7 +53,7 @@ export interface CategoryRule {
 
 export interface CategorySummaryData {
   totalCategories: number;
-  monthlyBudgetCap: number | null;
+  budgetTotalsByCurrency: Partial<Record<WalletCurrencyCode, number>>;
   autoRuleCoverage: number | null;
   uncategorizedCount: number | null;
   expenseCategoryCount: number;

@@ -1,10 +1,14 @@
 import type { ComponentType } from 'react';
 import { Briefcase, Car, DollarSign, Gamepad2, Gift, GraduationCap, HeartPulse, Home, Plane, ShoppingBag, Utensils, Wallet } from 'lucide-react';
-import { getBudgetStatus } from '../../data/budgets';
+import { getBudgetStatus } from '../../lib/budget-utils';
 import type { BudgetStatus } from '../../types/finance';
 import type { CategoryAccent, CategoryIconName, RuleOperator } from '../../types/categories';
 
-export const money = (value: number) => `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const money = (value: number, currency: 'USD' | 'EUR' | 'GBP' | 'IDR' = 'USD') => {
+  if (currency === 'IDR') return `Rp${value.toLocaleString('id-ID', { maximumFractionDigits: 2 })}`;
+  const symbol = currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+  return `${symbol}${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 export const categoryIconMap: Record<CategoryIconName, ComponentType<{ className?: string }>> = {
   utensils: Utensils,

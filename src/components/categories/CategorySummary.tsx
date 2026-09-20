@@ -3,10 +3,15 @@ import type { CategorySummaryData } from '../../types/categories';
 import { Card } from '../ui/Card';
 import { money } from './categoryUtils';
 
+function formatBudgetTotals(totals: CategorySummaryData['budgetTotalsByCurrency']) {
+  const entries = Object.entries(totals);
+  return entries.length ? entries.map(([currency, value]) => money(value, currency as 'USD' | 'EUR' | 'GBP' | 'IDR')).join(' · ') : '—';
+}
+
 export function CategorySummary({ summary }: { summary: CategorySummaryData }) {
   const metrics = [
     { label: 'Total categories', value: String(summary.totalCategories), detail: `${summary.expenseCategoryCount} expense · ${summary.incomeCategoryCount} income`, icon: Layers3, tone: 'text-primary bg-surface' },
-    { label: 'Monthly budget cap', value: summary.monthlyBudgetCap === null ? '—' : money(summary.monthlyBudgetCap), detail: 'Temporary budget bridge', icon: WalletCards, tone: 'text-accent bg-accent/10' },
+    { label: 'Monthly budget cap', value: formatBudgetTotals(summary.budgetTotalsByCurrency), detail: 'Persisted limits by currency', icon: WalletCards, tone: 'text-accent bg-accent/10' },
     { label: 'Auto-rule coverage', value: summary.autoRuleCoverage === null ? '—' : `${summary.autoRuleCoverage.toFixed(1)}%`, detail: 'Available after Transactions migration', icon: ListChecks, tone: 'text-success bg-success/10' },
     { label: 'Uncategorized', value: summary.uncategorizedCount === null ? '—' : `${summary.uncategorizedCount} Items`, detail: summary.uncategorizedCount === null ? 'Available after Transactions migration' : 'Requires manual review', icon: CircleAlert, tone: 'text-[#9E8314] bg-warning/15' },
   ];

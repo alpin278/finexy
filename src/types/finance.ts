@@ -5,15 +5,29 @@ export type WalletStatus = 'Active' | 'Inactive';
 export type WalletType = 'bank' | 'cash' | 'card' | 'travel' | 'savings';
 
 export type BudgetStatus = 'on_track' | 'near_limit' | 'over_budget';
-export type BudgetPeriod = 'this-month';
+/** Canonical monthly budget period in YYYY-MM form. */
+export type BudgetPeriod = string;
+
+export interface BudgetCategoryOption {
+  id: string;
+  name: string;
+  icon: string | null;
+}
+
+export interface BudgetCurrencyTotal {
+  currency: WalletCurrencyCode;
+  limit: number;
+  spent: number;
+  remaining: number;
+}
 
 export interface Budget {
   id: string;
   categoryId: string;
   categoryName: string;
   monthlyLimit: number;
+  currency: WalletCurrencyCode;
   spent: number;
-  monthlyAverage: number;
   transactionCount: number;
   period: BudgetPeriod;
   status: BudgetStatus;

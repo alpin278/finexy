@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Check, Plus, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { categoryErrorMessage, archiveCategory, buildCategorySummary, createCategory, createCategoryRule, loadCategoriesPage, setCategoryRuleEnabled, updateCategory, type CategoryPageData } from '../lib/categories';
+import { attachCategoryBudgets, categoryErrorMessage, archiveCategory, buildCategorySummary, createCategory, createCategoryRule, loadCategoriesPage, setCategoryRuleEnabled, updateCategory, type CategoryPageData } from '../lib/categories';
+import { loadCategoryBudgetLayer } from '../lib/budgets';
 import type { CategoryRule, CategorySummaryData, FinanceCategory } from '../types/categories';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -49,10 +50,17 @@ export function CategoriesPage() {
     setLoadError(null);
   };
 
+  const loadPageData = async () => {
+    const categoryData = await loadCategoriesPage();
+    const budgetLayer = await loadCategoryBudgetLayer();
+    const categoriesWithBudgets = attachCategoryBudgets(categoryData.categories, budgetLayer.budgets);
+    return { ...categoryData, categories: categoriesWithBudgets, summary: buildCategorySummary(categoriesWithBudgets) };
+  };
+
   const refreshData = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     try {
-      applyPageData(await loadCategoriesPage());
+      applyPageData(await loadPageData());
     } catch (error) {
       setLoadError(categoryErrorMessage(error));
     } finally {
@@ -62,7 +70,7 @@ export function CategoriesPage() {
 
   useEffect(() => {
     let isActive = true;
-    void loadCategoriesPage()
+    void loadPageData()
       .then((data) => {
         if (isActive) applyPageData(data);
       })
