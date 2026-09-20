@@ -45,8 +45,8 @@ const appearanceIcons: Record<AppearancePreference, LucideIcon> = {
 
 const currencySymbols: Record<SettingsCurrency, string> = {
   USD: '$',
-  EUR: 'â‚¬',
-  GBP: 'Â£',
+  EUR: '€',
+  GBP: '£',
   IDR: 'Rp',
 };
 
