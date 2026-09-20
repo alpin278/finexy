@@ -1,44 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-type Notification = { notification_id: string; chat_id: string; threshold: 'budget_near_limit' | 'budget_over_limit'; category: string; spent: number | string; limit: number | string; currency: string; progress: number | string; attempt: number };
-
-function log(stage: string, details: Record<string, unknown> = {}) { console.info(JSON.stringify({ stage, ...details })); }
-function config() {
-  const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-  const workerSecret = Deno.env.get('TELEGRAM_NOTIFICATION_WORKER_SECRET');
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!botToken || !workerSecret || !supabaseUrl || !serviceRoleKey) throw new Error('Worker configuration missing.');
-  return { botToken, workerSecret, supabaseUrl, serviceRoleKey };
-}
-function formatMoney(value: number | string, currency: string) { const digits = currency === 'IDR' ? { minimumFractionDigits: 0, maximumFractionDigits: 2 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 }; return new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol', ...digits }).format(Number(value)).replace(/\u00a0/g, ' '); }
-function text(event: Notification) { const heading = event.threshold === 'budget_over_limit' ? 'Budget telah melewati batas' : 'Budget hampir mencapai batas'; return `${heading}\n\nKategori: ${event.category}\nTerpakai: ${formatMoney(event.spent, event.currency)} / ${formatMoney(event.limit, event.currency)}\nProgress: ${Math.round(Number(event.progress) * 10) / 10}%`; }
-async function send(botToken: string, chatId: string, message: string) { const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: message }) }); if (!response.ok) { const permanent = response.status === 400 || response.status === 403; throw { permanent, classification: permanent ? 'destination_rejected' : 'telegram_temporary_failure' }; } }
-
-Deno.serve(async (request) => {
-  try {
-    const { botToken, workerSecret, supabaseUrl, serviceRoleKey } = config();
-    if (request.headers.get('x-worker-secret') !== workerSecret) return new Response('forbidden', { status: 403 });
-    const db = createClient(supabaseUrl, serviceRoleKey);
-    const { data, error } = await db.rpc('claim_telegram_budget_notification_worker');
-    if (error) throw error;
-    const event = data as Notification | null;
-    if (!event?.notification_id || !event.chat_id) return Response.json({ claimed: false });
-    try {
-      await send(botToken, event.chat_id, text(event));
-      const { error: completeError } = await db.rpc('complete_telegram_budget_notification_worker', { p_notification_id: event.notification_id, p_delivered: true, p_retryable: true, p_error_class: null });
-      if (completeError) throw completeError;
-      log('delivered', { event_type: event.threshold, attempt: event.attempt });
-      return Response.json({ delivered: true });
-    } catch (error) {
-      const safe = error as { permanent?: boolean; classification?: string };
-      const { error: completeError } = await db.rpc('complete_telegram_budget_notification_worker', { p_notification_id: event.notification_id, p_delivered: false, p_retryable: !safe.permanent, p_error_class: safe.classification ?? 'delivery_failed' });
-      if (completeError) throw completeError;
-      log('delivery_failed', { event_type: event.threshold, attempt: event.attempt, error_class: safe.classification ?? 'delivery_failed' });
-      return Response.json({ delivered: false });
-    }
-  } catch (error) {
-    log('worker_failure', { error_class: error instanceof Error ? error.name : 'unknown' });
-    return new Response('internal error', { status: 500 });
-  }
-});
+type Notification={notification_id:string;chat_id:string;threshold:string;currency:string;attempt:number;category?:string;spent?:number|string;limit?:number|string;progress?:number|string;period_start?:string;period_end?:string;income?:number|string;expenses?:number|string;net?:number|string;transaction_count?:number;categories?:Array<{name:string;amount:number|string}>;budgets?:Array<{category:string;progress:number|string}>};
+function log(stage:string,details:Record<string,unknown>={}){console.info(JSON.stringify({stage,...details}));}
+function config(){const botToken=Deno.env.get('TELEGRAM_BOT_TOKEN');const workerSecret=Deno.env.get('TELEGRAM_NOTIFICATION_WORKER_SECRET');const supabaseUrl=Deno.env.get('SUPABASE_URL');const serviceRoleKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');if(!botToken||!workerSecret||!supabaseUrl||!serviceRoleKey)throw new Error('Worker configuration missing.');return{botToken,workerSecret,supabaseUrl,serviceRoleKey};}
+function money(value:number|string,currency:string){const digits=currency==='IDR'?{minimumFractionDigits:0,maximumFractionDigits:2}:{minimumFractionDigits:2,maximumFractionDigits:2};return new Intl.NumberFormat(currency==='IDR'?'id-ID':'en-US',{style:'currency',currency,currencyDisplay:'narrowSymbol',...digits}).format(Number(value)).replace(/\u00a0/g,' ');}
+function message(e:Notification){if(e.threshold==='daily_summary'||e.threshold==='weekly_summary'){const title=e.threshold==='daily_summary'?'Ringkasan harian Finexy':'Ringkasan mingguan Finexy';const period=e.threshold==='daily_summary'?e.period_start:`${e.period_start} - ${e.period_end}`;const cats=e.categories?.length?e.categories.map(x=>`${x.name}: ${money(x.amount,e.currency)}`).join('\n'):'Tidak ada pengeluaran.';const buds=e.threshold==='weekly_summary'&&e.budgets?.length?`\n\nSorotan budget:\n${e.budgets.map(x=>`${x.category}: ${x.progress}%`).join('\n')}`:'';return `${title}\nPeriode: ${period}\n\nPemasukan: ${money(e.income??0,e.currency)}\nPengeluaran: ${money(e.expenses??0,e.currency)}\nArus kas bersih: ${money(e.net??0,e.currency)}\nTransaksi: ${e.transaction_count??0}\n\nPengeluaran teratas:\n${cats}${buds}`;}const h=e.threshold==='budget_over_limit'?'Budget telah melewati batas':'Budget hampir mencapai batas';return `${h}\n\nKategori: ${e.category}\nTerpakai: ${money(e.spent??0,e.currency)} / ${money(e.limit??0,e.currency)}\nProgress: ${Math.round(Number(e.progress)*10)/10}%`;}
+async function send(token:string,chat:string,text:string){const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:chat,text})});if(!r.ok)throw{permanent:r.status===400||r.status===403,classification:r.status===400||r.status===403?'destination_rejected':'telegram_temporary_failure'};}
+Deno.serve(async request=>{try{const{botToken,workerSecret,supabaseUrl,serviceRoleKey}=config();if(request.headers.get('x-worker-secret')!==workerSecret)return new Response('forbidden',{status:403});const db=createClient(supabaseUrl,serviceRoleKey);const{error:queueError}=await db.rpc('queue_telegram_finance_summaries');if(queueError)throw queueError;const{data,error}=await db.rpc('claim_telegram_budget_notification_worker');if(error)throw error;const e=data as Notification|null;if(!e?.notification_id||!e.chat_id)return Response.json({claimed:false});try{await send(botToken,e.chat_id,message(e));const{error:done}=await db.rpc('complete_telegram_budget_notification_worker',{p_notification_id:e.notification_id,p_delivered:true,p_retryable:true,p_error_class:null});if(done)throw done;log('delivered',{event_type:e.threshold,attempt:e.attempt});return Response.json({delivered:true});}catch(error){const x=error as{permanent?:boolean;classification?:string};const{error:done}=await db.rpc('complete_telegram_budget_notification_worker',{p_notification_id:e.notification_id,p_delivered:false,p_retryable:!x.permanent,p_error_class:x.classification??'delivery_failed'});if(done)throw done;log('delivery_failed',{event_type:e.threshold,attempt:e.attempt,error_class:x.classification??'delivery_failed'});return Response.json({delivered:false});}}catch(error){log('worker_failure',{error_class:error instanceof Error?error.name:'unknown'});return new Response('internal error',{status:500});}});
