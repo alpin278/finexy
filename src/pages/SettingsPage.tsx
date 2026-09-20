@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Bell,
@@ -32,11 +32,11 @@ import {
   settingsCurrencyOptions,
   settingsRegionOptions,
 } from '../data/settings';
-import { mockUser } from '../data/mockUser';
 import { Avatar, Button, Card, Input, Modal, Select, StatusBadge } from '../components/ui';
 import { PreferenceToggle, SettingsSection } from '../components/settings';
 import type { AppearancePreference, SettingsCurrency, SettingsProfile, SettingsState } from '../types/settings';
 import { cn } from '../lib/utils';
+import { loadSettings, saveSettings, settingsErrorMessage } from '../lib/settings';
 
 const appearanceIcons: Record<AppearancePreference, LucideIcon> = {
   light: Sun,
@@ -64,7 +64,11 @@ function createInitialSettings(): SettingsState {
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<SettingsState>(createInitialSettings);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
+  useEffect(() => { void loadSettings().then(setSettings).catch((reason) => setError(settingsErrorMessage(reason))).finally(() => setLoading(false)); }, []);
   const [activeModal, setActiveModal] = useState<'connect' | 'security' | null>(null);
 
   const updateProfile = (field: keyof SettingsProfile, value: string) => {
@@ -77,9 +81,10 @@ export function SettingsPage() {
     setSaveMessage('');
   };
 
-  const handleSave = () => setSaveMessage('Changes saved locally for this demo. Refreshing the page resets them.');
+  const handleSave = async () => { setSaving(true); setError(''); setSaveMessage(''); try { await saveSettings(settings); setSaveMessage('Settings saved. Reporting currency updates on the next Overview or Reports load.'); } catch (reason) { setError(settingsErrorMessage(reason)); } finally { setSaving(false); } };
   const enabledNotifications = settings.notifications.filter((notification) => notification.enabled).length;
 
+  if (loading) return <div role="status" className="rounded-2xl border border-border bg-white p-10 text-center text-sm text-secondary">Loading your saved preferences…</div>;
   return (
     <div className="space-y-6 pb-8 animate-in fade-in-50 duration-200">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -89,19 +94,20 @@ export function SettingsPage() {
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-secondary sm:text-sm">Keep your Finexy profile, money formats, alerts, and personal finance habits in one place.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge status="in_progress" label="Local prototype" />
-          <Button variant="primary" size="sm" leftIcon={<Save className="h-3.5 w-3.5" />} onClick={handleSave}>Save Changes</Button>
+          <StatusBadge status="in_progress" label="Supabase preferences" />
+          <Button variant="primary" size="sm" leftIcon={<Save className="h-3.5 w-3.5" />} onClick={handleSave}>{saving ? 'Saving�' : 'Save Changes'}</Button>
         </div>
       </header>
 
+      {error && <div role="alert" className="rounded-2xl border border-danger/25 bg-danger/10 px-4 py-3 text-xs font-medium text-danger">{error}</div>}
       {saveMessage && <div role="status" className="flex items-start gap-2 rounded-2xl border border-success/25 bg-success/10 px-4 py-3 text-xs font-medium text-primary"><Check className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" /><span>{saveMessage}</span></div>}
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
-          <SettingsSection icon={UserRound} eyebrow="Account" title="Profile & Identity" description="Make your workspace feel like yours. These profile details stay local to this prototype.">
+          <SettingsSection icon={UserRound} eyebrow="Account" title="Profile & Identity" description="Make your workspace feel like yours. Your display name and location are saved to your Finexy profile. Email remains managed by Supabase Auth.">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
               <div className="flex shrink-0 items-center gap-3 lg:w-52 lg:flex-col lg:items-start">
-                <Avatar src={mockUser.avatarUrl} name={settings.profile.name} size="lg" className="h-20 w-20 text-xl" />
+                <Avatar name={settings.profile.name} size="lg" className="h-20 w-20 text-xl" />
                 <div><p className="text-sm font-semibold text-primary">Your profile</p><p className="mt-1 text-xs text-secondary">Avatar preview only</p><button type="button" className="mt-2 text-xs font-semibold text-accent hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30" onClick={() => setSaveMessage('Avatar changes are demo-only and are not uploaded anywhere.')}>Use demo avatar</button></div>
               </div>
               <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
@@ -122,7 +128,7 @@ export function SettingsPage() {
             </div>
           </SettingsSection>
 
-          <SettingsSection icon={Palette} eyebrow="Visual comfort" title="Theme & Appearance" description="Choose how Finexy should feel. Theme selection is kept as local preference state in this frontend-only phase.">
+          <SettingsSection icon={Palette} eyebrow="Visual comfort" title="Theme & Appearance" description="Choose how Finexy should feel. Theme preference is saved; visual theme switching remains deferred.">
             <div className="grid gap-3 sm:grid-cols-3">
               {appearanceOptions.map((option) => { const Icon = appearanceIcons[option.value]; const selected = settings.appearance === option.value; return <button key={option.value} type="button" aria-pressed={selected} onClick={() => { setSettings((current) => ({ ...current, appearance: option.value })); setSaveMessage(''); }} className={cn('rounded-2xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20', selected ? 'border-dark bg-surface ring-2 ring-accent/15' : 'border-border bg-white hover:border-secondary/40 hover:bg-surface')}><div className="flex items-center justify-between gap-3"><span className={cn('flex h-9 w-9 items-center justify-center rounded-xl', selected ? 'bg-dark text-white' : 'bg-surface text-secondary')}><Icon className="h-4 w-4" aria-hidden="true" /></span>{selected && <Check className="h-4 w-4 text-accent" aria-hidden="true" />}</div><p className="mt-4 text-sm font-semibold text-primary">{option.label}</p><p className="mt-1 text-xs text-secondary">{option.description}</p></button>; })}
             </div>
@@ -132,7 +138,7 @@ export function SettingsPage() {
           <SettingsSection icon={ReceiptText} eyebrow="Money habits" title="Transaction Preferences" description="Set a few defaults that keep everyday personal finance tracking quick and consistent.">
             <div className="grid gap-4 sm:grid-cols-2">
               <div><label htmlFor="settings-transaction-type" className={fieldLabelClass}>Default transaction type</label><Select id="settings-transaction-type" value={settings.transactionType} onChange={(event) => { setSettings((current) => ({ ...current, transactionType: event.target.value as SettingsState['transactionType'] })); setSaveMessage(''); }} options={[{ value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }]} className={fieldClass} /><p className="mt-1.5 text-[11px] text-secondary">Used when starting a new manual transaction.</p></div>
-              <div><label htmlFor="settings-entry-mode" className={fieldLabelClass}>Entry style</label><Select id="settings-entry-mode" value={settings.entryMode} onChange={(event) => { setSettings((current) => ({ ...current, entryMode: event.target.value as SettingsState['entryMode'] })); setSaveMessage(''); }} options={[{ value: 'quick', label: 'Quick entry' }, { value: 'detailed', label: 'Detailed entry' }]} className={fieldClass} /><p className="mt-1.5 text-[11px] text-secondary">A local demo preference for the transaction form.</p></div>
+              <div><label htmlFor="settings-entry-mode" className={fieldLabelClass}>Entry style</label><Select id="settings-entry-mode" value={settings.entryMode} onChange={(event) => { setSettings((current) => ({ ...current, entryMode: event.target.value as SettingsState['entryMode'] })); setSaveMessage(''); }} options={[{ value: 'quick', label: 'Quick entry' }, { value: 'detailed', label: 'Detailed entry' }]} className={fieldClass} /><p className="mt-1.5 text-[11px] text-secondary">Saved for future transaction form defaults.</p></div>
             </div>
             <div className="mt-5 divide-y divide-border border-t border-border pt-2"><PreferenceToggle id="settings-auto-categorize" title="Suggest categories" description="Use the existing local category list to suggest a category while entering a transaction." checked={settings.autoCategorize} onChange={(autoCategorize) => { setSettings((current) => ({ ...current, autoCategorize })); setSaveMessage(''); }} /><PreferenceToggle id="settings-merchant-suggestions" title="Remember merchant labels" description="Keep merchant names consistent in this session so spending is easier to scan." checked={settings.merchantSuggestions} onChange={(merchantSuggestions) => { setSettings((current) => ({ ...current, merchantSuggestions })); setSaveMessage(''); }} /><PreferenceToggle id="settings-confirm-delete" title="Confirm before deleting" description="Ask for a confirmation before removing a local transaction or budget." checked={settings.confirmBeforeDeleting} onChange={(confirmBeforeDeleting) => { setSettings((current) => ({ ...current, confirmBeforeDeleting })); setSaveMessage(''); }} /></div>
           </SettingsSection>
@@ -167,3 +173,4 @@ export function SettingsPage() {
 }
 
 export default SettingsPage;
+
