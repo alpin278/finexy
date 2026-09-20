@@ -28,6 +28,38 @@ function safeDiagnosticCode(value: unknown) {
   return value;
 }
 
+function safeTransferDiagnosticText(value: unknown) {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (!normalized) return undefined;
+  return normalized
+    .replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, '[redacted-uuid]')
+    .replace(/\b(?:telegram|finexy)?[_ -]?(?:user|chat|update|rule|session|integration)?[_ -]?id\s*[:=]\s*[^\s,;)]*/gi, '[redacted-id]')
+    .replace(/\b(?:token|secret|authorization|headers?|payload)\s*[:=][^,;]*/gi, '[redacted]')
+    .replace(/\b(?:amount|balance|wallet|user|chat|session|rule|transfer)\s*[:=]\s*[^\s,;)]*/gi, '[redacted-sensitive]')
+    .replace(/\b\d+(?:\.\d+)?\b/g, '[redacted-number]')
+    .slice(0, 240);
+}
+
+function logTransferSessionFailure(operation: string, error: unknown) {
+  const outer = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+  const cause = outer.cause && typeof outer.cause === 'object' ? outer.cause as Record<string, unknown> : undefined;
+  const source = cause ?? outer;
+  const errorName = typeof source.name === 'string'
+    ? source.name
+    : error instanceof Error ? error.name : 'Error';
+  const diagnostic = {
+    stage: 'transfer_session',
+    operation: safeDiagnosticCode(operation) ?? 'unknown',
+    error_name: safeTransferDiagnosticText(errorName) ?? 'Error',
+    error_code: safeDiagnosticCode(source.code) ?? 'unknown',
+    error_message: safeTransferDiagnosticText(source.message) ?? safeTransferDiagnosticText(error instanceof Error ? error.message : undefined) ?? 'Unknown runtime error',
+    error_details: safeTransferDiagnosticText(source.details) ?? 'none',
+    error_hint: safeTransferDiagnosticText(source.hint) ?? 'none',
+  };
+  console.error(JSON.stringify(diagnostic));
+}
+
 function logRecurringListFailure(error: unknown) {
   const outer = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   const cause = outer.cause && typeof outer.cause === 'object' ? outer.cause as Record<string, unknown> : undefined;
@@ -236,17 +268,16 @@ async function transferSession(db: ReturnType<typeof createClient>, user: string
     const { data, error } = await db.rpc('telegram_wallet_transfer_session', { p_telegram_user_id: user, p_telegram_chat_id: chat, p_action: action, p_value: value ?? null });
     if (error) {
       result = 'error';
-      logDiagnostic('transfer_session', { action, result: 'error' });
-      throw new Error(`Wallet transfer session RPC failed: ${error.message}`);
+      const wrappedError = new Error(`Wallet transfer session RPC failed: ${error.message}`);
+      (wrappedError as Error & { cause?: unknown }).cause = error;
+      throw wrappedError;
     }
     const session = (data ?? { status: 'unlinked' }) as TransferSession;
     logDiagnostic('transfer_session', { action, result: session.status === 'linked' ? 'ok' : 'unlinked', step: session.step ?? 'none' });
     return session;
   } catch (error) {
     result = 'error';
-    if (!(error instanceof Error && error.message.startsWith('Wallet transfer session RPC failed:'))) {
-      logDiagnostic('transfer_session', { action, result: 'error' });
-    }
+    logTransferSessionFailure(action, error);
     throw error;
   } finally {
     logTiming('linked_identity_lookup', startedAt, { flow: 'wallet_transfer', result: result === 'ok' ? 'rpc_boundary' : result });
@@ -498,8 +529,7 @@ Deno.serve(async (request) => {
         stage = 'transfer_session';
         try {
           transfer = await transferSession(db, telegramUserId, telegramChatId, 'start');
-        } catch (error) {
-          logFailure(stage, error);
+        } catch {
           await replyTransferError(botToken, telegramChatId, requestStartedAt);
           return finishResponse('ok');
         }
@@ -543,8 +573,7 @@ Deno.serve(async (request) => {
             stage = transfer.step === 'completed' ? 'transfer_session_complete' : 'transfer_result';
           } else if (txData === 'tw:cancel') transfer = await transferSession(db, telegramUserId, telegramChatId, 'cancel');
           else if (txData === 'tw:back') transfer = await transferSession(db, telegramUserId, telegramChatId, 'back');
-        } catch (transferErrorValue) {
-          logFailure(stage, transferErrorValue);
+        } catch {
           await replyTransferError(botToken, telegramChatId, requestStartedAt);
           return finishResponse('ok');
         }
