@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type TelegramMessage = { text?: string; from?: { id?: number }; chat?: { id?: number } };
-type TelegramCallback = { id?: string; data?: string; from?: { id?: number }; message?: { chat?: { id?: number } } };
+type TelegramCallback = { id?: string; data?: string; from?: { id?: number }; message?: { chat?: { id?: number }; message_id?: number } };
 type TelegramUpdate = { update_id?: number; message?: TelegramMessage; callback_query?: TelegramCallback };
 type FinanceAction = 'menu' | 'wallets' | 'budgets' | 'transactions';
 type FinanceSnapshot = { status?: string; wallets?: Array<{ name: string; currency: string; balance: number | string }>; budgets?: Array<{ category: string; currency: string; spent: number | string; limit: number | string; remaining: number | string; progress: number | string; status: string }>; transactions?: Array<{ type: string; amount: number | string; currency: string; category: string; wallet: string; occurred_at: string }> };
@@ -40,8 +40,21 @@ async function answerCallback(botToken: string, callbackId: string) {
   await telegramApi(botToken, 'answerCallbackQuery', { callback_query_id: callbackId });
 }
 
+async function acknowledgeCallback(botToken: string, callbackId: string | undefined) {
+  if (!callbackId) return;
+  try { await answerCallback(botToken, callbackId); } catch (error) { logFailure('callback_acknowledgement', error); }
+}
+
+async function removeCallbackKeyboard(botToken: string, callback: TelegramCallback | undefined, chatId: string) {
+  const messageId = callback?.message?.message_id;
+  if (!messageId) return;
+  try { await telegramApi(botToken, 'editMessageReplyMarkup', { chat_id: chatId, message_id: messageId, reply_markup: { inline_keyboard: [] } }); } catch (error) { logFailure('callback_keyboard_cleanup', error); }
+}
+
 function formatMoney(value: number | string, currency: string) {
-  return new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(value));
+  const amount = Number(value);
+  const digits = currency === 'IDR' ? { minimumFractionDigits: 0, maximumFractionDigits: 2 } : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+  return new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', { style: 'currency', currency, currencyDisplay: 'narrowSymbol', ...digits }).format(Number.isFinite(amount) ? amount : 0).replace(/\u00a0/g, ' ');
 }
 
 function formatWallets(snapshot: FinanceSnapshot) {
@@ -84,8 +97,11 @@ function callbackAction(data: string | undefined): FinanceAction | 'expense' | '
 
 type TransactionSession = { status?: string; step?: string; mode?: string; wallet_name?: string; category_name?: string; amount?: string; currency?: string; note?: string; error?: string; wallets?: Array<{id:string;name:string;currency:string}>; categories?: Array<{id:string;name:string}>; transaction_id?: string };
 async function transactionSession(db: ReturnType<typeof createClient>, user: string, chat: string, action: string, value?: string) { const { data, error } = await db.rpc('telegram_transaction_session',{p_telegram_user_id:user,p_telegram_chat_id:chat,p_action:action,p_value:value ?? null}); if(error) throw new Error(`Transaction session RPC failed: ${error.message}`); return (data ?? {status:'unlinked'}) as TransactionSession; }
-function txMarkup(session: TransactionSession) { if(session.step==='wallet') return {inline_keyboard:[...(session.wallets??[]).map(w=>[{text:`${w.name} (${w.currency})`,callback_data:`tx:w:${w.id}`}]),[{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='category') return {inline_keyboard:[...(session.categories??[]).map(c=>[{text:c.name,callback_data:`tx:c:${c.id}`}]),[{text:'Kembali',callback_data:'tx:back'},{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='note') return {inline_keyboard:[[{text:'Lewati catatan',callback_data:'tx:skip'}],[{text:'Kembali',callback_data:'tx:back'},{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='confirm') return {inline_keyboard:[[{text:'Confirm',callback_data:'tx:confirm'},{text:'Cancel',callback_data:'tx:cancel'}],[{text:'Kembali',callback_data:'tx:back'}]]}; return {inline_keyboard:[[{text:'Cancel',callback_data:'tx:cancel'}]]}; }
-function txText(session: TransactionSession) { if(session.error) return session.error; if(session.step==='wallet') return `Pilih wallet untuk ${session.mode==='expense'?'pengeluaran':'pemasukan'}.`; if(session.step==='category') return 'Pilih kategori.'; if(session.step==='amount') return `Masukkan nominal positif dalam ${session.currency}.`; if(session.step==='note') return 'Kirim catatan, atau pilih Lewati catatan.'; if(session.step==='confirm') return `Konfirmasi\nTipe: ${session.mode==='expense'?'Pengeluaran':'Pemasukan'}\nWallet: ${session.wallet_name}\nKategori: ${session.category_name}\nJumlah: ${formatMoney(session.amount??'0',session.currency??'USD')}\nCatatan: ${session.note||'-'}`; if(session.step==='completed') return `Transaksi berhasil disimpan: ${formatMoney(session.amount??'0',session.currency??'USD')}.`; if(session.step==='canceled') return 'Pencatatan dibatalkan.'; return 'Tidak ada pencatatan aktif.'; }
+function transactionError(error: string | undefined) { if (!error) return null; if (/nominal/i.test(error)) return 'Nominal tidak valid. Masukkan angka positif, misalnya 50000.'; if (/wallet/i.test(error)) return 'Wallet tidak tersedia. Pilih wallet lain.'; if (/kategori/i.test(error)) return 'Kategori tidak tersedia. Pilih kategori lain.'; if (/konfirmasi/i.test(error)) return 'Konfirmasi sudah diproses atau sesi tidak lagi aktif.'; return 'Data pencatatan tidak dapat digunakan. Silakan coba lagi.'; }
+function txMarkup(session: TransactionSession) { if(session.step==='wallet') return {inline_keyboard:[...(session.wallets??[]).map(w=>[{text:`${w.name} (${w.currency})`,callback_data:`tx:w:${w.id}`}]),[{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='category') return {inline_keyboard:[...(session.categories??[]).map(c=>[{text:c.name,callback_data:`tx:c:${c.id}`}]),[{text:'Kembali',callback_data:'tx:back'},{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='amount') return {inline_keyboard:[[{text:'Kembali',callback_data:'tx:back'},{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='note') return {inline_keyboard:[[{text:'Lewati catatan',callback_data:'tx:skip'}],[{text:'Kembali',callback_data:'tx:back'},{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='confirm') return {inline_keyboard:[[{text:'Confirm',callback_data:'tx:confirm'},{text:'Cancel',callback_data:'tx:cancel'}],[{text:'Kembali',callback_data:'tx:back'}]]}; return menuMarkup; }
+function txText(session: TransactionSession) { const safeError=transactionError(session.error); if(safeError) return safeError; if(session.step==='wallet') return `Pilih wallet untuk ${session.mode==='expense'?'pengeluaran':'pemasukan'}.`; if(session.step==='category') return 'Pilih kategori.'; if(session.step==='amount') return `Masukkan nominal positif dalam ${session.currency}. Contoh: 50000.`; if(session.step==='note') return 'Kirim catatan, atau pilih Lewati catatan.'; if(session.step==='confirm') return `Konfirmasi transaksi\n\nTipe: ${session.mode==='expense'?'Pengeluaran':'Pemasukan'}\nWallet: ${session.wallet_name}\nKategori: ${session.category_name}\nJumlah: ${formatMoney(session.amount??'0',session.currency??'USD')}\nMata uang: ${session.currency}\nCatatan: ${session.note||'-'}`; if(session.step==='completed') return `Transaksi berhasil disimpan.\n\nJumlah: ${formatMoney(session.amount??'0',session.currency??'USD')}\nWallet: ${session.wallet_name}\nKategori: ${session.category_name}`; if(session.step==='canceled') return 'Pencatatan dibatalkan. Pilih Menu untuk tindakan lain.'; return 'Sesi pencatatan sudah berakhir. Pilih Pengeluaran atau Pemasukan untuk mulai lagi.'; }
+function isMenuCommand(text: string) { return /^\/(?:start|menu)(?:@\w+)?\s*$/.test(text); }
+function successMarkup(mode: string | undefined) { return {inline_keyboard:[[{text:'Tambah Lagi',callback_data:mode==='expense'?'finexy:expense':'finexy:income'},{text:'Menu',callback_data:'finexy:menu'}]]}; }
 Deno.serve(async (request) => {
   let stage = 'configuration';
   try {
@@ -107,6 +123,11 @@ Deno.serve(async (request) => {
     const telegramChatId = String(chatId);
     const updateId = String(update.update_id);
     const db = createClient(supabaseUrl, serviceRoleKey);
+
+    // Acknowledge before database work so inline buttons never appear stuck.
+    await acknowledgeCallback(botToken, callback?.id);
+    if (callback) await removeCallbackKeyboard(botToken, callback, telegramChatId);
+
     const linkMatch = /^\/link\s+([A-Fa-f0-9]{12})\s*$/.exec(text);
 
     if (linkMatch) {
@@ -115,32 +136,32 @@ Deno.serve(async (request) => {
       if (error) throw new Error(`Link RPC failed: ${error.message}`);
       if (result === 'duplicate') return new Response('ok');
       stage = 'link_reply';
-      if (result === 'linked') await reply(botToken, telegramChatId, 'Akun Finexy berhasil terhubung.');
-      else if (result === 'already_linked' || result === 'account_already_linked') await reply(botToken, telegramChatId, 'Akun Telegram ini sudah terhubung.');
+      if (result === 'linked') await reply(botToken, telegramChatId, 'Akun Finexy berhasil terhubung. Ketik /menu untuk mulai.');
+      else if (result === 'already_linked' || result === 'account_already_linked') await reply(botToken, telegramChatId, 'Akun Telegram ini sudah terhubung. Ketik /menu untuk membuka Finexy.');
       else await reply(botToken, telegramChatId, 'Kode link tidak valid, kedaluwarsa, atau sudah digunakan.');
       return new Response('ok');
     }
 
     stage = 'update_claim';
-    const { data: claim, error } = await db.rpc('claim_telegram_update', { p_telegram_user_id: telegramUserId, p_update_id: updateId, p_event_type: callback ? 'menu_callback' : text.startsWith('/menu') ? 'menu_command' : 'command' });
+    const { data: claim, error } = await db.rpc('claim_telegram_update', { p_telegram_user_id: telegramUserId, p_update_id: updateId, p_event_type: callback ? 'menu_callback' : isMenuCommand(text) ? 'menu_command' : 'command' });
     if (error) throw new Error(`Update claim RPC failed: ${error.message}`);
-    if (claim === 'duplicate') { if (callback?.id) { stage = 'confirm_callback'; await answerCallback(botToken, callback.id); if (callback.data === 'tx:confirm') { stage = 'telegram_reply'; await reply(botToken, telegramChatId, 'Konfirmasi sudah diproses. Periksa Transaksi Terakhir untuk hasilnya.', backMarkup); } } return new Response('ok'); }
+    if (claim === 'duplicate') { if (callback?.data === 'tx:confirm') { stage = 'telegram_reply'; await reply(botToken, telegramChatId, 'Konfirmasi sudah diproses. Periksa Transaksi Terakhir untuk hasilnya.', backMarkup); } return new Response('ok'); }
 
-    const requested = callback ? callbackAction(callback.data) : text.startsWith('/menu') ? 'menu' : null;
+    const requested = callback ? callbackAction(callback.data) : isMenuCommand(text) ? 'menu' : null;
     const txData = callback?.data;
     let session: TransactionSession | null = null;
     if (claim === 'claimed') {
-      if (requested === 'expense' || requested === 'income') session = await transactionSession(db, telegramUserId, telegramChatId, requested === 'expense' ? 'start_expense' : 'start_income');
+      if (requested === 'menu') { await transactionSession(db, telegramUserId, telegramChatId, 'cancel'); } else if (requested === 'expense' || requested === 'income') session = await transactionSession(db, telegramUserId, telegramChatId, requested === 'expense' ? 'start_expense' : 'start_income');
       else if (txData?.startsWith('tx:w:')) session = await transactionSession(db, telegramUserId, telegramChatId, 'wallet', txData.slice(5));
       else if (txData?.startsWith('tx:c:')) session = await transactionSession(db, telegramUserId, telegramChatId, 'category', txData.slice(5));
       else if (txData === 'tx:skip') session = await transactionSession(db, telegramUserId, telegramChatId, 'skip_note');
-      else if (txData === 'tx:confirm') { stage = 'confirm_callback'; console.info(JSON.stringify({ stage })); if (callback?.id) await answerCallback(botToken, callback.id); try { stage = 'session_load'; console.info(JSON.stringify({ stage })); stage = 'transaction_create'; console.info(JSON.stringify({ stage })); session = await transactionSession(db, telegramUserId, telegramChatId, 'confirm'); stage = session.step === 'completed' ? 'session_complete' : 'transaction_result'; console.info(JSON.stringify({ stage, result: session.step === 'completed' ? 'completed' : 'not_completed' })); } catch (confirmError) { logFailure(stage, confirmError); stage = 'telegram_reply'; await reply(botToken, telegramChatId, 'Transaksi belum dapat disimpan. Periksa data lalu coba Confirm lagi.'); return new Response('ok'); } }
+      else if (txData === 'tx:confirm') { stage = 'confirm_callback'; console.info(JSON.stringify({ stage })); try { stage = 'session_load'; console.info(JSON.stringify({ stage })); stage = 'transaction_create'; console.info(JSON.stringify({ stage })); session = await transactionSession(db, telegramUserId, telegramChatId, 'confirm'); stage = session.step === 'completed' ? 'session_complete' : 'transaction_result'; console.info(JSON.stringify({ stage, result: session.step === 'completed' ? 'completed' : 'not_completed' })); } catch (confirmError) { logFailure(stage, confirmError); stage = 'telegram_reply'; await reply(botToken, telegramChatId, 'Transaksi belum dapat disimpan. Periksa data lalu coba Confirm lagi.'); return new Response('ok'); } }
       else if (txData === 'tx:cancel') session = await transactionSession(db, telegramUserId, telegramChatId, 'cancel');
       else if (txData === 'tx:back') session = await transactionSession(db, telegramUserId, telegramChatId, 'back');
-      else if (!callback && !requested && text) { const state = await transactionSession(db, telegramUserId, telegramChatId, 'state'); if (state.step === 'amount' || state.step === 'note') session = await transactionSession(db, telegramUserId, telegramChatId, state.step, text); }
+      else if (!callback && !requested && text) { const state = await transactionSession(db, telegramUserId, telegramChatId, 'state'); if (state.step === 'amount' || state.step === 'note') session = await transactionSession(db, telegramUserId, telegramChatId, state.step, text); else if (state.status !== 'linked') session = state; }
     }
-    if (session) { if (callback?.id && txData !== 'tx:confirm') await answerCallback(botToken, callback.id); if (session.status !== 'linked') await reply(botToken, telegramChatId, 'Akun Telegram ini belum terhubung ke Finexy.'); else if (session.step === 'completed') { stage = 'telegram_reply'; console.info(JSON.stringify({ stage, result: 'success' })); await reply(botToken, telegramChatId, txText(session), {inline_keyboard:[[{text:'Menu',callback_data:'finexy:menu'},{text:session.mode==='expense'?'Tambah Pengeluaran':'Tambah Pemasukan',callback_data:session.mode==='expense'?'finexy:expense':'finexy:income'}]]}); } else await reply(botToken, telegramChatId, txText(session), txMarkup(session)); return new Response('ok'); }
-    if (!requested || claim !== 'claimed') { if (callback?.id) await answerCallback(botToken, callback.id); await reply(botToken, telegramChatId, text.startsWith('/start') ? 'Selamat datang di Finexy. Hubungkan akun dari Settings terlebih dahulu.' : 'Akun Telegram ini belum terhubung ke Finexy.'); return new Response('ok'); }
+    if (session) { if (session.status !== 'linked') await reply(botToken, telegramChatId, 'Akun Telegram ini belum terhubung ke Finexy.'); else if (session.step === 'completed') { stage = 'telegram_reply'; console.info(JSON.stringify({ stage, result: 'success' })); await reply(botToken, telegramChatId, txText(session), successMarkup(session.mode)); } else await reply(botToken, telegramChatId, txText(session), txMarkup(session)); return new Response('ok'); }
+    if (!requested || claim !== 'claimed') { await reply(botToken, telegramChatId, 'Pesan belum dikenali. Ketik /menu untuk membuka menu Finexy.'); return new Response('ok'); }
 
     stage = 'finance_authorization';
     const action: FinanceAction = requested === 'expense' || requested === 'income' ? 'menu' : requested;
