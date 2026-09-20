@@ -9,7 +9,7 @@ import {
   settingsRegionOptions,
 } from '../data/settings';
 import { Avatar, Button, Card, Input, LoadingState, Modal, Select, StatusBadge } from '../components/ui';
-import { PreferenceToggle, SettingsSection } from '../components/settings';
+import { DataBackupPanel, PreferenceToggle, SettingsSection } from '../components/settings';
 import type { AppearancePreference, SettingsCurrency, SettingsProfile, SettingsState } from '../types/settings';
 import { cn } from '../lib/utils';
 import { loadSettings, saveSettings, settingsErrorMessage } from '../lib/settings';
@@ -172,6 +172,10 @@ export function SettingsPage() {
               <div><label htmlFor="settings-entry-mode" className={fieldLabelClass}>Entry style</label><Select id="settings-entry-mode" value={settings.entryMode} onChange={(event) => { setSettings((current) => ({ ...current, entryMode: event.target.value as SettingsState['entryMode'] })); setSaveMessage(''); }} options={[{ value: 'quick', label: 'Quick entry' }, { value: 'detailed', label: 'Detailed entry' }]} className={fieldClass} /><p className="mt-1.5 text-[11px] text-secondary">Saved for future transaction form defaults.</p></div>
             </div>
             <div className="mt-5 divide-y divide-border border-t border-border pt-2"><PreferenceToggle id="settings-auto-categorize" title="Suggest categories" description="Use the existing local category list to suggest a category while entering a transaction." checked={settings.autoCategorize} onChange={(autoCategorize) => { setSettings((current) => ({ ...current, autoCategorize })); setSaveMessage(''); }} /><PreferenceToggle id="settings-merchant-suggestions" title="Remember merchant labels" description="Keep merchant names consistent in this session so spending is easier to scan." checked={settings.merchantSuggestions} onChange={(merchantSuggestions) => { setSettings((current) => ({ ...current, merchantSuggestions })); setSaveMessage(''); }} /><PreferenceToggle id="settings-confirm-delete" title="Confirm before deleting" description="Ask for a confirmation before removing a local transaction or budget." checked={settings.confirmBeforeDeleting} onChange={(confirmBeforeDeleting) => { setSettings((current) => ({ ...current, confirmBeforeDeleting })); setSaveMessage(''); }} /></div>
+          </SettingsSection>
+
+          <SettingsSection icon="database" eyebrow="Account data" title="Data &amp; Backup" description="Export a portable copy of your Finexy data or safely restore a Finexy backup into this authenticated account.">
+            <DataBackupPanel />
           </SettingsSection>
 
           <SettingsSection icon="wallet2" eyebrow="Connections" title="Telegram" description="Link Telegram to your signed-in Finexy account. This foundation does not expose financial data or accept financial commands.">

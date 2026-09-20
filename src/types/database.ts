@@ -783,6 +783,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      finexy_export_backup: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      finexy_import_backup: {
+        Args: {
+          p_backup: Json
+          p_mode?: string
+        }
+        Returns: Json
+      }
       create_telegram_link_code: {
         Args: Record<PropertyKey, never>
         Returns: { code: string; expires_at: string }[]
@@ -829,7 +840,7 @@ export type Database = {
       currency_code: "USD" | "EUR" | "GBP" | "IDR"
       notification_channel: "in_app" | "email" | "telegram"
       rule_operator: "contains" | "starts_with" | "exact_match"
-      transaction_source: "web" | "telegram" | "import" | "api"
+      transaction_source: "web" | "telegram" | "import" | "api" | "recurring"
       transaction_status: "pending" | "completed" | "canceled"
       transaction_type: "income" | "expense" | "transfer"
       transfer_leg: "outbound" | "inbound"
@@ -969,7 +980,7 @@ export const Constants = {
       currency_code: ["USD", "EUR", "GBP", "IDR"],
       notification_channel: ["in_app", "email", "telegram"],
       rule_operator: ["contains", "starts_with", "exact_match"],
-      transaction_source: ["web", "telegram", "import", "api"],
+      transaction_source: ["web", "telegram", "import", "api", "recurring"],
       transaction_status: ["pending", "completed", "canceled"],
       transaction_type: ["income", "expense", "transfer"],
       transfer_leg: ["outbound", "inbound"],
