@@ -14,4 +14,3 @@ export function LoadingState({ label = 'Loading', className }: { label?: string;
     </div>
   );
 }
-
