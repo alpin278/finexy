@@ -1,4 +1,4 @@
-﻿import { supabase } from './supabase';
+import { supabase } from './supabase';
 
 export type TelegramConnection =
   | { status: 'not_connected' }
@@ -20,8 +20,8 @@ export async function loadTelegramConnection(): Promise<TelegramConnection> {
 export async function generateTelegramLinkCode(): Promise<TelegramConnection> {
   const { data, error } = await supabase.rpc('create_telegram_link_code');
   if (error) throw error;
-  const link = data[0];
-  if (!link) throw new Error('Could not generate a Telegram link code.');
+  const link = Array.isArray(data) ? data[0] : data;
+  if (!link?.code || !link.expires_at) throw new Error('The link-code service returned an invalid response.');
   return { status: 'link_code_ready', code: link.code, expiresAt: link.expires_at };
 }
 

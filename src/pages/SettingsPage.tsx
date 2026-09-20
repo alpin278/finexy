@@ -45,8 +45,8 @@ const appearanceIcons: Record<AppearancePreference, LucideIcon> = {
 
 const currencySymbols: Record<SettingsCurrency, string> = {
   USD: '$',
-  EUR: '€',
-  GBP: '£',
+  EUR: 'â‚¬',
+  GBP: 'Â£',
   IDR: 'Rp',
 };
 
@@ -69,6 +69,7 @@ export function SettingsPage() {
   const [saveMessage, setSaveMessage] = useState('');
   const [telegram, setTelegram] = useState<TelegramConnection>({ status: 'not_connected' });
   const [telegramBusy, setTelegramBusy] = useState(false);
+  const [telegramError, setTelegramError] = useState('');
   useEffect(() => { void Promise.all([loadSettings(), loadTelegramConnection()]).then(([loadedSettings, connection]) => { setSettings(loadedSettings); setTelegram(connection); }).catch((reason) => setError(settingsErrorMessage(reason))).finally(() => setLoading(false)); }, []);
   const [activeModal, setActiveModal] = useState<'security' | null>(null);
 
@@ -85,13 +86,13 @@ export function SettingsPage() {
   const handleSave = async () => { setSaving(true); setError(''); setSaveMessage(''); try { await saveSettings(settings); setSaveMessage('Settings saved. Reporting currency updates on the next Overview or Reports load.'); } catch (reason) { setError(settingsErrorMessage(reason)); } finally { setSaving(false); } };
   const enabledNotifications = settings.notifications.filter((notification) => notification.enabled).length;
   const handleGenerateTelegramCode = async () => {
-    setTelegramBusy(true); setError(''); setSaveMessage('');
+    setTelegramBusy(true); setError(''); setSaveMessage(''); setTelegramError('');
     try { setTelegram(await generateTelegramLinkCode()); }
-    catch (reason) { setError(settingsErrorMessage(reason)); }
+    catch { setTelegramError('We could not generate a Telegram link code. Confirm that you are signed in and try again.'); }
     finally { setTelegramBusy(false); }
   };
   const handleDisconnectTelegram = async () => {
-    setTelegramBusy(true); setError(''); setSaveMessage('');
+    setTelegramBusy(true); setError(''); setSaveMessage(''); setTelegramError('');
     try { await disconnectTelegram(); setTelegram({ status: 'not_connected' }); setSaveMessage('Telegram disconnected. Link codes and active Telegram sessions were invalidated.'); }
     catch (reason) { setError(settingsErrorMessage(reason)); }
     finally { setTelegramBusy(false); }
@@ -161,6 +162,7 @@ export function SettingsPage() {
               <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary"><i className="bi bi-telegram text-lg" aria-hidden="true" /></div><div><p className="text-sm font-semibold text-primary">Telegram</p><p className="mt-1 text-xs text-secondary">{telegram.status === 'connected' ? 'Your Telegram account is linked.' : telegram.status === 'link_code_ready' ? 'Send the code below to the Finexy bot.' : 'Generate a one-time code to link your account.'}</p><div className="mt-2"><StatusBadge status={telegram.status === 'connected' ? 'active' : telegram.status === 'link_code_ready' ? 'in_progress' : 'inactive'} label={telegram.status === 'connected' ? 'Connected' : telegram.status === 'link_code_ready' ? 'Link Code Ready' : 'Not Connected'} /></div></div></div>
               {telegram.status === 'connected' ? <Button variant="outline" size="sm" disabled={telegramBusy} onClick={handleDisconnectTelegram}>Disconnect Telegram</Button> : <Button variant="accent" size="sm" disabled={telegramBusy} onClick={handleGenerateTelegramCode}>{telegramBusy ? 'Generating...' : 'Generate Link Code'}</Button>}
             </div>
+            {telegramError && <div role="alert" className="mt-4 rounded-xl border border-danger/25 bg-danger/10 px-3.5 py-3 text-xs font-medium text-danger">{telegramError}</div>}
             {telegram.status === 'link_code_ready' && <div className="mt-4 rounded-xl border border-accent/20 bg-accent/10 p-3.5"><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary">One-time link code</p><p className="mt-1 font-mono text-lg font-bold tracking-[0.16em] text-primary">{telegram.code}</p><p className="mt-1.5 text-xs text-secondary">Send <span className="font-semibold text-primary">/link {telegram.code}</span> to the Finexy bot. Expires {new Date(telegram.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.</p></div>}
           </SettingsSection>
 
