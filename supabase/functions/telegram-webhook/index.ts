@@ -15,6 +15,10 @@ function logDiagnostic(stage: string, details: Record<string, string | number | 
   console.info(JSON.stringify({ stage, ...details }));
 }
 
+function logTiming(stage: string, startedAt: number, details: Record<string, string | number | boolean> = {}) {
+  logDiagnostic(stage, { ...details, duration_ms: Math.round(Math.max(0, performance.now() - startedAt)) });
+}
+
 function runtimeConfig() {
   const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
   const webhookSecret = Deno.env.get('TELEGRAM_WEBHOOK_SECRET');
@@ -33,8 +37,20 @@ const menuMarkup = { inline_keyboard: [
 const backMarkup = { inline_keyboard: [[{ text: 'Kembali', callback_data: 'finexy:menu' }]] };
 
 async function telegramApi(botToken: string, method: string, body: Record<string, unknown>) {
-  const response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  if (!response.ok) throw new Error(`Telegram ${method} returned HTTP ${response.status}.`);
+  const timingStage = method === 'answerCallbackQuery' ? 'telegram_answerCallbackQuery' : method === 'sendMessage' ? 'telegram_sendMessage' : method === 'editMessageText' ? 'telegram_editMessageText' : `telegram_${method}`;
+  const startedAt = performance.now();
+  let response: Response;
+  try {
+    response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  } catch (error) {
+    logTiming(timingStage, startedAt, { result: 'network_error' });
+    throw error;
+  }
+  if (!response.ok) {
+    logTiming(timingStage, startedAt, { result: 'http_error', http_status: response.status });
+    throw new Error(`Telegram ${method} returned HTTP ${response.status}.`);
+  }
+  logTiming(timingStage, startedAt, { result: 'ok', http_status: response.status });
 }
 
 async function reply(botToken: string, chatId: string, text: string, replyMarkup?: object) {
@@ -89,9 +105,22 @@ function formatTransactions(snapshot: FinanceSnapshot) {
 }
 
 async function financeSnapshot(db: ReturnType<typeof createClient>, telegramUserId: string, telegramChatId: string, action: FinanceAction) {
-  const { data, error } = await db.rpc('get_telegram_finance_snapshot', { p_telegram_user_id: telegramUserId, p_telegram_chat_id: telegramChatId, p_action: action });
-  if (error) throw new Error(`Finance RPC failed: ${error.message}`);
-  return (data ?? { status: 'unlinked' }) as FinanceSnapshot;
+  const startedAt = performance.now();
+  let result = 'ok';
+  try {
+    const { data, error } = await db.rpc('get_telegram_finance_snapshot', { p_telegram_user_id: telegramUserId, p_telegram_chat_id: telegramChatId, p_action: action });
+    if (error) {
+      result = 'error';
+      throw new Error(`Finance RPC failed: ${error.message}`);
+    }
+    return (data ?? { status: 'unlinked' }) as FinanceSnapshot;
+  } catch (error) {
+    result = 'error';
+    throw error;
+  } finally {
+    logTiming('linked_identity_lookup', startedAt, { flow: 'finance', result: result === 'ok' ? 'rpc_boundary' : result });
+    logTiming('finance_rpc', startedAt, { result });
+  }
 }
 
 function callbackAction(data: string | undefined): FinanceAction | 'expense' | 'income' | null {
@@ -101,23 +130,52 @@ function callbackAction(data: string | undefined): FinanceAction | 'expense' | '
 }
 
 type TransactionSession = { status?: string; step?: string; mode?: string; wallet_name?: string; category_name?: string; amount?: string; currency?: string; note?: string; error?: string; wallets?: Array<{id:string;name:string;currency:string}>; categories?: Array<{id:string;name:string}>; transaction_id?: string };
-async function transactionSession(db: ReturnType<typeof createClient>, user: string, chat: string, action: string, value?: string) { const { data, error } = await db.rpc('telegram_transaction_session',{p_telegram_user_id:user,p_telegram_chat_id:chat,p_action:action,p_value:value ?? null}); if(error) throw new Error(`Transaction session RPC failed: ${error.message}`); return (data ?? {status:'unlinked'}) as TransactionSession; }
+async function transactionSession(db: ReturnType<typeof createClient>, user: string, chat: string, action: string, value?: string) {
+  const startedAt = performance.now();
+  let result = 'ok';
+  try {
+    const { data, error } = await db.rpc('telegram_transaction_session',{p_telegram_user_id:user,p_telegram_chat_id:chat,p_action:action,p_value:value ?? null});
+    if(error) {
+      result = 'error';
+      throw new Error(`Transaction session RPC failed: ${error.message}`);
+    }
+    return (data ?? {status:'unlinked'}) as TransactionSession;
+  } catch (error) {
+    result = 'error';
+    throw error;
+  } finally {
+    logTiming('linked_identity_lookup', startedAt, { flow: 'transaction', result: result === 'ok' ? 'rpc_boundary' : result });
+    logTiming('session_load', startedAt, { flow: 'transaction', action, result });
+  }
+}
 function transactionError(error: string | undefined) { if (!error) return null; if (/nominal/i.test(error)) return 'Nominal tidak valid. Masukkan angka positif, misalnya 50000.'; if (/wallet/i.test(error)) return 'Wallet tidak tersedia. Pilih wallet lain.'; if (/kategori/i.test(error)) return 'Kategori tidak tersedia. Pilih kategori lain.'; if (/konfirmasi/i.test(error)) return 'Konfirmasi sudah diproses atau sesi tidak lagi aktif.'; return 'Data pencatatan tidak dapat digunakan. Silakan coba lagi.'; }
 function txMarkup(session: TransactionSession) { if(session.step==='wallet') return {inline_keyboard:[...(session.wallets??[]).map(w=>[{text:`${w.name} (${w.currency})`,callback_data:`tx:w:${w.id}`}]),[{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='category') return {inline_keyboard:[...(session.categories??[]).map(c=>[{text:c.name,callback_data:`tx:c:${c.id}`}]),[{text:'Kembali',callback_data:'tx:back'},{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='amount') return {inline_keyboard:[[{text:'Kembali',callback_data:'tx:back'},{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='note') return {inline_keyboard:[[{text:'Lewati catatan',callback_data:'tx:skip'}],[{text:'Kembali',callback_data:'tx:back'},{text:'Cancel',callback_data:'tx:cancel'}]]}; if(session.step==='confirm') return {inline_keyboard:[[{text:'Confirm',callback_data:'tx:confirm'},{text:'Cancel',callback_data:'tx:cancel'}],[{text:'Kembali',callback_data:'tx:back'}]]}; return menuMarkup; }
 function txText(session: TransactionSession) { const safeError=transactionError(session.error); if(safeError) return safeError; if(session.step==='wallet') return `Pilih wallet untuk ${session.mode==='expense'?'pengeluaran':'pemasukan'}.`; if(session.step==='category') return 'Pilih kategori.'; if(session.step==='amount') return `Masukkan nominal positif dalam ${session.currency}. Contoh: 50000.`; if(session.step==='note') return 'Kirim catatan, atau pilih Lewati catatan.'; if(session.step==='confirm') return `Konfirmasi transaksi\n\nTipe: ${session.mode==='expense'?'Pengeluaran':'Pemasukan'}\nWallet: ${session.wallet_name}\nKategori: ${session.category_name}\nJumlah: ${formatMoney(session.amount??'0',session.currency??'USD')}\nMata uang: ${session.currency}\nCatatan: ${session.note||'-'}`; if(session.step==='completed') return `Transaksi berhasil disimpan.\n\nJumlah: ${formatMoney(session.amount??'0',session.currency??'USD')}\nWallet: ${session.wallet_name}\nKategori: ${session.category_name}`; if(session.step==='canceled') return 'Pencatatan dibatalkan. Pilih Menu untuk tindakan lain.'; return 'Sesi pencatatan sudah berakhir. Pilih Pengeluaran atau Pemasukan untuk mulai lagi.'; }
 type RecurringSession = { status?:string; step?:string; mode?:string; ref?:string; type?:string; amount?:number|string; currency?:string; wallet?:string; category?:string; frequency?:string; start_date?:string; local_time?:string; next_due?:string; timezone?:string; active?:boolean; note?:string|null; wallets?:Array<{ref:string;name:string;currency:string}>; categories?:Array<{ref:string;name:string}>; rules?:Array<{ref:string;type:string;amount:number|string;currency:string;wallet:string;category:string;frequency:string;next_due:string;active:boolean}>; error?:string };
 async function recurringSession(db: ReturnType<typeof createClient>, user:string, chat:string, action:string, value?:string) {
-  logDiagnostic('recurring_session_init', { action, result: 'started' });
-  const {data,error}=await db.rpc('telegram_recurring_session',{p_telegram_user_id:user,p_telegram_chat_id:chat,p_action:action,p_value:value??null});
-  if(error) {
-    logDiagnostic('recurring_session_init', { action, result: 'failed' });
-    if (action === 'list') logDiagnostic('recurring_list_load', { result: 'failed', rules_count: 0 });
-    throw new Error(`Recurring RPC failed: ${error.message}`);
+  const startedAt = performance.now();
+  let result = 'ok';
+  try {
+    logDiagnostic('recurring_session_init', { action, result: 'started' });
+    const {data,error}=await db.rpc('telegram_recurring_session',{p_telegram_user_id:user,p_telegram_chat_id:chat,p_action:action,p_value:value??null});
+    if(error) {
+      result = 'error';
+      logDiagnostic('recurring_session_init', { action, result: 'failed' });
+      if (action === 'list') logDiagnostic('recurring_list_load', { result: 'failed', rules_count: 0 });
+      throw new Error(`Recurring RPC failed: ${error.message}`);
+    }
+    const session = (data??{status:'unlinked'}) as RecurringSession;
+    logDiagnostic('recurring_session_init', { action, result: session.status === 'linked' ? 'linked' : 'unlinked', step: session.step ?? 'none' });
+    if (action === 'list') logDiagnostic('recurring_list_load', { result: session.status === 'linked' ? 'loaded' : 'unlinked', rules_count: session.rules?.length ?? 0 });
+    return session;
+  } catch (error) {
+    result = 'error';
+    throw error;
+  } finally {
+    logTiming('linked_identity_lookup', startedAt, { flow: 'recurring', action, result: result === 'ok' ? 'rpc_boundary' : result });
+    logTiming('recurring_rpc', startedAt, { action, result });
+    logTiming('session_load', startedAt, { flow: 'recurring', action, result });
   }
-  const session = (data??{status:'unlinked'}) as RecurringSession;
-  logDiagnostic('recurring_session_init', { action, result: session.status === 'linked' ? 'linked' : 'unlinked', step: session.step ?? 'none' });
-  if (action === 'list') logDiagnostic('recurring_list_load', { result: session.status === 'linked' ? 'loaded' : 'unlinked', rules_count: session.rules?.length ?? 0 });
-  return session;
 }
 async function replyRecurring(botToken: string, chatId: string, session: RecurringSession) {
   const markup = recurringMarkup(session);
@@ -138,6 +196,8 @@ function recurringMarkup(s:RecurringSession){if(s.step==='list')return{inline_ke
 function recurringText(s:RecurringSession){if(s.status!=='linked')return'Akun Telegram ini belum terhubung ke Finexy.';if(s.step==='list')return(s.rules??[]).length?`Transaksi Rutin\n\n${(s.rules??[]).map(r=>`${r.type==='expense'?'Pengeluaran':'Pemasukan'}: ${formatMoney(r.amount,r.currency)}\n${r.wallet} | ${r.category}\n${r.frequency} Ã‚· ${new Date(r.next_due).toLocaleString('id-ID',{timeZone:'UTC'})} Ã‚· ${r.active?'Aktif':'Jeda'}`).join('\n\n')}`:'Transaksi Rutin\n\nBelum ada jadwal rutin.';if(s.step==='detail')return`${s.type==='expense'?'Pengeluaran':'Pemasukan'} rutin\n\nJumlah: ${formatMoney(s.amount??0,s.currency??'USD')}\nWallet: ${s.wallet}\nKategori: ${s.category}\nFrekuensi: ${s.frequency}\nBerikutnya: ${s.next_due}\nZona waktu: ${s.timezone}\nStatus: ${s.active?'Aktif':'Jeda'}${s.note?`\nCatatan: ${s.note}`:''}`;if(s.step==='wallet')return'Pilih wallet aktif.';if(s.step==='category')return'Pilih kategori yang sesuai.';if(s.step==='amount')return`Masukkan nominal positif dalam ${s.currency??'mata uang wallet'} (maksimal 4 desimal).`;if(s.step==='frequency')return'Pilih frekuensi.';if(s.step==='schedule_day')return s.frequency==='weekly'?'Pilih hari dalam minggu.':'Pilih tanggal 1 sampai 31.';if(s.step==='schedule_time')return'Kirim waktu lokal dengan format HH:MM.';if(s.step==='note')return'Kirim catatan, atau pilih Lewati catatan.';if(s.step==='edit_field')return'Pilih field yang ingin diubah, atau Review.';if(s.step==='confirm')return`Konfirmasi ${s.mode==='edit'?'perubahan':'jadwal rutin'}\n\nTipe: ${s.type==='expense'?'Pengeluaran':'Pemasukan'}\nWallet: ${s.wallet}\nKategori: ${s.category}\nJumlah: ${formatMoney(s.amount??0,s.currency??'USD')}\nFrekuensi: ${s.frequency}\nJadwal: ${s.start_date} ${s.local_time}\nZona waktu: ${s.timezone}\nCatatan: ${s.note||'-'}`;if(s.step==='completed')return`${s.mode==='edit'?'Perubahan':'Jadwal'} berhasil disimpan.`;if(s.step==='archive_confirm')return'Archive jadwal rutin ini? Transaksi yang sudah dibuat tidak akan dihapus.';if(s.step==='archived')return'Jadwal rutin diarsipkan.';return s.error??'Sesi rutin sudah berakhir.';}function isMenuCommand(text: string) { return /^\/(?:start|menu)(?:@\w+)?\s*$/.test(text); }
 function successMarkup(mode: string | undefined) { return {inline_keyboard:[[{text:'Tambah Lagi',callback_data:mode==='expense'?'finexy:expense':'finexy:income'},{text:'Menu',callback_data:'finexy:menu'}]]}; }
 Deno.serve(async (request) => {
+  const requestStartedAt = performance.now();
+  logTiming('request_start', requestStartedAt, { method: request.method });
   let stage = 'configuration';
   try {
     const { botToken, webhookSecret, supabaseUrl, serviceRoleKey } = runtimeConfig();
@@ -163,7 +223,7 @@ Deno.serve(async (request) => {
 
     // Acknowledge before database work so inline buttons never appear stuck.
     await acknowledgeCallback(botToken, callback?.id);
-    if (callback) await removeCallbackKeyboard(botToken, callback, telegramChatId);
+    const callbackKeyboardCleanup = callback ? removeCallbackKeyboard(botToken, callback, telegramChatId) : Promise.resolve();
 
     const linkMatch = /^\/link\s+([A-Fa-f0-9]{12})\s*$/.exec(text);
 
@@ -180,7 +240,11 @@ Deno.serve(async (request) => {
     }
 
     stage = 'update_claim';
-    const { data: claim, error } = await db.rpc('claim_telegram_update', { p_telegram_user_id: telegramUserId, p_update_id: updateId, p_event_type: callback ? 'menu_callback' : isMenuCommand(text) ? 'menu_command' : 'command' });
+    const updateClaimStartedAt = performance.now();
+    const claimResponse = await db.rpc('claim_telegram_update', { p_telegram_user_id: telegramUserId, p_update_id: updateId, p_event_type: callback ? 'menu_callback' : isMenuCommand(text) ? 'menu_command' : 'command' });
+    const { data: claim, error } = claimResponse;
+    logTiming('update_claim', updateClaimStartedAt, { result: error ? 'error' : claim === 'claimed' ? 'claimed' : claim === 'duplicate' ? 'duplicate' : claim === 'unlinked' ? 'unlinked' : 'other' });
+    await callbackKeyboardCleanup;
     if (error) throw new Error(`Update claim RPC failed: ${error.message}`);
     if (claim === 'duplicate') {
       if (isRecurringMenuCallback) {
@@ -214,7 +278,6 @@ Deno.serve(async (request) => {
     stage = 'finance_authorization';
     const action: FinanceAction = requested === 'expense' || requested === 'income' ? 'menu' : requested;
     const snapshot = await financeSnapshot(db, telegramUserId, telegramChatId, action);
-    if (callback?.id) await answerCallback(botToken, callback.id);
     if (snapshot.status !== 'linked') { await reply(botToken, telegramChatId, 'Akun Telegram ini belum terhubung ke Finexy.'); return new Response('ok'); }
     stage = 'finance_reply';
     if (requested === 'menu') await reply(botToken, telegramChatId, 'Menu Finexy', menuMarkup);
@@ -226,5 +289,7 @@ Deno.serve(async (request) => {
   } catch (error) {
     logFailure(stage, error);
     return new Response('internal error', { status: 500 });
+  } finally {
+    logTiming('request_total_duration', requestStartedAt, { stage });
   }
 });
