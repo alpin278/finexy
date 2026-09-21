@@ -15,6 +15,12 @@ const realtimeTables: Array<[string, FinancialDataDomain[]]> = [
   ['user_settings', ['overview', 'transactions', 'reports', 'settings']],
 ];
 
+const realtimeDiagnostics = import.meta.env.DEV;
+
+function diagnostic(message: string, details: Record<string, unknown>) {
+  if (realtimeDiagnostics) console.info(`[financial-realtime] ${message}`, { ...details, timestamp: new Date().toISOString() });
+}
+
 /** Realtime carries no financial data into UI state: it only coalesces canonical reloads. */
 export function FinancialRealtimeBridge() {
   const { user } = useAuth();
@@ -24,14 +30,23 @@ export function FinancialRealtimeBridge() {
   useEffect(() => {
     if (!user) return undefined;
     const queued = new Set<FinancialDataDomain>();
-    const flush = () => { timer.current = null; void invalidate([...queued]); queued.clear(); };
+    const flush = () => {
+      timer.current = null;
+      const domains = [...queued];
+      queued.clear();
+      diagnostic('invalidating domains', { domains });
+      void invalidate(domains);
+    };
     const queue = (domains: FinancialDataDomain[]) => {
       domains.forEach((domain) => queued.add(domain));
       if (timer.current === null) timer.current = window.setTimeout(flush, 150);
     };
     const channel: RealtimeChannel = supabase.channel('financial-revalidation:' + user.id);
-    realtimeTables.forEach(([table, domains]) => channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: 'user_id=eq.' + user.id }, () => queue(domains)));
-    channel.subscribe();
+    realtimeTables.forEach(([table, domains]) => channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: 'user_id=eq.' + user.id }, (payload) => {
+      diagnostic('received database event', { table, eventType: payload.eventType, domains });
+      queue(domains);
+    }));
+    channel.subscribe((status) => diagnostic('channel status', { status }));
     return () => {
       if (timer.current !== null) window.clearTimeout(timer.current);
       timer.current = null;
