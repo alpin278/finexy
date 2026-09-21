@@ -90,7 +90,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
 
           {/* Main content scrollable viewport */}
           <MainContent>
-            <div key={location.pathname} className="route-enter h-full">
+            <div key={location.pathname} className="route-enter min-h-full">
               {children || <Outlet />}
             </div>
           </MainContent>

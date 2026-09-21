@@ -152,7 +152,7 @@ export function SettingsPage() {
       {error && <div role="alert" className="rounded-2xl border border-danger/25 bg-danger/10 px-4 py-3 text-xs font-medium text-danger">{error}</div>}
       {saveMessage && <div role="status" className="flex items-start gap-2 rounded-2xl border border-success/25 bg-success/10 px-4 py-3 text-xs font-medium text-primary"><Icon name="check-lg" className="mt-0.5 shrink-0 text-success" /><span>{saveMessage}</span></div>}
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
           <SettingsSection id="regional" icon="currency-dollar" eyebrow="Regional defaults" title="Currency & Regional" description="Choose the formats that make your balances and transactions easiest to read.">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -213,7 +213,7 @@ export function SettingsPage() {
           </SettingsSection>
         </div>
 
-        <aside className="space-y-6 xl:sticky xl:top-6">
+        <aside className="self-start space-y-6 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto lg:pr-1">
           <Card padding="sm">
             <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface text-secondary"><Icon name="list-ul" /></div><div><h2 className="text-sm font-semibold text-primary">Settings sections</h2><p className="mt-0.5 text-[11px] text-secondary">Jump directly to a preference area</p></div></div>
             <nav className="mt-4 space-y-1" aria-label="Settings sections">
