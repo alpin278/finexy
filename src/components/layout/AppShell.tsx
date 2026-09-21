@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Outlet, useLocation, Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Outlet, useLocation, Link, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { Sidebar } from './Sidebar';
 import { TopNavigation } from './TopNavigation';
@@ -7,6 +7,8 @@ import { MainContent } from './MainContent';
 import { useAuth } from '../../context/useAuth';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
 import { Icon } from '../ui/Icon';
+import { usePrivacy } from '../../context/usePrivacy';
+import { CommandPalette, type PaletteCommand } from './CommandPalette';
 
 export interface AppShellProps {
   currentTab?: NavigationTab;
@@ -19,13 +21,51 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const { user, profile } = useAuth();
+  const { privacyMode, togglePrivacyMode } = usePrivacy();
+  const navigate = useNavigate();
 
   const profileName = profile?.display_name?.trim() || user?.email || 'Finexy user';
   const profileEmail = user?.email || profile?.email || '';
 
   const location = useLocation();
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
+  const commands = useMemo<PaletteCommand[]>(() => [
+    { id: 'overview', label: 'Overview', group: 'Navigate', icon: 'grid-1x2', route: '/overview' },
+    { id: 'transactions', label: 'Transactions', group: 'Navigate', icon: 'arrow-left-right', route: '/transactions' },
+    { id: 'wallets', label: 'Wallets', group: 'Navigate', icon: 'wallet2', route: '/wallets' },
+    { id: 'budgets', label: 'Budgets', group: 'Navigate', icon: 'bullseye', route: '/budgets' },
+    { id: 'reports', label: 'Reports', group: 'Navigate', icon: 'bar-chart', route: '/reports' },
+    { id: 'categories', label: 'Categories', group: 'Navigate', icon: 'layers', route: '/categories' },
+    { id: 'settings', label: 'Settings', group: 'Navigate', icon: 'gear', route: '/settings' },
+    { id: 'profile', label: 'Profile', group: 'Navigate', icon: 'person', route: '/profile' },
+    { id: 'new-transaction', label: 'New Transaction', group: 'Quick actions', icon: 'plus-lg', keywords: 'add record expense income', shortcut: 'N', route: '/transactions', action: 'new-transaction' },
+    { id: 'transfer', label: 'Transfer', group: 'Quick actions', icon: 'arrow-left-right', shortcut: 'T', route: '/wallets', action: 'transfer' },
+    { id: 'add-wallet', label: 'Add Wallet', group: 'Quick actions', icon: 'wallet2', route: '/wallets', action: 'add-wallet' },
+    { id: 'create-budget', label: 'Create Budget', group: 'Quick actions', icon: 'bullseye', route: '/budgets', action: 'create-budget' },
+    { id: 'add-recurring', label: 'Add Recurring Transaction', group: 'Quick actions', icon: 'arrow-repeat', route: '/transactions', action: 'add-recurring' },
+    { id: 'export-transactions', label: 'Export Transactions', group: 'Quick actions', icon: 'download', route: '/transactions', action: 'export-transactions' },
+    { id: 'data-backup', label: 'Open Data & Backup', group: 'Quick actions', icon: 'database', route: '/settings#data-backup' },
+  ], []);
+
+  const executeCommand = useCallback((command: PaletteCommand) => {
+    navigate(command.route, command.action ? { state: { finexyAction: command.action, requestId: Date.now() } } : undefined);
+  }, [navigate]);
+
+  useEffect(() => {
+    const isEditable = (target: EventTarget | null) => target instanceof HTMLElement && Boolean(target.closest('input, textarea, select, [contenteditable="true"], [role="combobox"]'));
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setIsCommandPaletteOpen((open) => !open); return; }
+      if (isEditable(event.target) || document.querySelector('[role="dialog"]')) return;
+      if (event.shiftKey && event.key.toLowerCase() === 'p') { event.preventDefault(); togglePrivacyMode(); return; }
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.repeat) return;
+      if (event.key.toLowerCase() === 'n') { event.preventDefault(); executeCommand(commands.find((command) => command.id === 'new-transaction')!); }
+      else if (event.key.toLowerCase() === 't') { event.preventDefault(); executeCommand(commands.find((command) => command.id === 'transfer')!); }
+    };
+    document.addEventListener('keydown', handleShortcut);
+    return () => document.removeEventListener('keydown', handleShortcut);
+  }, [commands, executeCommand, togglePrivacyMode]);
   const openMobileMenu = () => {
     setIsMobileMenuMounted(true);
     window.requestAnimationFrame(() => setIsMobileMenuOpen(true));
@@ -60,7 +100,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
 
   return (
     // Outer page container with canvas background and responsive framing
-    <div className="min-h-screen bg-canvas p-0 sm:p-3 md:p-4 lg:p-6 flex items-center justify-center font-sans antialiased text-primary">
+    <div className={cn('min-h-screen bg-canvas p-0 sm:p-3 md:p-4 lg:p-6 flex items-center justify-center font-sans antialiased text-primary', privacyMode && 'privacy-mode')}>
       {/* Centered Application Shell Container (Figma rounded app container) */}
       <div
         className={cn(
@@ -75,6 +115,9 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
           currentTab={activeTab || undefined}
           onNavigate={onNavigate}
           onOpenMobileMenu={openMobileMenu}
+          privacyMode={privacyMode}
+          onTogglePrivacy={togglePrivacyMode}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         />
 
         {/* Middle Body: Sidebar + Main Content */}
@@ -186,6 +229,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
           </div>
         )}
       </div>
+      {isCommandPaletteOpen && <CommandPalette open commands={commands} onClose={() => setIsCommandPaletteOpen(false)} onExecute={executeCommand} />}
     </div>
   );
 }

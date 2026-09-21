@@ -17,6 +17,6 @@ export function BudgetSummary({ summary }: { summary: BudgetSummaryData }) {
     ['Over Budget', `${summary.overBudgetCategoryCount} ${summary.overBudgetCategoryCount === 1 ? 'Category' : 'Categories'}`],
   ];
   return <section aria-label="Budget summary" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5 sm:gap-4">
-    {stats.map(([label, value]) => <Card key={label} padding="sm" className="min-w-0"><p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-secondary">{label}</p><p className="mt-2 truncate text-lg font-bold tracking-tight text-primary sm:text-xl">{value}</p></Card>)}
+    {stats.map(([label, value]) => <Card key={label} padding="sm" className="min-w-0"><p className="text-[10px] uppercase tracking-[0.12em] font-semibold text-secondary">{label}</p><p className={label === 'Budget Limit' || label === 'Spent This Period' || label === 'Remaining' ? 'money-value value-change mt-2 truncate text-lg font-bold tracking-tight text-primary sm:text-xl' : 'mt-2 truncate text-lg font-bold tracking-tight text-primary sm:text-xl'}>{value}</p></Card>)}
   </section>;
 }

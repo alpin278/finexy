@@ -32,6 +32,7 @@ export interface TransactionFormModalProps {
   numberFormat: string;
   onClose: () => void;
   onSubmit: (values: TransactionFormValues) => void;
+  submitting?: boolean;
 }
 
 const defaultValues = (categories: readonly TransactionCategoryOption[], wallets: readonly SelectOption[]): TransactionFormValues => ({
@@ -69,6 +70,7 @@ export function TransactionFormModal({
   numberFormat,
   onClose,
   onSubmit,
+  submitting = false,
 }: TransactionFormModalProps) {
   const [values, setValues] = useState<TransactionFormValues>(() => getInitialValues(transaction, categories, wallets));
   const [errors, setErrors] = useState<Partial<Record<keyof TransactionFormValues, string>>>({});
@@ -114,10 +116,10 @@ export function TransactionFormModal({
       maxWidth="lg"
       footer={
         <>
-          <Button variant="outline" size="sm" onClick={onClose} type="button">
+          <Button variant="outline" size="sm" onClick={onClose} type="button" disabled={submitting}>
             Cancel
           </Button>
-          <Button variant="accent" size="sm" onClick={saveTransaction} type="button">
+          <Button variant="accent" size="sm" onClick={saveTransaction} type="button" loading={submitting}>
             {transaction ? 'Save Changes' : 'Save Transaction'}
           </Button>
         </>

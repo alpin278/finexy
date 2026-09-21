@@ -20,7 +20,7 @@ export function ProfitLossChart({ data, currency, className }: ProfitLossChartPr
   }).format(value);
 
   return (
-    <Card className={cn('flex min-w-0 flex-col overflow-hidden p-5 sm:p-6', className)}>
+    <Card data-money-chart className={cn('flex min-w-0 flex-col overflow-hidden p-5 sm:p-6', className)}>
       <div className="border-b border-border/60 pb-3">
         <div className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -48,7 +48,7 @@ export function ProfitLossChart({ data, currency, className }: ProfitLossChartPr
                 if (!active || !payload?.length) return null;
                 const income = Number(payload.find((item) => item.dataKey === 'income')?.value ?? 0);
                 const expenses = Number(payload.find((item) => item.dataKey === 'expenses')?.value ?? 0);
-                return <div className="rounded-2xl border border-border bg-white p-3 text-xs shadow-dropdown"><p className="mb-1.5 font-bold text-primary">{label} cash flow</p><p className="text-secondary">Income <span className="font-semibold text-primary">{formatWalletAmount(income, currency)}</span></p><p className="text-secondary">Expenses <span className="font-semibold text-primary">{formatWalletAmount(expenses, currency)}</span></p><p className="mt-1 border-t border-border pt-1 font-semibold text-primary">Net {formatWalletAmount(income - expenses, currency)}</p></div>;
+                return <div className="rounded-2xl border border-border bg-white p-3 text-xs shadow-dropdown"><p className="mb-1.5 font-bold text-primary">{label} cash flow</p><p className="text-secondary">Income <span className="money-value font-semibold text-primary">{formatWalletAmount(income, currency)}</span></p><p className="text-secondary">Expenses <span className="money-value font-semibold text-primary">{formatWalletAmount(expenses, currency)}</span></p><p className="mt-1 border-t border-border pt-1 font-semibold text-primary">Net <span className="money-value">{formatWalletAmount(income - expenses, currency)}</span></p></div>;
               }}
               cursor={{ fill: 'rgba(236,236,232,0.45)' }}
             />

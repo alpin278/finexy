@@ -8,8 +8,12 @@ import { parseAmountNumber } from '../lib/amount-format';
 import { Button } from '../components/ui/Button';
 import { Icon } from '../components/ui/Icon';
 import { DeleteWalletDialog, WalletDetailModal, WalletFormModal, WalletGrid, WalletSummary, WalletTransferModal, type WalletFormValues } from '../components/wallets';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { isFinexyActionState } from '../lib/interaction-actions';
 
 export function WalletsPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [walletTransactions, setWalletTransactions] = useState<import('../types/finance').Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +53,12 @@ export function WalletsPage() {
     if (detailWallet) setDetailWallet(data.wallets.find((wallet) => wallet.id === detailWallet.id) ?? null);
   };
   const openAdd = () => { setActionError(''); setTransferFeedback(''); setEditingWallet(null); setFormOpen(true); };
+  useEffect(() => {
+    if (loading || !isFinexyActionState(location.state)) return;
+    const action = location.state.finexyAction;
+    queueMicrotask(() => { if (action === 'transfer') setTransferOpen(true); else if (action === 'add-wallet') openAdd(); });
+    if (action === 'transfer' || action === 'add-wallet') navigate(location.pathname, { replace: true, state: null });
+  }, [loading, location.pathname, location.state, navigate]);
   const openEdit = (wallet: Wallet) => { setActionError(''); setTransferFeedback(''); setOpenMenuId(null); setEditingWallet(wallet); setFormOpen(true); };
   const saveWallet = async (values: WalletFormValues) => {
     setActionError('');

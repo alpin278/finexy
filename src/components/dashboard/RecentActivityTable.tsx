@@ -61,7 +61,7 @@ export function RecentActivityTable({ activities, className }: RecentActivityTab
                   <p className="text-xs font-semibold text-primary sm:text-sm"><i className={cn('bi', item.type === 'transfer' ? 'bi-arrow-left-right' : item.type === 'income' ? 'bi-arrow-down-left' : 'bi-arrow-up-right', 'mr-1.5 text-secondary')} aria-hidden="true" />{item.name}</p>
                   <p className="text-[11px] text-secondary">{item.category}</p>
                 </TableCell>
-                <TableCell className="whitespace-nowrap text-xs font-semibold text-primary sm:text-sm">{formatWalletAmount(item.amount, item.currency)}</TableCell>
+                <TableCell className="money-value whitespace-nowrap text-xs font-semibold text-primary sm:text-sm">{formatWalletAmount(item.amount, item.currency)}</TableCell>
                 <TableCell><span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold', item.type === 'transfer' ? 'bg-surface text-secondary' : item.status === 'completed' ? 'bg-success/15 text-success' : item.status === 'pending' ? 'bg-warning/20 text-primary' : 'bg-danger/15 text-danger')}>{item.type === 'transfer' ? 'Transfer' : statusLabel(item.status)}</span></TableCell>
                 <TableCell className="whitespace-nowrap text-right text-xs text-secondary">{item.occurredAt}</TableCell>
               </TableRow>

@@ -17,6 +17,6 @@ export function WalletSummary({ wallets }: { wallets: Wallet[] }) {
     ['Monthly Limit', mixedCurrencyValue(wallets, (wallet) => wallet.monthlyLimit ?? 0)],
   ];
   return <section aria-label="Wallet summary" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-    {stats.map(([label, value]) => <Card key={label} padding="sm" className="min-w-0"><p className="text-[10px] sm:text-[11px] uppercase tracking-[0.12em] font-semibold text-secondary">{label}</p><p className="mt-2 text-lg sm:text-xl font-bold tracking-tight text-primary truncate">{value}</p></Card>)}
+    {stats.map(([label, value]) => <Card key={label} padding="sm" className="min-w-0"><p className="text-[10px] sm:text-[11px] uppercase tracking-[0.12em] font-semibold text-secondary">{label}</p><p className={label === 'Current Balance' || label === 'Monthly Limit' ? 'money-value value-change mt-2 truncate text-lg font-bold tracking-tight text-primary sm:text-xl' : 'mt-2 truncate text-lg font-bold tracking-tight text-primary sm:text-xl'}>{value}</p></Card>)}
   </section>;
 }

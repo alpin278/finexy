@@ -11,6 +11,9 @@ export interface TopNavigationProps {
   onNavigate?: (tab: NavigationTab) => void;
   onOpenMobileMenu?: () => void;
   className?: string;
+  privacyMode?: boolean;
+  onTogglePrivacy?: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
 export function TopNavigation({
@@ -18,11 +21,12 @@ export function TopNavigation({
   onNavigate,
   onOpenMobileMenu,
   className,
+  privacyMode = false,
+  onTogglePrivacy,
+  onOpenCommandPalette,
 }: TopNavigationProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -147,38 +151,13 @@ export function TopNavigation({
 
       {/* Right: Search, Notifications, Info, Profile */}
       <div className="flex items-center gap-1.5 sm:gap-2 xl:gap-3">
-        {/* Search input / button */}
-        <div className="relative flex items-center">
-          <div
-            className={cn(
-              'flex items-center transition-all duration-200',
-              isSearchExpanded ? 'w-48 xl:w-56' : 'w-8 sm:w-40 lg:w-40 xl:w-48'
-            )}
-          >
-            <div className="relative w-full">
-              <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-secondary pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchExpanded(true)}
-                onBlur={() => !searchQuery && setIsSearchExpanded(false)}
-                placeholder="Search..."
-                className="w-full h-9 pl-9 pr-3 bg-surface hover:bg-white border border-border rounded-full text-xs text-primary placeholder:text-secondary focus:outline-none focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  aria-label="Clear search"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-primary cursor-pointer"
-                >
-                  <Icon name="x-lg" className="text-xs" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <button type="button" onClick={onOpenCommandPalette} aria-label="Open command palette" className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-secondary transition-[background-color,border-color,color,transform] duration-150 hover:bg-white hover:text-primary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 sm:w-40 sm:justify-start sm:gap-2 sm:px-3 xl:w-48">
+          <Icon name="search" className="text-sm" /><span className="hidden flex-1 text-left text-xs sm:block">Search commands</span><kbd className="hidden rounded border border-border bg-white px-1 text-[9px] font-semibold text-secondary xl:inline">⌘K</kbd>
+        </button>
+
+        {onTogglePrivacy && <button type="button" aria-label={`Privacy mode ${privacyMode ? 'on' : 'off'}`} aria-pressed={privacyMode} title="Privacy mode (Shift+P)" onClick={onTogglePrivacy} className={cn('flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25', privacyMode ? 'bg-dark text-white shadow-sm' : 'text-secondary hover:bg-surface hover:text-primary')}>
+          <Icon name={privacyMode ? 'eye-slash' : 'eye'} className="text-sm" />
+        </button>}
 
         {/* Notifications */}
         <div className="relative" ref={notificationsRef}>

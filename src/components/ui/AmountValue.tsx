@@ -6,7 +6,7 @@ export function AmountValue({ value, className }: { value: string; className?: s
   const number = match?.[2] ?? value;
 
   return (
-    <span className={cn('inline-flex max-w-full flex-wrap items-baseline [font-variant-numeric:tabular-nums]', className)}>
+    <span key={value} className={cn('money-value value-change inline-flex max-w-full flex-wrap items-baseline [font-variant-numeric:tabular-nums]', className)}>
       {prefix && <span className="whitespace-nowrap">{prefix}</span>}
       <span className="whitespace-nowrap">{number}</span>
     </span>

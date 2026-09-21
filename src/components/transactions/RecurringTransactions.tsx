@@ -4,7 +4,7 @@ import { archiveRecurringRule, createRecurringRule, loadRecurringRules, setRecur
 import type { TransactionCategoryOption, TransactionWalletOption } from '../../lib/transactions';
 import { parseAmountNumber } from '../../lib/amount-format';
 
-type Props = { wallets: TransactionWalletOption[]; categories: TransactionCategoryOption[]; locale: string; numberFormat: string; onChanged: () => Promise<void> };
+type Props = { wallets: TransactionWalletOption[]; categories: TransactionCategoryOption[]; locale: string; numberFormat: string; onChanged: () => Promise<void>; openCreateSignal?: number };
 type RecurringFormState = Omit<RecurringRuleInput, 'amount'> & { amount: string };
 const today = () => new Date().toISOString().slice(0, 10);
 const initial = (): RecurringFormState => ({ type: 'expense', walletId: '', categoryId: '', amount: '', note: '', frequency: 'monthly', startDate: today(), endDate: '', localTime: '09:00' });
@@ -14,7 +14,7 @@ function formatAmount(value: number, currency?: string) {
   return new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(Number(value));
 }
 
-export function RecurringTransactions({ wallets, categories, locale, numberFormat, onChanged }: Props) {
+export function RecurringTransactions({ wallets, categories, locale, numberFormat, onChanged, openCreateSignal }: Props) {
   const [rules, setRules] = useState<RecurringRule[]>([]);
   const [form, setForm] = useState(initial);
   const [open, setOpen] = useState(false);
@@ -30,6 +30,7 @@ export function RecurringTransactions({ wallets, categories, locale, numberForma
   const eligible = useMemo(() => categories.filter((category) => category.type === form.type), [categories, form.type]);
   const closeForm = () => { setOpen(false); setEditing(null); setForm(initial()); };
   const openCreate = () => { setError(''); setEditing(null); setForm(initial()); setOpen(true); };
+  useEffect(() => { if (openCreateSignal) queueMicrotask(openCreate); }, [openCreateSignal]);
   const openEdit = (rule: RecurringRule) => {
     setError('');
     setEditing(rule);
@@ -82,14 +83,14 @@ export function RecurringTransactions({ wallets, categories, locale, numberForma
       <div className="px-5 py-5 sm:px-6">
         {error && <p role="alert" className="mb-4 rounded-xl border border-danger/20 bg-danger/5 px-3 py-2 text-xs text-danger">{error}</p>}
         <div className="space-y-2.5">
-          {rules.length === 0 ? <p className="rounded-xl border border-dashed border-border bg-surface px-4 py-5 text-sm text-secondary">No recurring transactions yet.</p> : rules.map((rule) => (
+          {rules.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-6 text-center"><i className="bi bi-arrow-repeat text-secondary" aria-hidden="true" /><p className="mt-2 text-sm font-semibold text-primary">No recurring transactions yet.</p><p className="mt-1 text-xs text-secondary">Create a schedule for predictable income or expenses.</p><Button variant="outline" size="sm" className="mt-3" onClick={openCreate}>Add Recurring</Button></div> : rules.map((rule) => (
             <div key={rule.id} className="grid min-w-0 gap-4 rounded-2xl border border-border bg-white p-4 transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-px hover:border-border-hover hover:shadow-sm md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
               <div className="min-w-0">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <p className="min-w-0 truncate text-sm font-semibold text-primary">{rule.note || 'Recurring transaction'} <span className="font-normal text-secondary">·</span> {rule.wallet?.name ?? 'Wallet'}</p>
                   <StatusBadge status={rule.active ? 'active' : 'inactive'} label={rule.active ? 'Active' : 'Paused'} className="px-2 py-0.5 text-[10px]" />
                 </div>
-                <p className="mt-1.5 text-xs text-secondary">{rule.frequency} <span aria-hidden="true">·</span> {rule.category?.name ?? 'Category'} <span aria-hidden="true">·</span> {formatAmount(Number(rule.amount), rule.wallet?.currency)} <span aria-hidden="true">·</span> Next {new Date(rule.next_due_at).toLocaleDateString()}</p>
+                <p className="mt-1.5 text-xs text-secondary">{rule.frequency} <span aria-hidden="true">·</span> {rule.category?.name ?? 'Category'} <span aria-hidden="true">·</span> <span className="money-value">{formatAmount(Number(rule.amount), rule.wallet?.currency)}</span> <span aria-hidden="true">·</span> Next {new Date(rule.next_due_at).toLocaleDateString()}</p>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 md:justify-end">
                 <Button variant="ghost" size="sm" disabled={busy} onClick={() => openEdit(rule)}>Edit</Button>

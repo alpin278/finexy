@@ -103,6 +103,10 @@
   .mobile-drawer-panel-open { transform: translateX(0); }
   .skeleton { position: relative; overflow: hidden; background: #f1f1ee; }
   .skeleton::after { position: absolute; inset: 0; content: ''; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent); animation: skeleton-shimmer 1.3s ease-in-out infinite; }
+  .privacy-mode .money-value { filter: blur(6px); user-select: none; }
+  .privacy-mode [data-money-chart] .recharts-yAxis .recharts-text,
+  .privacy-mode [data-money-chart] .recharts-tooltip-wrapper { filter: blur(6px); }
+  .value-change { animation: value-change 180ms ease-out both; }
 }
 
 @media (max-width: 640px) {
@@ -116,6 +120,7 @@
 @keyframes modal-panel-exit { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(4px) scale(0.985); } }
 @keyframes menu-enter { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes skeleton-shimmer { to { transform: translateX(100%); } }
+@keyframes value-change { from { opacity: 0.55; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

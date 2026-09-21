@@ -1,10 +1,11 @@
 import { AppRouter } from './router/AppRouter';
 import { AuthProvider } from './context/AuthContext';
+import { PrivacyProvider } from './context/PrivacyContext';
 
 export function App() {
   return (
     <AuthProvider>
-      <AppRouter />
+      <PrivacyProvider><AppRouter /></PrivacyProvider>
     </AuthProvider>
   );
 }

@@ -9,7 +9,7 @@ import { formatCompactMoney, formatMoney } from './reportUtils';
 export function CashFlowTrendChart({ data, stats, currency }: { data: ReportTrendPoint[]; stats: ReportStat[]; currency: WalletCurrencyCode }) {
   return (
     <section aria-labelledby="cash-flow-title" className="space-y-3">
-      <Card padding="none" className="min-w-0 overflow-hidden p-4 sm:p-6">
+      <Card padding="none" data-money-chart className="min-w-0 overflow-hidden p-4 sm:p-6">
         <div className="flex flex-col gap-4 border-b border-border/70 pb-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 id="cash-flow-title" className="text-base font-bold tracking-tight text-primary sm:text-lg">Income vs Expense &amp; Cash Flow Trend</h2>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { BalanceCard, WalletList, MetricCard, ProfitLossChart, SpendingLimitCard, RecentActivityTable, SpendingInsightCard, QuickActions } from '../components/dashboard';
-import { Button, Select } from '../components/ui';
+import { Button, PageSkeleton, Select, WidgetErrorBoundary } from '../components/ui';
 import { currentBudgetPeriod, periodLabel } from '../lib/budget-utils';
 import { loadOverviewPage, overviewErrorMessage, type OverviewPageData } from '../lib/overview';
 
@@ -43,13 +43,13 @@ export function OverviewPage() {
         <Button variant="secondary" size="sm" onClick={() => void refresh(period)} leftIcon={<i className="bi bi-arrow-clockwise text-secondary" aria-hidden="true" />}>Refresh</Button>
       </div>
     </header>
-    {loading ? <div className="rounded-2xl border border-border bg-white p-10 text-center text-sm text-secondary" role="status">Loading your live financial overview…</div> : null}
+    {loading ? <PageSkeleton variant="dashboard" /> : null}
     {!loading && error ? <div className="rounded-2xl border border-danger/30 bg-white p-8 text-center"><p className="text-sm text-danger">{error}</p><Button variant="ghost" size="sm" onClick={() => void refresh(period)} className="mt-3 text-accent">Try again</Button></div> : null}
     {!loading && !error && data ? <>
       <section aria-label="Financial summary" className="grid min-w-0 items-start gap-4 sm:gap-5 xl:grid-cols-12">
         <div className="flex min-w-0 flex-col gap-4 sm:gap-5 md:col-span-1 xl:col-span-4"><BalanceCard amount={data.totalBalance} currency={data.reportingCurrency} period={periodLabel(data.period)} className="h-full" /><WalletList wallets={data.wallets} onAddWallet={() => navigate('/wallets')} onWalletAction={() => navigate('/wallets')} className="h-full" /></div>
         <div className="grid min-w-0 auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-1 xl:col-span-4">{data.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} currency={data.reportingCurrency} className="h-full" />)}</div>
-        <div className="min-w-0 md:col-span-2 xl:col-span-4"><ProfitLossChart data={data.cashFlowTrend} currency={data.reportingCurrency} /></div>
+        <div className="min-w-0 md:col-span-2 xl:col-span-4"><WidgetErrorBoundary title="The cash-flow chart could not be displayed."><ProfitLossChart data={data.cashFlowTrend} currency={data.reportingCurrency} /></WidgetErrorBoundary></div>
       </section>
       <section aria-label="Planning and activity" className="grid min-w-0 items-start gap-4 sm:gap-5 xl:grid-cols-12"><div className="flex min-w-0 flex-col gap-4 sm:gap-5 xl:col-span-4"><SpendingLimitCard data={data.budgetProgress} currency={data.reportingCurrency} onViewBudget={() => navigate('/budgets')} /><SpendingInsightCard categories={data.categorySpending} currency={data.reportingCurrency} /><QuickActions /></div><div className="min-w-0 xl:col-span-8"><RecentActivityTable activities={data.recentTransactions} /></div></section>
     </> : null}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { archiveBudget, budgetErrorMessage, createBudget, loadBudgetPage, updateBudget, type BudgetPageData } from '../lib/budgets';
 import { currentBudgetPeriod, periodLabel } from '../components/budgets/budgetUtils';
 import type { Budget, BudgetPeriod } from '../types/finance';
@@ -12,11 +12,13 @@ import { Select } from '../components/ui/Select';
 import { BudgetFormModal, BudgetGrid, BudgetInsights, BudgetOverviewCard, BudgetSummary, BudgetTabs, DeleteBudgetDialog, BudgetDetailModal, type BudgetFilter, type BudgetFormValues } from '../components/budgets';
 import { parseAmountNumber } from '../lib/amount-format';
 import { StableFilterRegion } from '../components/ui/StableFilterRegion';
+import { isFinexyActionState } from '../lib/interaction-actions';
 
 const emptyData: BudgetPageData = { period: currentBudgetPeriod(), budgets: [], byCategory: {}, availablePeriods: [currentBudgetPeriod()], categories: [], summary: { activeBudgetCount: 0, totalsByCurrency: [], overBudgetCategoryCount: 0 }, displayPreferences: { reportingCurrency: 'USD', locale: 'en-US', numberFormat: '1,234.56' } };
 
 export function BudgetsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [pageData, setPageData] = useState<BudgetPageData>(emptyData);
   const [activeFilter, setActiveFilter] = useState<BudgetFilter>('all');
   const [search, setSearch] = useState('');
@@ -62,6 +64,11 @@ export function BudgetsPage() {
 
   const closeForm = () => { setFormOpen(false); setEditingBudget(null); setDuplicateError(''); };
   const openCreate = () => { setActionError(''); setEditingBudget(null); setDuplicateError(''); setFormOpen(true); };
+  useEffect(() => {
+    if (loading || !isFinexyActionState(location.state) || location.state.finexyAction !== 'create-budget') return;
+    queueMicrotask(openCreate);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [loading, location.pathname, location.state, navigate]);
   const openEdit = (budget: Budget) => { setActionError(''); setOpenMenuId(null); setEditingBudget(budget); setDuplicateError(''); setFormOpen(true); };
   const saveBudget = async (values: BudgetFormValues) => {
     setActionError('');

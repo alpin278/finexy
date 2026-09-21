@@ -19,6 +19,9 @@ export interface TransactionRowProps {
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  selected?: boolean;
+  rowIndex?: number;
+  onSelect?: () => void;
 }
 
 export function TransactionRow({
@@ -28,13 +31,16 @@ export function TransactionRow({
   onView,
   onEdit,
   onDelete,
+  selected = false,
+  rowIndex,
+  onSelect,
 }: TransactionRowProps) {
   const isIncome = transaction.type === 'income';
   const isTransfer = transaction.type === 'transfer';
   const directionIcon = isTransfer ? 'arrow-left-right' : isIncome ? 'arrow-down-left' : 'arrow-up-right';
 
   return (
-    <TableRow className="group hover:bg-surface/70">
+    <TableRow data-transaction-row={rowIndex} data-state={selected ? 'selected' : undefined} aria-selected={selected} onClick={onSelect} className="group hover:bg-surface/70 data-[state=selected]:bg-accent/[0.06] data-[state=selected]:shadow-[inset_3px_0_0_#FF5A36]">
       <TableCell className="min-w-[250px]">
         <div className="flex items-start gap-3">
           <span
@@ -78,7 +84,7 @@ export function TransactionRow({
       </TableCell>
 
       <TableCell className="text-right min-w-[125px] whitespace-nowrap">
-        <span className={cn('text-sm font-bold tracking-tight', isTransfer ? 'text-accent' : isIncome ? 'text-success' : 'text-primary')}>
+        <span className={cn('money-value text-sm font-bold tracking-tight', isTransfer ? 'text-accent' : isIncome ? 'text-success' : 'text-primary')}>
           {formatTransactionAmount(transaction)}
         </span>
       </TableCell>
