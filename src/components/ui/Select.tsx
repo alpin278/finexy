@@ -5,6 +5,7 @@ import {
   useId,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent,
@@ -14,7 +15,8 @@ import {
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { Icon } from './Icon';
-import { calculateSelectPopoverPosition, estimateSelectMenuHeight, moveSelectIndex, type SelectPopoverPosition } from './selectPosition';
+import { useAnchoredPopoverPosition } from './popoverPosition';
+import { moveSelectIndex } from './selectPosition';
 
 export interface SelectOption {
   value: string;
@@ -65,8 +67,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const [activeIndex, setActiveIndex] = useState(selectedIndex >= 0 ? selectedIndex : 0);
     const [isMounted, setIsMounted] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
-    const [position, setPosition] = useState<SelectPopoverPosition | null>(null);
     const fullWidth = className?.split(/\s+/).includes('w-full');
+    const positioning = useMemo(() => ({ contentHeight: Math.max(14, options.length * 37 + 14) }), [options.length]);
+    const position = useAnchoredPopoverPosition(isMounted, triggerRef, positioning);
 
     useImperativeHandle(forwardedRef, () => nativeSelectRef.current as HTMLSelectElement, []);
 
@@ -74,17 +77,6 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }, []);
-
-    const calculatePosition = useCallback(() => {
-      const trigger = triggerRef.current;
-      if (!trigger) return null;
-      return calculateSelectPopoverPosition(
-        trigger.getBoundingClientRect(),
-        window.innerWidth,
-        window.innerHeight,
-        estimateSelectMenuHeight(options.length),
-      );
-    }, [options.length]);
 
     const openMenu = useCallback(() => {
       if (disabled || !options.length) return;
@@ -96,15 +88,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         performance.mark('select_open_start');
       }
       clearScheduledClose();
-      const nextPosition = calculatePosition();
-      if (!nextPosition) return;
       if (import.meta.env.DEV) performance.mark('select_position_ready');
       setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
-      setPosition(nextPosition);
       setIsMounted(true);
       if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = window.requestAnimationFrame(() => setIsVisible(true));
-    }, [calculatePosition, clearScheduledClose, disabled, options.length, selectedIndex]);
+    }, [clearScheduledClose, disabled, options.length, selectedIndex]);
 
     const closeMenu = useCallback(() => {
       if (!isMounted) return;
@@ -113,45 +102,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       clearScheduledClose();
       closeTimerRef.current = window.setTimeout(() => {
         setIsMounted(false);
-        setPosition(null);
         closeTimerRef.current = null;
       }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 120);
     }, [clearScheduledClose, isMounted]);
-
-    const updatePosition = useCallback(() => {
-      const nextPosition = calculatePosition();
-      if (!nextPosition) return;
-      setPosition((current) => current
-        && current.top === nextPosition.top
-        && current.left === nextPosition.left
-        && current.width === nextPosition.width
-        && current.maxHeight === nextPosition.maxHeight
-        && current.placement === nextPosition.placement
-        ? current
-        : nextPosition);
-    }, [calculatePosition]);
-
-    useEffect(() => {
-      if (!isMounted) return undefined;
-      let viewportFrame: number | null = null;
-      const handleViewportChange = () => {
-        if (viewportFrame !== null) return;
-        viewportFrame = window.requestAnimationFrame(() => {
-          viewportFrame = null;
-          updatePosition();
-        });
-      };
-      window.addEventListener('resize', handleViewportChange);
-      // A portal cannot scroll with a modal's content. Close immediately when
-      // any scroll anchor moves so a stale menu never visibly detaches.
-      const handleScroll = () => closeMenu();
-      window.addEventListener('scroll', handleScroll, true);
-      return () => {
-        if (viewportFrame !== null) window.cancelAnimationFrame(viewportFrame);
-        window.removeEventListener('resize', handleViewportChange);
-        window.removeEventListener('scroll', handleScroll, true);
-      };
-    }, [closeMenu, isMounted, updatePosition]);
 
     useLayoutEffect(() => {
       if (!isVisible || !import.meta.env.DEV) return;

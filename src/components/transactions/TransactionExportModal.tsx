@@ -3,7 +3,7 @@ import { transactionStatuses } from '../../data/transactions';
 import type { TransactionStatus, TransactionType } from '../../types/finance';
 import type { TransactionExportFilters } from '../../lib/transaction-export';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
+import { DatePicker } from '../ui/DatePicker';
 import { Modal } from '../ui/Modal';
 import { Select } from '../ui/Select';
 
@@ -34,8 +34,8 @@ export function TransactionExportModal({ isOpen, onClose, onExport, categories, 
   return <Modal isOpen={isOpen} onClose={onClose} title="Export transactions" description="Choose exactly what to include in your UTF-8 CSV file." maxWidth="md" footer={<><Button variant="outline" size="sm" onClick={onClose}>Cancel</Button><Button variant="accent" size="sm" onClick={() => { onExport(filters); onClose(); }}>Download CSV</Button></>}>
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <div><label htmlFor="export-date-from" className="mb-1.5 block text-xs font-semibold text-primary">From date</label><Input id="export-date-from" type="date" value={filters.dateFrom} onChange={(event) => update('dateFrom', event.target.value)} /></div>
-        <div><label htmlFor="export-date-to" className="mb-1.5 block text-xs font-semibold text-primary">To date</label><Input id="export-date-to" type="date" value={filters.dateTo} onChange={(event) => update('dateTo', event.target.value)} /></div>
+        <div><label htmlFor="export-date-from" className="mb-1.5 block text-xs font-semibold text-primary">From date</label><DatePicker id="export-date-from" value={filters.dateFrom} onChange={(dateFrom) => update('dateFrom', dateFrom)} clearable /></div>
+        <div><label htmlFor="export-date-to" className="mb-1.5 block text-xs font-semibold text-primary">To date</label><DatePicker id="export-date-to" value={filters.dateTo} onChange={(dateTo) => update('dateTo', dateTo)} clearable /></div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div><label htmlFor="export-type" className="mb-1.5 block text-xs font-semibold text-primary">Transaction type</label><Select id="export-type" value={filters.type} onChange={(event) => update('type', event.target.value as 'all' | TransactionType)} options={typeOptions} className="w-full" /></div>

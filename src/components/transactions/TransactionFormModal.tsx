@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { DatePicker } from '../ui/DatePicker';
 import { AmountInput } from '../ui/AmountInput';
 import { Modal } from '../ui/Modal';
 import { Select, type SelectOption } from '../ui/Select';
@@ -186,11 +187,10 @@ export function TransactionFormModal({
             <label htmlFor="transaction-date" className="block text-xs font-semibold text-primary mb-1.5">
               Date
             </label>
-            <Input
+            <DatePicker
               id="transaction-date"
-              type="date"
               value={values.date}
-              onChange={(event) => updateValue('date', event.target.value)}
+              onChange={(date) => updateValue('date', date)}
               error={errors.date}
             />
           </div>
