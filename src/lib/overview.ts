@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import { formatWalletAmount, loadWalletsPage } from './wallets';
 import { calculateFinancialTotals, isSettledFinancialTransaction } from './financial-analytics';
 import { loadUserDisplayPreferences } from './user-display-preferences';
+import { groupLogicalActivities } from './transaction-activities';
 
 type TransactionRow = Tables<'transactions'>;
 type Currency = WalletCurrencyCode;
@@ -34,6 +35,9 @@ export interface OverviewRecentTransaction {
   type: 'income' | 'expense' | 'transfer';
   status: 'completed' | 'pending' | 'canceled';
   occurredAt: string;
+  sourceWallet?: string;
+  destinationWallet?: string;
+  transferId?: string;
 }
 
 export interface OverviewCategorySpending {
@@ -116,18 +120,23 @@ function formatRecentDate(value: string) {
   return new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' }).format(new Date(value));
 }
 
-function mapRecentTransaction(row: OverviewTransactionRow): OverviewRecentTransaction {
+function mapRecentTransaction(row: OverviewTransactionRow, transferRows: OverviewTransactionRow[] = [row]): OverviewRecentTransaction {
   const isTransfer = row.type === 'transfer';
+  const sourceWallet = transferRows.find((item) => item.transfer_leg === 'outbound')?.wallet?.name;
+  const destinationWallet = transferRows.find((item) => item.transfer_leg === 'inbound')?.wallet?.name;
   return {
     id: row.id,
     reference: row.reference ?? row.id.slice(0, 8).toUpperCase(),
-    name: isTransfer ? (row.transfer_leg === 'outbound' ? 'Wallet transfer out' : 'Wallet transfer in') : (row.description ?? row.payee ?? 'Untitled transaction'),
+    name: isTransfer ? 'Wallet transfer' : (row.description ?? row.payee ?? 'Untitled transaction'),
     category: isTransfer ? 'Transfer' : (row.category?.name ?? 'Uncategorized'),
     amount: Number(row.amount),
     currency: row.currency as Currency,
     type: row.type,
     status: row.status,
     occurredAt: formatRecentDate(row.occurred_at),
+    ...(sourceWallet ? { sourceWallet } : {}),
+    ...(destinationWallet ? { destinationWallet } : {}),
+    ...(isTransfer && row.transfer_id ? { transferId: row.transfer_id } : {}),
   };
 }
 
@@ -178,7 +187,9 @@ export async function loadOverviewPage(period = currentBudgetPeriod()): Promise<
       { id: 'net-cash-flow', title: 'Net Cash Flow', amount: totals.net, isPositive: totals.net >= 0, format: 'currency', trendLabel: periodLabel(period) },
       { id: 'savings-rate', title: 'Savings Rate', amount: totals.savingsRate, isPositive: totals.savingsRate >= 0, format: 'percentage', trendLabel: totals.income > 0 ? periodLabel(period) : 'No income recorded' },
     ],
-    recentTransactions: rows.slice(0, 6).map(mapRecentTransaction),
+    recentTransactions: groupLogicalActivities(rows.map((row) => ({ ...row, transferId: row.transfer_id ?? undefined, transferLeg: row.transfer_leg ?? undefined })))
+      .slice(0, 6)
+      .map(({ primary, items }) => mapRecentTransaction(primary, items)),
     categorySpending: aggregateCategorySpending(rows, period, reportingCurrency),
     cashFlowTrend: buildCashFlowTrend(rows, period, reportingCurrency),
     budgetProgress: {

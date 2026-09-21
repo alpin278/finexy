@@ -14,12 +14,12 @@ const DataRevalidationContext = createContext<DataRevalidationContextValue | nul
 const focusFreshnessMs = 30_000;
 
 export function DataRevalidationProvider({ children }: { children: ReactNode }) {
-  const registrations = useRef(new Map<symbol, { domains: FinancialDataDomain[]; revalidate: Revalidator; inFlight: Promise<void> | null }>());
+  const registrations = useRef(new Map<symbol, { domains: FinancialDataDomain[]; revalidate: Revalidator; inFlight: Promise<void> | null; refreshQueued: boolean }>());
   const lastFocusRevalidation = useRef(0);
 
   const register = useCallback((domains: FinancialDataDomain[], revalidate: Revalidator) => {
     const id = Symbol('financial-revalidator');
-    registrations.current.set(id, { domains, revalidate, inFlight: null });
+    registrations.current.set(id, { domains, revalidate, inFlight: null, refreshQueued: false });
     return () => { registrations.current.delete(id); };
   }, []);
 
@@ -28,8 +28,15 @@ export function DataRevalidationProvider({ children }: { children: ReactNode }) 
     const refreshes: Promise<void>[] = [];
     registrations.current.forEach((registration) => {
       if (!registration.domains.some((domain) => requested.has(domain))) return;
-      if (!registration.inFlight) {
-        registration.inFlight = Promise.resolve(registration.revalidate()).finally(() => { registration.inFlight = null; });
+      if (registration.inFlight) registration.refreshQueued = true;
+      else {
+        const run = async () => {
+          do {
+            registration.refreshQueued = false;
+            await registration.revalidate();
+          } while (registration.refreshQueued);
+        };
+        registration.inFlight = run().finally(() => { registration.inFlight = null; });
       }
       refreshes.push(registration.inFlight);
     });
