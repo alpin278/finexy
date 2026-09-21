@@ -1,32 +1,66 @@
-# React + TypeScript + Vite
+# Finexy
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Finexy is a personal-finance web application built with React, TypeScript,
+Vite, Supabase Auth, PostgreSQL, Row Level Security, and Supabase Edge
+Functions.
 
-Currently, two official plugins are available:
+## Local setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Create `.env.local` with browser-safe values only:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Never put service-role keys, Telegram secrets, worker secrets, or passwords in
+Vite variables. Edge Functions receive their secrets from the Supabase project.
+
+```powershell
+npm.cmd install
+npm.cmd run dev
+npm.cmd run build
+npm.cmd run lint
+```
+
+## Database and Edge Functions
+
+Versioned SQL in `supabase/migrations/` is authoritative. Apply pending
+migrations only after review:
+
+```powershell
+npx.cmd supabase migration list
+npx.cmd supabase db push
+npx.cmd supabase functions deploy refresh-fx-rates
+```
+
+Deployed functions include `telegram-webhook`, notification and recurring
+workers, and `refresh-fx-rates`. Worker endpoints require configured server-side
+secret headers; FX refresh requires an authenticated user.
+
+## QA
+
+```powershell
+node --experimental-strip-types scripts/phase29b6-transaction-history.test.ts
+node --experimental-strip-types scripts/phase30-split-model.test.ts
+node --experimental-strip-types scripts/phase31-import-parser.test.ts
+node scripts/phase32-fx-tests.mjs
+```
+
+Remote disposable-account checks use ignored `.auth-test.local`; it must never
+be committed or printed. `phase30-remote-e2e.mjs` covers split/backup/realtime;
+`phase31-remote-e2e.mjs` covers bank import.
+
+## Backup format
+
+Current `finexy-backup` exports are Backup v2: split allocations are included,
+while parent transactions remain canonical cash-flow rows. Import remains
+backward-compatible with v1.
+
+## v1 limitations
+
+- Wallet transfers are same-currency only.
+- FX is a guarded on-demand cache; scheduled refresh is not configured.
+  Historical Reports are not converted.
+- Bank imports use generic CSV mapping; no bank/Open Banking, PDF, or OCR import.
+- Telegram supports normal income/expense and supported transfers, not splits.

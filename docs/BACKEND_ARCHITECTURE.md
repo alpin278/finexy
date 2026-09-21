@@ -1,6 +1,10 @@
 # Finexy Backend and Database Architecture
 
-Status: planning proposal for the frontend-to-backend transition, including a future Telegram interface. This document does not implement a backend, database connection, authentication, persistence, or bot.
+Status: implementation reference. Finexy now uses the Supabase/PostgreSQL
+architecture described here: Supabase Auth owns sessions, PostgreSQL with RLS
+owns persistent data, and Edge Functions provide Telegram, recurring worker,
+notification worker, and guarded FX refresh boundaries. Migrations are
+authoritative if this document differs from implementation.
 
 ## 1. Recommended stack
 
