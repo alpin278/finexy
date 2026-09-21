@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import { loadUserDisplayPreferences } from './user-display-preferences';
 import { categoryAllocations } from './category-allocations';
 import { loadTransactionSplits } from './transaction-splits';
+import { reportBucketForOccurredAt } from './report-buckets';
 
 type TransactionRow = Tables<'transactions'>;
 type Currency = WalletCurrencyCode;
@@ -31,7 +32,6 @@ export interface ReportsData {
 
 const colors = ['#FF5A36', '#F29B62', '#E8CF56', '#55B88B', '#7C91B8', '#B6A0C7'];
 const dateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 
 function isoDay(date: Date) { return date.toISOString().slice(0, 10); }
 function startOfUtcDay(date: Date) { return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())); }
@@ -81,19 +81,11 @@ function aggregateCategories(rows: ReportTransactionRow[], range: ReportPeriodRa
   return [...totals.entries()].map(([id, item], index) => ({ id, ...item, percentage: total ? (item.amount / total) * 100 : 0, color: colors[index % colors.length] })).sort((a, b) => b.amount - a.amount);
 }
 
-function bucketFor(row: TransactionRow, range: ReportPeriodRange) {
-  const days = Math.round((new Date(range.end).getTime() - new Date(range.start).getTime()) / 86400000);
-  const day = new Date(row.occurred_at);
-  if (days <= 31) return { key: isoDay(day), label: dateFormatter.format(day) };
-  if (days <= 92) { const monday = plusDays(startOfUtcDay(day), -((day.getUTCDay() + 6) % 7)); return { key: isoDay(monday), label: dateFormatter.format(monday) }; }
-  const month = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), 1)); return { key: isoDay(month), label: monthFormatter.format(month) };
-}
-
 function buildTrend(rows: ReportTransactionRow[], range: ReportPeriodRange, currency: Currency): ReportTrendPoint[] {
   const points = new Map<string, ReportTrendPoint>();
   for (const row of rows) {
     if (!isSettledFinancialTransaction(row, range, currency)) continue;
-    const bucket = bucketFor(row, range); const point = points.get(bucket.key) ?? { label: bucket.label, income: 0, expenses: 0, net: 0 };
+    const bucket = reportBucketForOccurredAt(row.occurred_at, range); const point = points.get(bucket.key) ?? { label: bucket.label, income: 0, expenses: 0, net: 0 };
     if (row.type === 'income') point.income += Number(row.amount); else point.expenses += Number(row.amount);
     point.net = point.income - point.expenses; points.set(bucket.key, point);
   }

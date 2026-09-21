@@ -131,7 +131,9 @@ export function TransactionsPage() {
   const categoryNames = [...new Set(pageData.categories.map((category) => category.name))];
   const walletNames = pageData.wallets.map((wallet) => wallet.name);
   const activityCurrencies = useMemo(() => [...new Set(pageData.transactions.map((transaction) => transaction.currency))].sort() as CurrencyCode[], [pageData.transactions]);
-  const activeActivityCurrency = activityCurrency ?? pageData.reportingCurrency;
+  // Activity is an audit stream, not a reporting aggregate: retain every
+  // canonical native-currency event unless the user explicitly filters it.
+  const activeActivityCurrency = activityCurrency ?? 'all';
 
   const filteredTransactions = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();

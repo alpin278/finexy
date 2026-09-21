@@ -88,6 +88,12 @@
     box-shadow: 0 0 0 3px rgba(255, 90, 54, 0.15);
     outline: none;
   }
+
+  /* Finexy currently ships a light-only UI. Keep browser-owned date controls
+     in that same appearance rather than inheriting an OS dark picker. */
+  input[type='date'] {
+    color-scheme: light;
+  }
 }
 
 @layer utilities {

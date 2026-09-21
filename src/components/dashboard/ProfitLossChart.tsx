@@ -4,6 +4,7 @@ import type { CashFlowPoint } from '../../lib/overview';
 import { formatWalletAmount } from '../../lib/overview';
 import type { WalletCurrencyCode } from '../../types/finance';
 import { cn } from '../../lib/utils';
+import { positiveChartDomain } from '../../lib/chart-scale';
 
 export interface ProfitLossChartProps {
   data: CashFlowPoint[];
@@ -12,6 +13,7 @@ export interface ProfitLossChartProps {
 }
 
 export function ProfitLossChart({ data, currency, className }: ProfitLossChartProps) {
+  const domain = positiveChartDomain(data.flatMap((point) => [point.income, point.expenses]));
   const axisFormatter = (value: number) => new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', {
     style: 'currency',
     currency,
@@ -37,12 +39,12 @@ export function ProfitLossChart({ data, currency, className }: ProfitLossChartPr
           </div>
         </div>
       </div>
-      <div className="flex min-h-[240px] w-full flex-1 pt-4 sm:min-h-[270px]">
+      <div className="h-[248px] w-full pt-4 sm:h-[272px]">
         <ResponsiveContainer width="100%" height="100%" minWidth={200}>
           <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barCategoryGap="24%" barGap={3}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ECECE8" />
             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#777771', fontSize: 11, fontWeight: 500 }} dy={8} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#777771', fontSize: 10 }} tickFormatter={(value) => axisFormatter(Number(value))} width={54} tickCount={5} />
+            <YAxis domain={domain} allowDataOverflow={false} axisLine={false} tickLine={false} tick={{ fill: '#777771', fontSize: 10 }} tickFormatter={(value) => axisFormatter(Number(value))} width={62} tickCount={5} />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;

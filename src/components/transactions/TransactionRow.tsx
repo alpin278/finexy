@@ -1,15 +1,9 @@
-import { Badge } from '../ui/Badge';
 import { IconButton } from '../ui/IconButton';
 import { Icon } from '../ui/Icon';
 import { StatusBadge } from '../ui/StatusBadge';
 import { TableCell, TableRow } from '../ui/Table';
 import type { Transaction } from '../../types/finance';
-import {
-  formatTransactionAmount,
-  formatTransactionDate,
-  getStatusBadgeType,
-  getStatusLabel,
-} from './transactionUtils';
+import { formatTransactionAmount, formatTransactionDate, getStatusBadgeType, getStatusLabel } from './transactionUtils';
 import { cn } from '../../lib/utils';
 
 export interface TransactionRowProps {
@@ -24,6 +18,7 @@ export interface TransactionRowProps {
   onSelect?: () => void;
 }
 
+/** Compact logical-activity row: lower-priority fields move into metadata/detail. */
 export function TransactionRow({
   transaction,
   isActionMenuOpen,
@@ -40,97 +35,59 @@ export function TransactionRow({
   const directionIcon = isTransfer ? 'arrow-left-right' : isIncome ? 'arrow-down-left' : 'arrow-up-right';
 
   return (
-    <TableRow data-transaction-row={rowIndex} data-state={selected ? 'selected' : undefined} aria-selected={selected} onClick={onSelect} className="group hover:bg-surface/70 data-[state=selected]:bg-accent/[0.06] data-[state=selected]:shadow-[inset_3px_0_0_#FF5A36]">
-      <TableCell className="min-w-[250px]">
+    <TableRow
+      data-transaction-row={rowIndex}
+      data-state={selected ? 'selected' : undefined}
+      aria-selected={selected}
+      onClick={onSelect}
+      className="group hover:bg-surface/70 data-[state=selected]:bg-accent/[0.06] data-[state=selected]:shadow-[inset_3px_0_0_#FF5A36]"
+    >
+      <TableCell className="min-w-0 pl-5">
         <div className="flex items-start gap-3">
           <span
             className={cn(
-              'w-8 h-8 mt-0.5 rounded-full flex items-center justify-center shrink-0 border',
-              isTransfer
-                ? 'bg-accent/10 text-accent border-accent/20'
-                : isIncome
-                ? 'bg-success/10 text-success border-success/20'
-                : 'bg-surface text-primary border-border'
+              'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border',
+              isTransfer ? 'border-accent/20 bg-accent/10 text-accent' : isIncome ? 'border-success/20 bg-success/10 text-success' : 'border-border bg-surface text-primary'
             )}
             aria-hidden="true"
           >
             <Icon name={directionIcon} />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-primary truncate">{transaction.description}</p>
-            <p className="text-xs text-secondary truncate mt-0.5">{transaction.payee}</p>
-            <p className="text-[10px] text-secondary/80 font-mono mt-1 truncate">
-              {transaction.reference} <span aria-hidden="true">•</span> {transaction.secondaryReference}
+            <p className="truncate text-sm font-semibold text-primary">{transaction.description}</p>
+            <p className="mt-0.5 truncate text-xs text-secondary">
+              {transaction.category} <span aria-hidden="true">·</span> {transaction.wallet} <span aria-hidden="true">·</span> {formatTransactionDate(transaction.date)}{transaction.time ? `, ${transaction.time}` : ''}
+            </p>
+            <p className="mt-1 truncate text-[10px] font-semibold uppercase tracking-wider text-secondary">
+              {transaction.splits?.length ? `Split · ${transaction.splits.length} categories` : isTransfer ? 'Wallet transfer' : transaction.method}
             </p>
           </div>
         </div>
       </TableCell>
-
-      <TableCell className="min-w-[150px]">
-        <Badge variant={isTransfer ? 'orange' : isIncome ? 'success' : 'neutral'} className="text-[11px] whitespace-nowrap">
-          {transaction.category}
-        </Badge>
-        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-secondary">{transaction.splits?.length ? `Split · ${transaction.splits.length} categories` : isTransfer ? 'Wallet transfer' : transaction.type}</p>
-      </TableCell>
-
-      <TableCell className="min-w-[180px]">
-        <p className="text-xs font-semibold text-primary whitespace-nowrap">{transaction.wallet}</p>
-        <p className="text-[11px] text-secondary mt-0.5 whitespace-nowrap">{transaction.method}</p>
-      </TableCell>
-
-      <TableCell className="min-w-[140px] whitespace-nowrap">
-        <p className="text-xs font-medium text-primary">{formatTransactionDate(transaction.date)}</p>
-        <p className="text-[11px] text-secondary mt-0.5">{transaction.time}</p>
-      </TableCell>
-
-      <TableCell className="text-right min-w-[125px] whitespace-nowrap">
+      <TableCell className="w-[1%] whitespace-nowrap text-right">
         <span className={cn('money-value text-sm font-bold tracking-tight', isTransfer ? 'text-accent' : isIncome ? 'text-success' : 'text-primary')}>
           {formatTransactionAmount(transaction)}
         </span>
       </TableCell>
-
-      <TableCell className="min-w-[125px]">
-        <StatusBadge
-          status={getStatusBadgeType(transaction.status)}
-          label={getStatusLabel(transaction.status)}
-        />
+      <TableCell className="hidden w-[1%] whitespace-nowrap sm:table-cell">
+        <StatusBadge status={getStatusBadgeType(transaction.status)} label={getStatusLabel(transaction.status)} />
       </TableCell>
-
-      <TableCell className="w-14 text-right">
+      <TableCell className="w-14 pr-5 text-right">
         <div className="relative inline-flex">
           <IconButton
             aria-label={`Actions for ${transaction.description}`}
             size="sm"
             variant="ghost"
             aria-expanded={isActionMenuOpen}
-            onClick={onToggleActionMenu}
+            onClick={(event) => { event.stopPropagation(); onToggleActionMenu(); }}
           >
             <Icon name="three-dots" />
           </IconButton>
-
           {isActionMenuOpen && (
             <div className="menu-enter absolute right-0 top-9 z-20 w-32 rounded-xl border border-border bg-white py-1 shadow-dropdown">
-              <button
-                type="button"
-                onClick={onView}
-                className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface cursor-pointer"
-              >
-                View Details
-              </button>
-              {!isTransfer && <button
-                type="button"
-                onClick={onEdit}
-                className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface cursor-pointer"
-              >
-                Edit
-              </button>}
-              {!isTransfer && <button
-                type="button"
-                onClick={onDelete}
-                className="w-full px-3 py-2 text-left text-xs font-medium text-danger hover:bg-danger/10 cursor-pointer"
-              >
-                Delete
-              </button>}
+              <button type="button" onClick={onView} className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface">View Details</button>
+              {!isTransfer && <button type="button" onClick={onEdit} className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface">Edit</button>}
+              {!isTransfer && <button type="button" onClick={onDelete} className="w-full px-3 py-2 text-left text-xs font-medium text-danger hover:bg-danger/10">Delete</button>}
             </div>
           )}
         </div>

@@ -142,13 +142,16 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         });
       };
       window.addEventListener('resize', handleViewportChange);
-      window.addEventListener('scroll', handleViewportChange, true);
+      // A portal cannot scroll with a modal's content. Close immediately when
+      // any scroll anchor moves so a stale menu never visibly detaches.
+      const handleScroll = () => closeMenu();
+      window.addEventListener('scroll', handleScroll, true);
       return () => {
         if (viewportFrame !== null) window.cancelAnimationFrame(viewportFrame);
         window.removeEventListener('resize', handleViewportChange);
-        window.removeEventListener('scroll', handleViewportChange, true);
+        window.removeEventListener('scroll', handleScroll, true);
       };
-    }, [isMounted, updatePosition]);
+    }, [closeMenu, isMounted, updatePosition]);
 
     useLayoutEffect(() => {
       if (!isVisible || !import.meta.env.DEV) return;
