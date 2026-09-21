@@ -7,3 +7,6 @@ verify_jwt = false
 [functions.recurring-transaction-worker]
 verify_jwt = false
 
+[functions.refresh-fx-rates]
+verify_jwt = false
+

@@ -5,6 +5,7 @@ import type { Wallet, WalletCurrencyCode, WalletStatus } from '../types/finance'
 import { loadWalletDerivedData } from './wallet-balances';
 import { supabase } from './supabase';
 import { loadUserDisplayPreferences, type UserDisplayPreferences } from './user-display-preferences';
+import { convertMoney, loadLatestFxRates } from './fx';
 
 type WalletRow = Tables<'wallets'>;
 type WalletCurrency = Enums<'currency_code'>;
@@ -112,7 +113,16 @@ export async function loadWalletsPage(): Promise<WalletPageData> {
     loadUserDisplayPreferences(userId),
   ]);
   const derived = await loadWalletDerivedData(walletRows);
-  return { wallets: walletRows.map((row) => mapWallet(row, derived.balances.get(row.id) ?? Number(row.opening_balance), derived.spentThisMonth.get(row.id) ?? 0)), displayPreferences };
+  const wallets = walletRows.map((row) => mapWallet(row, derived.balances.get(row.id) ?? Number(row.opening_balance), derived.spentThisMonth.get(row.id) ?? 0));
+  // Rate-cache downtime must never prevent native wallet access.
+  try {
+    const rates = await loadLatestFxRates([...wallets.map((wallet) => wallet.currency), displayPreferences.reportingCurrency]);
+    for (const wallet of wallets) {
+      const conversion = convertMoney(wallet.balance, wallet.currency, displayPreferences.reportingCurrency, rates);
+      if (conversion.available && conversion.amount && conversion.rate && wallet.currency !== displayPreferences.reportingCurrency) wallet.valuation = { amount: Number(conversion.amount), currency: displayPreferences.reportingCurrency, rateDate: conversion.rate.rateDate, provider: conversion.rate.provider };
+    }
+  } catch { /* Native-only presentation is safe before migration, offline, or during provider incidents. */ }
+  return { wallets, displayPreferences };
 }
 
 export async function getWallet(walletId: string) {

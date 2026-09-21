@@ -16,6 +16,7 @@ import { cn } from '../lib/utils';
 import { loadSettings, saveSettings, settingsErrorMessage } from '../lib/settings';
 import { loadTelegramDiagnostics, sendTelegramTestNotification, disconnectTelegram, generateTelegramLinkCode, loadTelegramBudgetNotificationPreferences, loadTelegramConnection, saveTelegramBudgetNotificationPreferences, type TelegramBudgetNotificationPreferences, type TelegramConnection, type TelegramDiagnostics } from '../lib/telegram';
 import { useDataInvalidation } from '../context/DataRevalidationContext';
+import { loadFxCacheStatus, refreshFxRates } from '../lib/fx';
 
 const appearanceIcons: Record<AppearancePreference, string> = {
   light: 'sun',
@@ -76,7 +77,10 @@ export function SettingsPage() {
   const [testNotificationCooldownEndsAt, setTestNotificationCooldownEndsAt] = useState<number | null>(null);
   const [telegramNotifications, setTelegramNotifications] = useState<TelegramBudgetNotificationPreferences>({ nearLimit: false, overLimit: false, dailySummary: false, weeklySummary: false });
   const [showTelegramDiagnostics, setShowTelegramDiagnostics] = useState(false);
+  const [fxStatus, setFxStatus] = useState<{ provider: string; rateDate: string; fetchedAt: string } | null>(null);
+  const [refreshingFx, setRefreshingFx] = useState(false);
   useEffect(() => { void Promise.all([loadSettings(), loadTelegramConnection()]).then(async ([loadedSettings, connection]) => { setSettings(loadedSettings); setTelegram(connection); setTelegramNotifications(await loadTelegramBudgetNotificationPreferences(connection.status === 'connected')); setTelegramDiagnostics(await loadTelegramDiagnostics()); }).catch((reason) => setError(settingsErrorMessage(reason))).finally(() => setLoading(false)); }, []);
+  useEffect(() => { void loadFxCacheStatus().then(setFxStatus).catch(() => setFxStatus(null)); }, []);
   const [activeModal, setActiveModal] = useState<'security' | null>(null);
 
   useEffect(() => {
@@ -135,6 +139,7 @@ export function SettingsPage() {
     catch (reason) { setError(settingsErrorMessage(reason)); }
     finally { setTelegramBusy(false); }
   };
+  const handleRefreshFx = async () => { setRefreshingFx(true); setError(''); try { const result = await refreshFxRates(); setFxStatus({ provider: result.provider, rateDate: result.rate_date, fetchedAt: new Date().toISOString() }); await invalidate(['fx', 'wallets', 'overview']); setSaveMessage(result.status === 'current' ? 'FX reference rates are already current.' : 'FX reference rates refreshed.'); } catch { setError('FX rates could not be refreshed. Native balances remain unchanged.'); } finally { setRefreshingFx(false); } };
 
   if (loading) return <LoadingState label="Loading your saved preferences" />;
   return (
@@ -164,6 +169,7 @@ export function SettingsPage() {
               <div><label htmlFor="settings-number-format" className={fieldLabelClass}>Number format</label><Select id="settings-number-format" value={settings.numberFormat} onChange={(event) => { setSettings((current) => ({ ...current, numberFormat: event.target.value })); setSaveMessage(''); }} options={numberFormatOptions} className={fieldClass} /></div>
               <div><label htmlFor="settings-timezone" className={fieldLabelClass}>Timezone</label><Select id="settings-timezone" value={settings.profile.timezone} onChange={(event) => updateProfile('timezone', event.target.value)} options={[{ value: 'Asia/Jakarta (GMT+7)', label: 'Asia/Jakarta (GMT+7)' }, { value: 'America/New_York (GMT-5)', label: 'America/New York (GMT-5)' }, { value: 'Europe/London (GMT+0)', label: 'Europe/London (GMT+0)' }]} className={fieldClass} /></div>
             </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3.5 py-3"><div><p className="text-xs font-semibold text-primary">FX reference rates</p><p className="mt-1 text-[11px] text-secondary">{fxStatus ? `${fxStatus.provider} · rate date ${fxStatus.rateDate}` : 'No cached rates yet. Native balances remain unchanged.'}</p></div><Button variant="outline" size="sm" loading={refreshingFx} onClick={() => void handleRefreshFx}>{refreshingFx ? 'Refreshing...' : 'Refresh rates'}</Button></div>
           </SettingsSection>
 
           <SettingsSection id="appearance" icon="palette" eyebrow="Visual comfort" title="Theme & Appearance" description="Choose how Finexy should feel. Theme preference is saved; visual theme switching remains deferred.">

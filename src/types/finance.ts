@@ -52,6 +52,8 @@ export interface Wallet {
   accountMask?: string;
   institution?: string;
   colorVariant?: 'dark' | 'accent' | 'neutral';
+  /** Optional cached reporting-currency estimate. Native balance remains primary. */
+  valuation?: { amount: number; currency: WalletCurrencyCode; rateDate: string; provider: string; stale?: boolean };
 }
 
 export interface MetricData {

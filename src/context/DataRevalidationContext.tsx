@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
 
-export type FinancialDataDomain = 'transactions' | 'wallets' | 'budgets' | 'overview' | 'reports' | 'categories' | 'recurring' | 'settings';
+export type FinancialDataDomain = 'transactions' | 'wallets' | 'budgets' | 'overview' | 'reports' | 'categories' | 'recurring' | 'settings' | 'fx';
 
-const financialDomains: FinancialDataDomain[] = ['transactions', 'wallets', 'budgets', 'overview', 'reports', 'categories', 'recurring', 'settings'];
+const financialDomains: FinancialDataDomain[] = ['transactions', 'wallets', 'budgets', 'overview', 'reports', 'categories', 'recurring', 'settings', 'fx'];
 type Revalidator = () => Promise<void> | void;
 
 interface DataRevalidationContextValue {

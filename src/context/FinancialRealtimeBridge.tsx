@@ -16,6 +16,8 @@ const realtimeTables: Array<[string, FinancialDataDomain[]]> = [
   ['category_rules', ['categories', 'budgets']],
   ['recurring_transaction_rules', ['recurring']],
   ['user_settings', ['overview', 'transactions', 'reports', 'settings']],
+  // Global reference data is readable by every authenticated user, so it uses
+  // no user_id filter and only invalidates conversion presentation.
 ];
 
 const realtimeDiagnostics = import.meta.env.DEV;
@@ -49,6 +51,7 @@ export function FinancialRealtimeBridge() {
       diagnostic('received database event', { table, eventType: payload.eventType, domains });
       queue(domains);
     }));
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'fx_rates' }, () => queue(['fx', 'wallets', 'overview']));
     channel.subscribe((status) => diagnostic('channel status', { status }));
     return () => {
       if (timer.current !== null) window.clearTimeout(timer.current);

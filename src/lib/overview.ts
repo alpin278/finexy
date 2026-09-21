@@ -72,6 +72,8 @@ export interface OverviewPageData {
   reportingCurrency: Currency;
   wallets: Wallet[];
   totalBalance: number;
+  totalBalanceEstimated: boolean;
+  valuationDisclosure: string | null;
   metrics: OverviewMetric[];
   recentTransactions: OverviewRecentTransaction[];
   categorySpending: OverviewCategorySpending[];
@@ -180,7 +182,10 @@ export async function loadOverviewPage(period = currentBudgetPeriod()): Promise<
   const transactionPeriods = rows.map(rowPeriod);
   const availablePeriods = [...new Set([currentBudgetPeriod(), period, ...transactionPeriods, ...budgetPage.availablePeriods])].sort((a, b) => b.localeCompare(a));
   const totals = calculatePeriodFinancials(rows, period, reportingCurrency);
-  const reportingWallets = walletsPage.wallets.filter((wallet) => wallet.currency === reportingCurrency && wallet.status === 'Active');
+  const reportingWallets = walletsPage.wallets.filter((wallet) => wallet.status === 'Active');
+  const convertibleWallets = reportingWallets.filter((wallet) => wallet.currency === reportingCurrency || wallet.valuation);
+  const valuationComplete = convertibleWallets.length === reportingWallets.length;
+  const valuationDates = convertibleWallets.flatMap((wallet) => wallet.valuation ? [wallet.valuation] : []);
   const reportingCurrencyTotal = budgetPage.summary.totalsByCurrency.find((total) => total.currency === reportingCurrency) ?? null;
 
   return {
@@ -188,7 +193,9 @@ export async function loadOverviewPage(period = currentBudgetPeriod()): Promise<
     availablePeriods,
     reportingCurrency,
     wallets: walletsPage.wallets,
-    totalBalance: reportingWallets.reduce((sum, wallet) => sum + wallet.balance, 0),
+    totalBalance: valuationComplete ? convertibleWallets.reduce((sum, wallet) => sum + (wallet.currency === reportingCurrency ? wallet.balance : wallet.valuation!.amount), 0) : reportingWallets.filter((wallet) => wallet.currency === reportingCurrency).reduce((sum, wallet) => sum + wallet.balance, 0),
+    totalBalanceEstimated: valuationComplete && reportingWallets.some((wallet) => wallet.currency !== reportingCurrency),
+    valuationDisclosure: valuationComplete && valuationDates.length ? `Converted using ${valuationDates[0].provider} reference rates dated ${valuationDates[0].rateDate}.` : valuationComplete ? null : 'Estimated total unavailable: one or more wallet currencies have no current reference rate.',
     metrics: [
       { id: 'income', title: 'Income', amount: totals.income, isPositive: true, format: 'currency', trendLabel: periodLabel(period) },
       { id: 'expenses', title: 'Expenses', amount: totals.expenses, isPositive: false, format: 'currency', trendLabel: periodLabel(period) },

@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      fx_rates: {
+        Row: {
+          base_currency: Database["public"]["Enums"]["currency_code"]
+          created_at: string
+          fetched_at: string
+          id: string
+          provider: string
+          provider_metadata: Json
+          quote_currency: Database["public"]["Enums"]["currency_code"]
+          rate: number
+          rate_date: string
+          updated_at: string
+        }
+        Insert: {
+          base_currency: Database["public"]["Enums"]["currency_code"]
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          provider: string
+          provider_metadata?: Json
+          quote_currency: Database["public"]["Enums"]["currency_code"]
+          rate: number
+          rate_date: string
+          updated_at?: string
+        }
+        Update: {
+          base_currency?: Database["public"]["Enums"]["currency_code"]
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          provider?: string
+          provider_metadata?: Json
+          quote_currency?: Database["public"]["Enums"]["currency_code"]
+          rate?: number
+          rate_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       budgets: {
         Row: {
           archived_at: string | null
