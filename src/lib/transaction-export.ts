@@ -32,7 +32,7 @@ export function filterTransactionsForExport(transactions: Transaction[], filters
 }
 
 export function transactionsToCsv(transactions: Transaction[]) {
-  const headers = ['Date', 'Time', 'Type', 'Amount', 'Currency', 'Wallet', 'Category', 'Status', 'Description', 'Payee', 'Note', 'Source'];
+  const headers = ['Date', 'Time', 'Type', 'Amount', 'Currency', 'Wallet', 'Category', 'Is Split', 'Split Count', 'Split Summary', 'Status', 'Description', 'Payee', 'Note', 'Source'];
   const rows = transactions.map((transaction) => [
     transaction.date,
     transaction.time,
@@ -41,6 +41,9 @@ export function transactionsToCsv(transactions: Transaction[]) {
     transaction.currency,
     transaction.wallet,
     transaction.category,
+    transaction.splits?.length ? 'Yes' : 'No',
+    transaction.splits?.length ?? 0,
+    transaction.splits?.map((split) => `${split.category}: ${split.amount}`).join('; ') ?? '',
     transaction.status,
     transaction.description,
     transaction.payee,

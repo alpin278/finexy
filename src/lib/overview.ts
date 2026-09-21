@@ -7,6 +7,8 @@ import { formatWalletAmount, loadWalletsPage } from './wallets';
 import { calculateFinancialTotals, isSettledFinancialTransaction } from './financial-analytics';
 import { loadUserDisplayPreferences } from './user-display-preferences';
 import { groupLogicalActivities } from './transaction-activities';
+import { categoryAllocations } from './category-allocations';
+import { loadTransactionSplits } from './transaction-splits';
 
 type TransactionRow = Tables<'transactions'>;
 type Currency = WalletCurrencyCode;
@@ -14,6 +16,7 @@ type Currency = WalletCurrencyCode;
 interface OverviewTransactionRow extends TransactionRow {
   wallet: { id: string; name: string; currency: Currency } | null;
   category: { id: string; name: string; type: 'income' | 'expense' } | null;
+  splits?: Array<{ category_id: string; amount: number; category: { id: string; name: string } | null }>;
 }
 
 export interface OverviewMetric {
@@ -96,10 +99,11 @@ export function aggregateCategorySpending(rows: OverviewTransactionRow[], period
   const totals = new Map<string, { label: string; amount: number }>();
   for (const row of rows) {
     if (!isSettledFinancialTransaction(row, periodRange(period), currency) || row.type !== 'expense') continue;
-    const id = row.category_id ?? 'uncategorized';
-    const current = totals.get(id) ?? { label: row.category?.name ?? 'Uncategorized', amount: 0 };
-    current.amount += Number(row.amount);
-    totals.set(id, current);
+    for (const allocation of categoryAllocations(row)) {
+      const current = totals.get(allocation.categoryId) ?? { label: allocation.label, amount: 0 };
+      current.amount += allocation.amount;
+      totals.set(allocation.categoryId, current);
+    }
   }
   const total = [...totals.values()].reduce((sum, item) => sum + item.amount, 0);
   return [...totals.entries()]
@@ -160,7 +164,9 @@ async function loadOverviewTransactionRows(userId: string) {
     .order('created_at', { ascending: false })
     .order('id', { ascending: false });
   if (error) throw error;
-  return data as unknown as OverviewTransactionRow[];
+  const rows = data as unknown as OverviewTransactionRow[];
+  const splits = await loadTransactionSplits(userId, rows.map((row) => row.id));
+  return rows.map((row) => ({ ...row, splits: splits.get(row.id) ?? [] }));
 }
 
 export async function loadOverviewPage(period = currentBudgetPeriod()): Promise<OverviewPageData> {

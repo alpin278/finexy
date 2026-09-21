@@ -17,6 +17,7 @@ export interface TransactionFormValues {
   description: string;
   referenceNote: string;
   status: TransactionStatus;
+  splits: Array<{ category: string; amount: string }>;
 }
 
 export interface TransactionCategoryOption extends SelectOption {
@@ -51,6 +52,7 @@ const defaultValues = (categories: readonly TransactionCategoryOption[], wallets
   description: '',
   referenceNote: '',
   status: 'completed',
+  splits: [],
 });
 
 function getInitialValues(transaction: Transaction | null | undefined, categories: readonly TransactionCategoryOption[], wallets: readonly SelectOption[]): TransactionFormValues {
@@ -65,6 +67,7 @@ function getInitialValues(transaction: Transaction | null | undefined, categorie
     description: transaction.description,
     referenceNote: transaction.secondaryReference,
     status: transaction.status,
+    splits: transaction.splits?.map((split) => ({ category: split.category, amount: String(split.amount) })) ?? [],
   };
 }
 
@@ -100,6 +103,13 @@ export function TransactionFormModal({
     if (!values.wallet) nextErrors.wallet = 'Choose a wallet or account.';
     if (!values.date) nextErrors.date = 'Choose a date.';
     if (!values.description.trim()) nextErrors.description = 'Add a description or payee.';
+    if (values.splits.length) {
+      const units = (value: string) => { const [whole, fraction = ''] = value.split('.'); return BigInt(`${whole || '0'}${fraction.padEnd(4, '0').slice(0, 4)}`); };
+      const total = parseAmountNumber(values.amount);
+      if (values.splits.length < 2) nextErrors.splits = 'Add at least two categories to split this transaction.';
+      else if (values.splits.some((split) => !split.category || parseAmountNumber(split.amount) === null || Number(split.amount) <= 0)) nextErrors.splits = 'Choose a category and valid amount for every allocation.';
+      else if (total !== null && values.splits.reduce((sum, split) => sum + units(split.amount), 0n) !== units(values.amount)) nextErrors.splits = 'Split allocations must equal the transaction total exactly.';
+    }
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -229,6 +239,8 @@ export function TransactionFormModal({
             error={errors.description}
           />
         </div>
+
+        <section className="rounded-2xl border border-border bg-surface p-3.5" aria-label="Split transaction allocations"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold text-primary">Split transaction</p><p className="mt-0.5 text-[11px] text-secondary">Allocate this one wallet transaction across categories.</p></div><button type="button" onClick={() => updateValue('splits', values.splits.length ? [] : [{ category: values.category, amount: '' }, { category: '', amount: '' }])} className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-semibold text-primary hover:border-accent/40">{values.splits.length ? 'Use one category' : 'Split transaction'}</button></div>{values.splits.length ? <div className="mt-3 space-y-2.5">{values.splits.map((split, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-2"><Select aria-label={`Split category ${index + 1}`} value={split.category} onChange={(event) => updateValue('splits', values.splits.map((item, itemIndex) => itemIndex === index ? { ...item, category: event.target.value } : item))} options={categoryOptions} className="h-10 min-w-0 bg-white"/><AmountInput id={`split-amount-${index}`} aria-label={`Split amount ${index + 1}`} value={split.amount} onValueChange={(amount) => updateValue('splits', values.splits.map((item, itemIndex) => itemIndex === index ? { ...item, amount } : item))} locale={locale} numberFormat={numberFormat} maximumFractionDigits={4}/><button type="button" aria-label={`Remove split ${index + 1}`} onClick={() => updateValue('splits', values.splits.filter((_, itemIndex) => itemIndex !== index))} className="h-10 w-10 rounded-xl border border-border bg-white text-secondary hover:text-danger">×</button></div>)}<button type="button" onClick={() => updateValue('splits', [...values.splits, { category: '', amount: '' }])} className="text-xs font-semibold text-accent hover:text-accent-hover">+ Add allocation</button>{errors.splits && <p className="text-xs text-danger">{errors.splits}</p>}</div> : null}</section>
 
         <div>
           <label htmlFor="transaction-note" className="block text-xs font-semibold text-primary mb-1.5">

@@ -13,6 +13,7 @@ function previewRows(preview: BackupPreview) {
     ['Transfers', preview.transfers],
     ['Budgets', preview.budgets],
     ['Recurring rules', preview.recurringRules],
+    ['Split allocations', preview.splits],
   ] as const;
 }
 
@@ -24,6 +25,7 @@ function summaryRows(summary: BackupImportSummary) {
     ['Transfers', summary.transfers],
     ['Budgets', summary.budgets],
     ['Recurring rules', summary.recurring_rules],
+    ['Split allocations', summary.splits ?? 0],
   ] as const;
 }
 

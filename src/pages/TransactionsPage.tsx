@@ -86,8 +86,13 @@ export function TransactionsPage() {
       const amount = parseAmountNumber(values.amount);
       if (amount === null) throw new Error('Enter a valid transaction amount.');
       const input = { walletId: wallet.id, categoryId: category.id, type, amount, currency: wallet.currency, payee: values.description, description: values.description, note: values.referenceNote, occurredAt: occurredAtForTransactionDate(values.date), status: values.status === 'canceled' ? 'canceled' : values.status === 'completed' ? 'completed' : 'pending' } as const;
-      if (editingTransaction) await updateTransaction(editingTransaction.id, input);
-      else await createTransaction(input);
+      const splits = values.splits.length ? values.splits.map((split) => {
+        const splitCategory = pageData.categories.find((item) => item.name === split.category && item.type === type);
+        if (!splitCategory) throw new Error('Choose a valid category for every split allocation.');
+        return { categoryId: splitCategory.id, amount: split.amount };
+      }) : undefined;
+      if (editingTransaction) await updateTransaction(editingTransaction.id, input, splits);
+      else await createTransaction(input, splits);
       await invalidate(['transactions', 'wallets', 'budgets', 'overview', 'reports', 'categories']);
       setActionFeedback(editingTransaction ? 'Transaction updated.' : 'Transaction recorded.');
       window.setTimeout(() => setActionFeedback(''), 2400);

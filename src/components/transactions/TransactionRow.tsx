@@ -70,7 +70,7 @@ export function TransactionRow({
         <Badge variant={isTransfer ? 'orange' : isIncome ? 'success' : 'neutral'} className="text-[11px] whitespace-nowrap">
           {transaction.category}
         </Badge>
-        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-secondary">{isTransfer ? 'Wallet transfer' : transaction.type}</p>
+        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-secondary">{transaction.splits?.length ? `Split · ${transaction.splits.length} categories` : isTransfer ? 'Wallet transfer' : transaction.type}</p>
       </TableCell>
 
       <TableCell className="min-w-[180px]">

@@ -4,12 +4,15 @@ import { loadBudgetPage } from './budgets';
 import { calculateFinancialTotals, isSettledFinancialTransaction, type FinancialDateRange } from './financial-analytics';
 import { supabase } from './supabase';
 import { loadUserDisplayPreferences } from './user-display-preferences';
+import { categoryAllocations } from './category-allocations';
+import { loadTransactionSplits } from './transaction-splits';
 
 type TransactionRow = Tables<'transactions'>;
 type Currency = WalletCurrencyCode;
 
 interface ReportTransactionRow extends TransactionRow {
   category: { id: string; name: string; icon_identifier: string | null } | null;
+  splits?: Array<{ category_id: string; amount: number; category: { id: string; name: string } | null }>;
 }
 
 export interface ReportPeriodRange extends FinancialDateRange { label: string; key: string; }
@@ -72,8 +75,7 @@ function aggregateCategories(rows: ReportTransactionRow[], range: ReportPeriodRa
   const totals = new Map<string, { label: string; amount: number }>();
   for (const row of rows) {
     if (row.type !== type || !isSettledFinancialTransaction(row, range, currency)) continue;
-    const id = row.category_id ?? 'uncategorized'; const current = totals.get(id) ?? { label: row.category?.name ?? 'Uncategorized', amount: 0 };
-    current.amount += Number(row.amount); totals.set(id, current);
+    for (const allocation of categoryAllocations(row)) { const current = totals.get(allocation.categoryId) ?? { label: allocation.label, amount: 0 }; current.amount += allocation.amount; totals.set(allocation.categoryId, current); }
   }
   const total = [...totals.values()].reduce((sum, item) => sum + item.amount, 0);
   return [...totals.entries()].map(([id, item], index) => ({ id, ...item, percentage: total ? (item.amount / total) * 100 : 0, color: colors[index % colors.length] })).sort((a, b) => b.amount - a.amount);
@@ -118,7 +120,9 @@ export async function loadReportsData(range: ReportPeriodRange): Promise<Reports
     supabase.from('transactions').select('*, category:categories(id, name, icon_identifier)').eq('user_id', userId).is('deleted_at', null).gte('occurred_at', range.start).lt('occurred_at', range.end).order('occurred_at', { ascending: true }),
   ]);
   if (transactionResult.error) throw transactionResult.error;
-  const rows = transactionResult.data as unknown as ReportTransactionRow[];
+  const baseRows = transactionResult.data as unknown as ReportTransactionRow[];
+  const splits = await loadTransactionSplits(userId, baseRows.map((row) => row.id));
+  const rows = baseRows.map((row) => ({ ...row, splits: splits.get(row.id) ?? [] }));
   const totals = calculateFinancialTotals(rows, range, reportingCurrency);
   return { reportingCurrency, range, totals, incomeCategories: aggregateCategories(rows, range, reportingCurrency, 'income'), expenseCategories: aggregateCategories(rows, range, reportingCurrency, 'expense'), trend: buildTrend(rows, range, reportingCurrency), budgetContext: await loadBudgetContext(range, reportingCurrency) };
 }

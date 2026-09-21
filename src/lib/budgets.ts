@@ -8,6 +8,8 @@ import { getBudgetStatus, currentBudgetPeriod, isBudgetPeriod, periodRange, peri
 import { resolveCategoryIconName } from './category-icons';
 import { supabase } from './supabase';
 import { loadUserDisplayPreferences, type UserDisplayPreferences } from './user-display-preferences';
+import { categoryAllocations } from './category-allocations';
+import { loadTransactionSplits } from './transaction-splits';
 
 type BudgetRow = Tables<'budgets'>;
 type BudgetCurrency = Enums<'currency_code'>;
@@ -17,6 +19,7 @@ interface JoinedBudgetRow extends BudgetRow {
 }
 
 interface BudgetSpendRow {
+  id: string;
   category_id: string | null;
   amount: number;
   currency: BudgetCurrency;
@@ -25,6 +28,7 @@ interface BudgetSpendRow {
   status: Enums<'transaction_status'>;
   transfer_id: string | null;
   deleted_at: string | null;
+  splits?: Array<{ category_id: string; amount: number; category: { name: string } | null }>;
 }
 
 export interface CreateBudgetInput {
@@ -105,7 +109,7 @@ async function listBudgetableTransactions(userId: string, period: BudgetPeriod) 
   const range = periodRange(period);
   const { data, error } = await supabase
     .from('transactions')
-    .select('category_id, amount, currency, occurred_at, type, status, transfer_id, deleted_at')
+    .select('id, category_id, amount, currency, occurred_at, type, status, transfer_id, deleted_at')
     .eq('user_id', userId)
     .eq('type', 'expense')
     .eq('status', 'completed')
@@ -114,11 +118,13 @@ async function listBudgetableTransactions(userId: string, period: BudgetPeriod) 
     .gte('occurred_at', range.start)
     .lt('occurred_at', range.end);
   if (error) throw error;
-  return data as unknown as BudgetSpendRow[];
+  const rows = data as unknown as BudgetSpendRow[];
+  const splits = await loadTransactionSplits(userId, rows.map((row) => row.id));
+  return rows.map((row) => ({ ...row, splits: splits.get(row.id) ?? [] }));
 }
 
 function usageForRow(row: JoinedBudgetRow, transactions: BudgetSpendRow[]) {
-  const matches = transactions.filter((transaction) => (
+  const matches = transactions.flatMap((transaction) => categoryAllocations(transaction).map((allocation) => ({ ...transaction, category_id: allocation.categoryId, amount: allocation.amount }))).filter((transaction) => (
     transaction.category_id === row.category_id
     && transaction.currency === row.currency
     && transaction.type === 'expense'

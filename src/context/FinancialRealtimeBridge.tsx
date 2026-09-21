@@ -6,6 +6,9 @@ import { supabase } from '../lib/supabase';
 
 const realtimeTables: Array<[string, FinancialDataDomain[]]> = [
   ['transactions', ['transactions', 'wallets', 'budgets', 'overview', 'reports', 'categories']],
+  // Split-only writes are owner-authorized and can bypass the parent RPC, so
+  // publish them directly to keep category views fresh across devices.
+  ['transaction_splits', ['transactions', 'budgets', 'overview', 'reports', 'categories']],
   ['wallet_transfers', ['transactions', 'wallets', 'overview', 'reports']],
   ['wallets', ['wallets', 'overview']],
   ['budgets', ['budgets', 'overview']],

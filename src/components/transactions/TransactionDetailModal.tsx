@@ -2,6 +2,7 @@ import { Modal } from '../ui/Modal';
 import { StatusBadge } from '../ui/StatusBadge';
 import type { Transaction } from '../../types/finance';
 import { formatTransactionAmount, formatTransactionDate, getStatusLabel } from './transactionUtils';
+import { formatWalletAmount } from '../../lib/wallets';
 
 export interface TransactionDetailModalProps {
   transaction?: Transaction | null;
@@ -65,6 +66,8 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
               </dd>
             </div>
           </dl>
+
+          {transaction.splits?.length ? <section className="border-t border-border pt-4"><div className="flex items-center justify-between"><p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Split breakdown</p><span className="text-[10px] font-semibold text-secondary">{transaction.splits.length} categories</span></div><div className="mt-3 space-y-2">{transaction.splits.map((split) => <div key={split.id} className="flex items-center justify-between gap-3 rounded-xl bg-surface px-3 py-2"><span className="min-w-0 truncate text-xs font-medium text-primary">{split.category}</span><span className="shrink-0 text-xs font-bold text-primary">{formatWalletAmount(split.amount, transaction.currency as 'USD' | 'EUR' | 'GBP' | 'IDR')}</span></div>)}</div></section> : null}
 
           <div className="border-t border-border pt-4">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Notes / Secondary reference</p>

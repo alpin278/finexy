@@ -4,9 +4,10 @@ import { defaultTransactionSeeds } from '../data/transactions';
 import { loadCategoriesPage } from './categories';
 import { loadWalletsPage } from './wallets';
 import type { Enums, Tables, TablesInsert, TablesUpdate } from '../types/database';
-import type { Transaction, TransactionStatus, WalletCurrencyCode } from '../types/finance';
+import type { Transaction, TransactionSplit, TransactionStatus, WalletCurrencyCode } from '../types/finance';
 import { supabase } from './supabase';
 import { buildTransactionActivities, buildTransactionSummary } from './transaction-activities';
+import { loadTransactionSplits } from './transaction-splits';
 
 type TransactionRow = Tables<'transactions'>;
 type TransactionStatusDb = Enums<'transaction_status'>;
@@ -16,6 +17,7 @@ type TransferRow = Tables<'wallet_transfers'>;
 interface JoinedTransactionRow extends TransactionRow {
   wallet: { id: string; name: string; currency: CurrencyDb } | null;
   category: { id: string; name: string; type: 'income' | 'expense' } | null;
+  splits?: Array<{ id: string; category_id: string; amount: number; note: string | null; category: { name: string } | null }>;
 }
 
 export interface TransactionCategoryOption { id: string; name: string; type: 'income' | 'expense'; }
@@ -51,6 +53,7 @@ export interface CreateTransactionInput {
 }
 
 export type UpdateTransactionInput = Partial<CreateTransactionInput>;
+export interface TransactionSplitInput { categoryId: string; amount: string; note?: string; }
 
 async function requireUserId() {
   const { data, error } = await supabase.auth.getUser();
@@ -68,7 +71,9 @@ async function listTransactionRows(userId: string) {
     .order('created_at', { ascending: false })
     .order('id', { ascending: false });
   if (error) throw error;
-  return data as unknown as JoinedTransactionRow[];
+  const rows = data as unknown as JoinedTransactionRow[];
+  const splits = await loadTransactionSplits(userId, rows.map((row) => row.id));
+  return rows.map((row) => ({ ...row, splits: splits.get(row.id) ?? [] }));
 }
 
 async function listTransferRows(userId: string, transferIds?: string[]) {
@@ -120,6 +125,7 @@ function mapTransaction(row: JoinedTransactionRow, transfer?: TransferRow, walle
     ...(isTransfer && transfer?.reference ? { transferReference: transfer.reference } : {}),
     ...(isTransfer && row.transfer_id ? { transferId: row.transfer_id } : {}),
     ...(isTransfer && row.transfer_leg ? { transferLeg: row.transfer_leg } : {}),
+    ...(row.splits?.length ? { splits: row.splits.map((split): TransactionSplit => ({ id: split.id, categoryId: split.category_id, category: split.category?.name ?? 'Archived category', amount: Number(split.amount), ...(split.note ? { note: split.note } : {}) })) } : {}),
   };
 }
 
@@ -267,6 +273,7 @@ export async function getTransaction(transactionId: string) {
   if (error) throw error;
   if (!data) return null;
   const row = data as unknown as JoinedTransactionRow;
+  row.splits = (await loadTransactionSplits(userId, [row.id])).get(row.id) ?? [];
   const transfer = row.transfer_id ? (await listTransferRows(userId, [row.transfer_id]))[0] : undefined;
   return mapTransaction(row, transfer);
 }
@@ -290,24 +297,42 @@ function statusForDatabase(status: TransactionStatus): 'pending' | 'completed' |
   return status === 'completed' ? 'completed' : 'pending';
 }
 
-export async function createTransaction(input: CreateTransactionInput) {
+export async function createTransaction(input: CreateTransactionInput, splits?: TransactionSplitInput[]) {
   const userId = await requireUserId();
   const currency = await walletCurrency(userId, input.walletId);
   await validateCategory(userId, input.categoryId, input.type);
   if (currency !== input.currency) throw new Error('Transaction currency must match the selected wallet.');
+  if (splits?.length) {
+    const { data, error } = await (supabase as any).rpc('save_transaction_with_splits', { p_transaction_id: null, p_wallet_id: input.walletId, p_type: input.type, p_amount: input.amount, p_currency: currency, p_payee: input.payee.trim(), p_description: input.description.trim(), p_note: input.note?.trim() || null, p_occurred_at: input.occurredAt, p_status: input.status, p_reference: input.reference?.trim() || null, p_splits: splits.map((split) => ({ category_id: split.categoryId, amount: split.amount, note: split.note?.trim() || null })) });
+    if (error) throw error;
+    const created = await getTransaction(data);
+    if (!created) throw new Error('Split transaction was not returned after saving.');
+    return created;
+  }
   const payload: TablesInsert<'transactions'> = { user_id: userId, wallet_id: input.walletId, category_id: input.categoryId, type: input.type, amount: input.amount, currency, payee: input.payee.trim(), description: input.description.trim(), note: input.note?.trim() || null, occurred_at: input.occurredAt, status: input.status, source: 'web', reference: input.reference?.trim() || null };
   const { data, error } = await supabase.from('transactions').insert(payload).select('*, wallet:wallets(id, name, currency), category:categories(id, name, type)').single();
   if (error) throw error;
   return mapTransaction(data as unknown as JoinedTransactionRow);
 }
 
-export async function updateTransaction(transactionId: string, input: UpdateTransactionInput) {
+export async function updateTransaction(transactionId: string, input: UpdateTransactionInput, splits?: TransactionSplitInput[]) {
   const userId = await requireUserId();
   const walletId = input.walletId;
   const categoryId = input.categoryId;
   const type = input.type;
   const currency = walletId ? await walletCurrency(userId, walletId) : input.currency;
   if (categoryId && type) await validateCategory(userId, categoryId, type);
+  if (splits?.length) {
+    const { data, error } = await (supabase as any).rpc('save_transaction_with_splits', { p_transaction_id: transactionId, p_wallet_id: input.walletId, p_type: input.type, p_amount: input.amount, p_currency: currency, p_payee: input.payee?.trim(), p_description: input.description?.trim(), p_note: input.note?.trim() || null, p_occurred_at: input.occurredAt, p_status: input.status && statusForDatabase(input.status), p_reference: input.reference?.trim() || null, p_splits: splits.map((split) => ({ category_id: split.categoryId, amount: split.amount, note: split.note?.trim() || null })) });
+    if (error) throw error;
+    const updated = await getTransaction(data);
+    if (!updated) throw new Error('Split transaction was not returned after saving.');
+    return updated;
+  }
+  // The split migration is verified remotely. Clear allocations first so a
+  // split-to-normal conversion cannot retain stale category attribution.
+  const { error: clearSplitError } = await (supabase as any).from('transaction_splits').delete().eq('transaction_id', transactionId).eq('user_id', userId);
+  if (clearSplitError) throw clearSplitError;
   const payload: TablesUpdate<'transactions'> = {
     ...(walletId === undefined ? {} : { wallet_id: walletId }),
     ...(categoryId === undefined ? {} : { category_id: categoryId }),

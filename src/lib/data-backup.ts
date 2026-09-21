@@ -2,7 +2,7 @@ import type { Json } from '../types/database';
 import { supabase } from './supabase';
 
 export const FINEXY_BACKUP_FORMAT = 'finexy-backup' as const;
-export const FINEXY_BACKUP_VERSION = 1 as const;
+export const FINEXY_BACKUP_VERSION = 2 as const;
 
 const currencies = ['USD', 'EUR', 'GBP', 'IDR'] as const;
 const moneyPattern = /^-?[0-9]+(?:\.[0-9]{1,4})?$/;
@@ -56,9 +56,17 @@ export interface BackupTransaction {
   reference: string | null;
 }
 
+export interface BackupTransactionSplit {
+  ref: string;
+  transaction_ref: string;
+  category_ref: string;
+  amount: string;
+  note: string | null;
+}
+
 export interface BackupDocument {
   format: typeof FINEXY_BACKUP_FORMAT;
-  version: typeof FINEXY_BACKUP_VERSION;
+  version: 1 | typeof FINEXY_BACKUP_VERSION;
   exported_at: string;
   schema: { name: string; version: string };
   profile: BackupObject;
@@ -68,6 +76,8 @@ export interface BackupDocument {
   categories: BackupCategory[];
   category_rules: BackupObject[];
   transactions: BackupTransaction[];
+  /** Present only in v2. Parent transactions remain the canonical cash-flow rows. */
+  transaction_splits?: BackupTransactionSplit[];
   wallet_transfers: BackupObject[];
   budgets: BackupObject[];
   recurring_rules: BackupObject[];
@@ -83,6 +93,7 @@ export interface BackupPreview {
   transfers: number;
   budgets: number;
   recurringRules: number;
+  splits: number;
 }
 
 export interface BackupImportSummary {
@@ -97,6 +108,7 @@ export interface BackupImportSummary {
   transfers: number;
   budgets: number;
   recurring_rules: number;
+  splits?: number;
 }
 
 function asObject(value: unknown, label: string): BackupObject {
@@ -145,7 +157,7 @@ function validateUniqueRefs(records: BackupObject[], label: string, prefix: stri
 function validateBackup(value: unknown): BackupDocument {
   const root = asObject(value, 'Backup');
   if (root.format !== FINEXY_BACKUP_FORMAT) throw new Error('Unsupported backup format.');
-  if (root.version !== FINEXY_BACKUP_VERSION) throw new Error('Unsupported backup version.');
+  if (root.version !== 1 && root.version !== FINEXY_BACKUP_VERSION) throw new Error(`Unsupported backup version: ${String(root.version)}.`);
   if (typeof root.exported_at !== 'string') throw new Error('Backup export timestamp is required.');
   validateDate(root.exported_at, 'Backup export timestamp');
   const schema = asObject(root.schema, 'Backup schema');
@@ -158,11 +170,13 @@ function validateBackup(value: unknown): BackupDocument {
   const transfers = asArray(root.wallet_transfers, 'Wallet transfers');
   const budgets = asArray(root.budgets, 'Budgets');
   const recurringRules = asArray(root.recurring_rules, 'Recurring rules');
+  const splits = root.version === FINEXY_BACKUP_VERSION ? asArray(root.transaction_splits, 'Transaction splits') : [];
   const notificationPreferences = asArray(root.notification_preferences, 'Notification preferences');
   const walletRefs = validateUniqueRefs(wallets, 'Wallets', 'wallet');
   const categoryRefs = validateUniqueRefs(categories, 'Categories', 'category');
   const transactionRefs = validateUniqueRefs(transactions, 'Transactions', 'transaction');
   const transferRefs = validateUniqueRefs(transfers, 'Wallet transfers', 'transfer');
+  validateUniqueRefs(splits, 'Transaction splits', 'split');
   validateUniqueRefs(categoryRules, 'Category rules', 'category_rule');
   validateUniqueRefs(budgets, 'Budgets', 'budget');
   validateUniqueRefs(recurringRules, 'Recurring rules', 'recurring_rule');
@@ -207,6 +221,27 @@ function validateBackup(value: unknown): BackupDocument {
       if (!categoryRefs.has(String(record.category_ref)) || record.transfer_ref !== null || record.transfer_leg !== null) throw new Error(`${label} category relationship is invalid.`);
     }
   });
+
+  const splitTotals = new Map<string, number>();
+  const splitCounts = new Map<string, number>();
+  splits.forEach((record, index) => {
+    const label = `Transaction split ${index + 1}`;
+    validateRef(record.transaction_ref, label, 'transaction');
+    validateRef(record.category_ref, label, 'category');
+    if (!transactionRefs.has(String(record.transaction_ref)) || !categoryRefs.has(String(record.category_ref))) throw new Error(`${label} references a missing transaction or category.`);
+    validateMoney(record.amount, `${label} amount`, false, false);
+    if (record.note !== null && record.note !== undefined && typeof record.note !== 'string') throw new Error(`${label} note is invalid.`);
+    const parent = transactions.find((transaction) => transaction.ref === record.transaction_ref)!;
+    const category = categories.find((item) => item.ref === record.category_ref)!;
+    if (parent.type === 'transfer' || category.type !== parent.type || category.status !== 'active' || category.archived_at) throw new Error(`${label} has an invalid parent or category.`);
+    const parentRef = String(parent.ref);
+    splitTotals.set(parentRef, (splitTotals.get(parentRef) ?? 0) + Number(record.amount));
+    splitCounts.set(parentRef, (splitCounts.get(parentRef) ?? 0) + 1);
+  });
+  for (const [transactionRef, total] of splitTotals) {
+    const parent = transactions.find((transaction) => transaction.ref === transactionRef)!;
+    if (splitCounts.get(transactionRef)! < 2 || total !== Number(parent.amount)) throw new Error(`Split allocations for ${transactionRef} must contain at least two rows and equal the parent amount exactly.`);
+  }
 
   transfers.forEach((record, index) => {
     const label = `Transfer ${index + 1}`;
@@ -253,7 +288,7 @@ function validateBackup(value: unknown): BackupDocument {
 
   return {
     format: FINEXY_BACKUP_FORMAT,
-    version: FINEXY_BACKUP_VERSION,
+    version: root.version as 1 | typeof FINEXY_BACKUP_VERSION,
     exported_at: root.exported_at,
     schema: { name: String(schema.name), version: String(schema.version ?? '') },
     profile: asObject(root.profile, 'Profile'),
@@ -263,6 +298,7 @@ function validateBackup(value: unknown): BackupDocument {
     categories: categories as unknown as BackupCategory[],
     category_rules: categoryRules,
     transactions: transactions as unknown as BackupTransaction[],
+    ...(root.version === FINEXY_BACKUP_VERSION ? { transaction_splits: splits as unknown as BackupTransactionSplit[] } : {}),
     wallet_transfers: transfers,
     budgets,
     recurring_rules: recurringRules,
@@ -294,6 +330,7 @@ export function getBackupPreview(backup: BackupDocument): BackupPreview {
     transfers: backup.wallet_transfers.length,
     budgets: backup.budgets.length,
     recurringRules: backup.recurring_rules.length,
+    splits: backup.transaction_splits?.length ?? 0,
   };
 }
 

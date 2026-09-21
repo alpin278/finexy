@@ -129,4 +129,13 @@ export interface Transaction {
   transferId?: string;
   transferLeg?: 'outbound' | 'inbound';
   ledgerTransactionIds?: string[];
+  splits?: TransactionSplit[];
+}
+
+export interface TransactionSplit {
+  id: string;
+  categoryId: string;
+  category: string;
+  amount: number;
+  note?: string;
 }
