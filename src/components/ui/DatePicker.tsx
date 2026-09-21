@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { cn } from '../../lib/utils';
 import { Icon } from './Icon';
-import { calculateModalPopoverPosition, useAnchoredPopoverPosition, type ModalPopoverPosition } from './popoverPosition';
+import { calculateAnchoredPopoverPosition, useAnchoredPopoverPosition, type AnchoredPopoverPosition } from './popoverPosition';
 
 export interface DatePickerProps {
   id?: string;
@@ -22,6 +22,7 @@ const weekdayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const fullDateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'full' });
 const fieldDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
+type ModalLayerPosition = AnchoredPopoverPosition & { scrollTop: number };
 
 function parseLocalDate(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -68,18 +69,18 @@ export function DatePicker({
   const selectedDate = parseLocalDate(value);
   const [open, setOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(() => firstOfMonth(selectedDate ?? new Date()));
-  const [localPosition, setLocalPosition] = useState<ModalPopoverPosition | null>(null);
+  const [modalLayerPosition, setModalLayerPosition] = useState<ModalLayerPosition | null>(null);
   const [modalScrollRoot, setModalScrollRoot] = useState<HTMLElement | null>(null);
-  const [popoverContainer, setPopoverContainer] = useState<HTMLElement | null>(null);
+  const [modalPopoverLayer, setModalPopoverLayer] = useState<HTMLElement | null>(null);
   const positioning = useMemo(() => ({ contentHeight: 356, minWidth: 304, preferredMaxHeight: 380 }), []);
-  const isModalLocal = Boolean(modalScrollRoot);
-  const position = useAnchoredPopoverPosition(open && !isModalLocal, triggerRef, positioning);
+  const isModalLayer = Boolean(modalPopoverLayer);
+  const position = useAnchoredPopoverPosition(open && !isModalLayer, triggerRef, positioning);
 
   const close = useCallback((restoreFocus = true) => {
     setOpen(false);
-    setLocalPosition(null);
+    setModalLayerPosition(null);
     setModalScrollRoot(null);
-    setPopoverContainer(null);
+    setModalPopoverLayer(null);
     if (restoreFocus) window.requestAnimationFrame(() => triggerRef.current?.focus());
   }, []);
 
@@ -91,11 +92,14 @@ export function DatePicker({
   const openCalendar = () => {
     if (disabled) return;
     const scrollRoot = triggerRef.current?.closest<HTMLElement>('[data-popover-scroll-root]');
+    const layer = scrollRoot?.parentElement?.querySelector<HTMLElement>('[data-modal-popover-layer]') ?? null;
     setModalScrollRoot(scrollRoot ?? null);
-    setPopoverContainer(scrollRoot ? triggerRef.current?.parentElement ?? null : null);
-    setLocalPosition(scrollRoot && triggerRef.current
-      ? calculateModalPopoverPosition(triggerRef.current.getBoundingClientRect(), scrollRoot.getBoundingClientRect(), positioning)
-      : null);
+    setModalPopoverLayer(layer);
+    if (layer && triggerRef.current) {
+      const next = calculateAnchoredPopoverPosition(triggerRef.current.getBoundingClientRect(), positioning);
+      const layerRect = layer.getBoundingClientRect();
+      setModalLayerPosition({ ...next, top: next.top - layerRect.top, left: next.left - layerRect.left, scrollTop: scrollRoot?.scrollTop ?? 0 });
+    } else setModalLayerPosition(null);
     setDisplayMonth(firstOfMonth(selectedDate ?? new Date()));
     setOpen(true);
     window.requestAnimationFrame(() => focusDate(selectedDate ?? new Date()));
@@ -122,11 +126,26 @@ export function DatePicker({
   }, [close, open]);
 
   useEffect(() => {
-    if (!open || !modalScrollRoot || !triggerRef.current) return undefined;
-    const updateLocalPosition = () => setLocalPosition(calculateModalPopoverPosition(triggerRef.current!.getBoundingClientRect(), modalScrollRoot.getBoundingClientRect(), positioning));
-    window.addEventListener('resize', updateLocalPosition);
-    return () => window.removeEventListener('resize', updateLocalPosition);
-  }, [modalScrollRoot, open, positioning]);
+    if (!open || !modalScrollRoot || !modalPopoverLayer || !triggerRef.current) return undefined;
+    const updateOnResize = () => {
+      const next = calculateAnchoredPopoverPosition(triggerRef.current!.getBoundingClientRect(), positioning);
+      const layerRect = modalPopoverLayer.getBoundingClientRect();
+      if (popoverRef.current) popoverRef.current.style.transform = '';
+      setModalLayerPosition({ ...next, top: next.top - layerRect.top, left: next.left - layerRect.left, scrollTop: modalScrollRoot.scrollTop });
+    };
+    window.addEventListener('resize', updateOnResize);
+    return () => window.removeEventListener('resize', updateOnResize);
+  }, [modalPopoverLayer, modalScrollRoot, open, positioning]);
+
+  useEffect(() => {
+    if (!open || !modalScrollRoot || !modalLayerPosition) return undefined;
+    const initialScrollTop = modalLayerPosition.scrollTop;
+    const onScroll = () => {
+      if (popoverRef.current) popoverRef.current.style.transform = `translateY(${initialScrollTop - modalScrollRoot.scrollTop}px)`;
+    };
+    modalScrollRoot.addEventListener('scroll', onScroll, { passive: true });
+    return () => modalScrollRoot.removeEventListener('scroll', onScroll);
+  }, [modalLayerPosition, modalScrollRoot, open]);
 
   const monthStart = firstOfMonth(displayMonth);
   const gridStart = addDays(monthStart, -monthStart.getDay());
@@ -188,14 +207,9 @@ export function DatePicker({
           id={dialogId}
           role="dialog"
           aria-label="Choose date"
-          className={cn(isModalLocal ? 'absolute z-40 w-[min(304px,calc(100vw-1rem))] rounded-[16px] border border-border bg-white p-3 shadow-dropdown' : 'fixed z-[80] w-[min(304px,calc(100vw-1rem))] rounded-[16px] border border-border bg-white p-3 shadow-dropdown')}
-          style={isModalLocal
-            ? localPosition ? {
-              [localPosition.placement === 'top' ? 'bottom' : 'top']: 'calc(100% + 6px)',
-              [localPosition.alignment]: 0,
-              width: localPosition.width,
-              maxHeight: localPosition.maxHeight,
-            } : { visibility: 'hidden' }
+          className={cn(isModalLayer ? 'pointer-events-auto absolute z-40 w-[min(304px,calc(100vw-1rem))] rounded-[16px] border border-border bg-white p-3 shadow-dropdown' : 'fixed z-[80] w-[min(304px,calc(100vw-1rem))] rounded-[16px] border border-border bg-white p-3 shadow-dropdown')}
+          style={isModalLayer
+            ? modalLayerPosition ? { top: modalLayerPosition.top, left: modalLayerPosition.left, width: modalLayerPosition.width, maxHeight: modalLayerPosition.maxHeight } : { visibility: 'hidden' }
             : position ? { top: position.top, left: position.left, width: position.width, maxHeight: position.maxHeight } : { visibility: 'hidden' }}
         >
           <div className="mb-2 flex items-center justify-between gap-2">
@@ -236,7 +250,7 @@ export function DatePicker({
             <button type="button" onClick={() => close()} className="rounded-lg px-2 py-1 text-xs font-semibold text-secondary hover:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/20">Close</button>
           </div>
         </div>,
-        isModalLocal ? popoverContainer ?? document.body : document.body,
+        isModalLayer ? modalPopoverLayer ?? document.body : document.body,
       )}
     </div>
   );

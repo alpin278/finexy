@@ -89,7 +89,7 @@ export function Modal({
       {/* Dialog box */}
       <div
         className={cn(
-          'relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-[24px] border border-white/80 bg-white ring-1 ring-primary/5 sm:max-h-[min(88dvh,760px)]',
+          'relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-visible rounded-[24px] border border-white/80 bg-white ring-1 ring-primary/5 sm:max-h-[min(88dvh,760px)]',
           'shadow-[0_28px_80px_rgba(23,23,20,0.2),0_10px_28px_rgba(23,23,20,0.1)]',
           'modal-panel-enter transition-[opacity,transform] duration-200',
           maxWidths[maxWidth]
@@ -126,6 +126,7 @@ export function Modal({
             {footer}
           </div>
         )}
+        <div data-modal-popover-layer className="pointer-events-none absolute inset-0 z-30" />
       </div>
     </div>,
     document.body
