@@ -8,6 +8,7 @@ export interface AuthContextValue {
   profile: Profile | null;
   loading: boolean;
   profileLoading: boolean;
+  refreshProfile: () => Promise<Profile | null>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string) => Promise<{
     data: { session: Session | null; user: User | null };

@@ -24,7 +24,7 @@ export function filterTransactionsForExport(transactions: Transaction[], filters
     if (filters.dateFrom && transaction.date < filters.dateFrom) return false;
     if (filters.dateTo && transaction.date > filters.dateTo) return false;
     if (filters.type !== 'all' && transaction.type !== filters.type) return false;
-    if (filters.wallet !== 'all' && transaction.wallet !== filters.wallet) return false;
+    if (filters.wallet !== 'all' && transaction.wallet !== filters.wallet && transaction.transferSourceWallet !== filters.wallet && transaction.transferDestinationWallet !== filters.wallet) return false;
     if (filters.category !== 'all' && transaction.category !== filters.category) return false;
     if (filters.status !== 'all' && transaction.status !== filters.status) return false;
     return true;

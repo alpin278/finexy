@@ -5,6 +5,7 @@ export type NavigationTab =
   | 'budgets'
   | 'reports'
   | 'categories'
+  | 'profile'
   | 'settings';
 
 export interface NavItem {
@@ -34,6 +35,7 @@ export function getActiveTabFromPath(pathname: string): NavigationTab | null {
   if (pathname === '/budgets' || pathname.startsWith('/budgets/')) return 'budgets';
   if (pathname === '/categories' || pathname.startsWith('/categories/')) return 'categories';
   if (pathname === '/reports' || pathname.startsWith('/reports/')) return 'reports';
+  if (pathname === '/profile' || pathname.startsWith('/profile/')) return 'profile';
   if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'settings';
   return null;
 }

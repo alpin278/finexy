@@ -35,7 +35,7 @@ export function TransactionRow({
 
   return (
     <TableRow className="group hover:bg-surface/70">
-      <TableCell className="min-w-[260px]">
+      <TableCell className="min-w-[250px]">
         <div className="flex items-start gap-3">
           <span
             className={cn(
@@ -61,9 +61,10 @@ export function TransactionRow({
       </TableCell>
 
       <TableCell className="min-w-[150px]">
-        <Badge variant="neutral" className="text-[11px] whitespace-nowrap">
+        <Badge variant={isTransfer ? 'orange' : isIncome ? 'success' : 'neutral'} className="text-[11px] whitespace-nowrap">
           {transaction.category}
         </Badge>
+        <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-secondary">{isTransfer ? 'Wallet transfer' : transaction.type}</p>
       </TableCell>
 
       <TableCell className="min-w-[180px]">

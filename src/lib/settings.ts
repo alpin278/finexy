@@ -14,6 +14,30 @@ async function requireUser() {
   return data.user;
 }
 
+export interface ProfileDetails {
+  name: string;
+  email: string;
+  location: string;
+}
+
+export async function loadProfileDetails(): Promise<ProfileDetails> {
+  const user = await requireUser();
+  const profile = await loadOrCreateProfile(user);
+  return {
+    name: profile?.display_name ?? user.email ?? '',
+    email: user.email ?? profile?.email ?? '',
+    location: profile?.location ?? '',
+  };
+}
+
+export async function saveProfileDetails(value: Pick<ProfileDetails, 'name' | 'location'>) {
+  const user = await requireUser();
+  if (!value.name.trim()) throw new Error('Display name is required.');
+  const profile: TablesUpdate<'profiles'> = { display_name: value.name.trim(), location: value.location.trim() || null };
+  const { error } = await supabase.from('profiles').update(profile).eq('id', user.id);
+  if (error) throw error;
+}
+
 export async function loadSettings(): Promise<SettingsState> {
   const user = await requireUser();
   const profile = await loadOrCreateProfile(user);
@@ -41,4 +65,7 @@ export async function saveSettings(value: SettingsState) {
   if (profileError) throw profileError; if (settingsError) throw settingsError; if (notificationError) throw notificationError;
 }
 
-export function settingsErrorMessage(error: unknown) { return error instanceof Error && error.message.includes('signed in') ? error.message : 'We could not save your settings. Please try again.'; }
+export function settingsErrorMessage(error: unknown) {
+  if (error instanceof Error && (error.message.includes('signed in') || error.message === 'Display name is required.')) return error.message;
+  return 'We could not save your settings. Please try again.';
+}

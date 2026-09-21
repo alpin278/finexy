@@ -10,6 +10,7 @@ import { BudgetsPage } from '../pages/BudgetsPage';
 import { ReportsPage } from '../pages/ReportsPage';
 import { CategoriesPage } from '../pages/CategoriesPage';
 import { SettingsPage } from '../pages/SettingsPage';
+import { ProfilePage } from '../pages/ProfilePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -60,6 +61,10 @@ export const router = createBrowserRouter([
       {
         path: 'categories',
         element: <CategoriesPage />,
+      },
+      {
+        path: 'profile',
+        element: <ProfilePage />,
       },
       {
         path: 'settings',

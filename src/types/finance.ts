@@ -123,4 +123,8 @@ export interface Transaction {
   transferSourceWallet?: string;
   transferDestinationWallet?: string;
   transferReference?: string;
+  /** Transfer metadata is retained on the UI read model so paired ledger legs can be grouped safely. */
+  transferId?: string;
+  transferLeg?: 'outbound' | 'inbound';
+  ledgerTransactionIds?: string[];
 }

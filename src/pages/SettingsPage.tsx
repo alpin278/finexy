@@ -9,7 +9,7 @@ import {
   settingsCurrencyOptions,
   settingsRegionOptions,
 } from '../data/settings';
-import { Avatar, Button, Card, Input, LoadingState, Modal, Select, StatusBadge } from '../components/ui';
+import { Button, Card, LoadingState, Modal, Select, StatusBadge } from '../components/ui';
 import { DataBackupPanel, PreferenceToggle, SettingsSection } from '../components/settings';
 import type { AppearancePreference, SettingsCurrency, SettingsProfile, SettingsState } from '../types/settings';
 import { cn } from '../lib/utils';
@@ -33,14 +33,13 @@ const fieldLabelClass = 'mb-1.5 block text-xs font-semibold text-primary';
 const fieldClass = 'h-10 w-full rounded-[12px] bg-white';
 const testNotificationCooldownMs = 5 * 60 * 1000;
 const settingsSections = [
-  ['profile', 'Profile'],
   ['regional', 'Regional & Currency'],
   ['appearance', 'Appearance'],
   ['preferences', 'Transaction Preferences'],
+  ['notifications', 'Notifications'],
   ['data-backup', 'Data & Backup'],
   ['telegram', 'Telegram'],
   ['security', 'Security & Account'],
-  ['notifications', 'Notifications'],
 ] as const;
 
 function formatCooldownRemaining(cooldownEndsAt: number | null) {
@@ -142,7 +141,7 @@ export function SettingsPage() {
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary">Personal workspace</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-primary sm:text-[32px]">Settings &amp; Preferences</h1>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-secondary sm:text-sm">Keep your Finexy profile, money formats, alerts, and personal finance habits in one place.</p>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-secondary sm:text-sm">Control money formats, appearance, transaction defaults, alerts, integrations, and account tools.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status="in_progress" label="Supabase preferences" />
@@ -155,27 +154,13 @@ export function SettingsPage() {
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
-          <SettingsSection id="profile" icon="person" eyebrow="Account" title="Profile & Identity" description="Make your workspace feel like yours. Your display name and location are saved to your Finexy profile. Email remains managed by Supabase Auth.">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
-              <div className="flex shrink-0 items-center gap-3 lg:w-52 lg:flex-col lg:items-start">
-                <Avatar name={settings.profile.name} size="lg" className="h-20 w-20 text-xl" />
-                <div><p className="text-sm font-semibold text-primary">Your profile</p><p className="mt-1 text-xs text-secondary">Avatar preview only</p><button type="button" className="mt-2 text-xs font-semibold text-accent hover:text-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30" onClick={() => setSaveMessage('Avatar changes are demo-only and are not uploaded anywhere.')}>Use demo avatar</button></div>
-              </div>
-              <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
-                <div><label htmlFor="settings-name" className={fieldLabelClass}>Display name</label><Input id="settings-name" value={settings.profile.name} onChange={(event) => updateProfile('name', event.target.value)} placeholder="Your name" /></div>
-                <div><label htmlFor="settings-email" className={fieldLabelClass}>Email address</label><Input id="settings-email" type="email" value={settings.profile.email} onChange={(event) => updateProfile('email', event.target.value)} placeholder="you@example.com" leftIcon={<Icon name="envelope" />} /></div>
-                <div><label htmlFor="settings-location" className={fieldLabelClass}>Location</label><Input id="settings-location" value={settings.profile.location} onChange={(event) => updateProfile('location', event.target.value)} placeholder="City, country" leftIcon={<Icon name="globe2" />} /></div>
-                <div><label htmlFor="settings-timezone" className={fieldLabelClass}>Timezone</label><Select id="settings-timezone" value={settings.profile.timezone} onChange={(event) => updateProfile('timezone', event.target.value)} options={[{ value: 'Asia/Jakarta (GMT+7)', label: 'Asia/Jakarta (GMT+7)' }, { value: 'America/New_York (GMT-5)', label: 'America/New York (GMT-5)' }, { value: 'Europe/London (GMT+0)', label: 'Europe/London (GMT+0)' }]} className={fieldClass} /></div>
-              </div>
-            </div>
-          </SettingsSection>
-
           <SettingsSection id="regional" icon="currency-dollar" eyebrow="Regional defaults" title="Currency & Regional" description="Choose the formats that make your balances and transactions easiest to read.">
             <div className="grid gap-4 sm:grid-cols-2">
               <div><label htmlFor="settings-currency" className={fieldLabelClass}>Default currency</label><Select id="settings-currency" value={settings.currency} onChange={(event) => { setSettings((current) => ({ ...current, currency: event.target.value as SettingsCurrency })); setSaveMessage(''); }} options={settingsCurrencyOptions} className={fieldClass} /><p className="mt-1.5 text-[11px] text-secondary">New values will display with {currencySymbols[settings.currency]} ({settings.currency}).</p></div>
               <div><label htmlFor="settings-region" className={fieldLabelClass}>Locale / region</label><Select id="settings-region" value={settings.region} onChange={(event) => { setSettings((current) => ({ ...current, region: event.target.value })); setSaveMessage(''); }} options={settingsRegionOptions} className={fieldClass} /></div>
               <div><label htmlFor="settings-date-format" className={fieldLabelClass}>Date format</label><Select id="settings-date-format" value={settings.dateFormat} onChange={(event) => { setSettings((current) => ({ ...current, dateFormat: event.target.value })); setSaveMessage(''); }} options={dateFormatOptions} className={fieldClass} /></div>
               <div><label htmlFor="settings-number-format" className={fieldLabelClass}>Number format</label><Select id="settings-number-format" value={settings.numberFormat} onChange={(event) => { setSettings((current) => ({ ...current, numberFormat: event.target.value })); setSaveMessage(''); }} options={numberFormatOptions} className={fieldClass} /></div>
+              <div><label htmlFor="settings-timezone" className={fieldLabelClass}>Timezone</label><Select id="settings-timezone" value={settings.profile.timezone} onChange={(event) => updateProfile('timezone', event.target.value)} options={[{ value: 'Asia/Jakarta (GMT+7)', label: 'Asia/Jakarta (GMT+7)' }, { value: 'America/New_York (GMT-5)', label: 'America/New York (GMT-5)' }, { value: 'Europe/London (GMT+0)', label: 'Europe/London (GMT+0)' }]} className={fieldClass} /></div>
             </div>
           </SettingsSection>
 
@@ -236,7 +221,7 @@ export function SettingsPage() {
             </nav>
           </Card>
           <Card padding="lg" className="border-accent/15"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent/10 text-accent"><Icon name="sliders" className="text-lg" /></div><div><h2 className="text-sm font-semibold text-primary">At a glance</h2><p className="mt-0.5 text-xs text-secondary">Current defaults from your settings</p></div></div><dl className="mt-5 space-y-4"><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Currency</dt><dd className="text-xs font-semibold text-primary">{settings.currency} {currencySymbols[settings.currency]}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Region</dt><dd className="max-w-[150px] truncate text-right text-xs font-semibold text-primary">{settings.region}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Appearance</dt><dd className="text-xs font-semibold capitalize text-primary">{settings.appearance}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">In-app alerts</dt><dd className="text-xs font-semibold text-primary">{enabledInAppNotifications} enabled</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Telegram alerts</dt><dd className="text-xs font-semibold text-primary">{telegram.status === 'connected' ? `${enabledTelegramNotifications} enabled` : 'Not connected'}</dd></div></dl><p className="mt-5 border-t border-border pt-4 text-[11px] leading-relaxed text-secondary">Use the sections on the left to change these defaults.</p></Card>
-          <Card padding="lg" className="border-dark bg-dark text-white"><div className="flex items-center gap-2 text-accent"><Icon name="file-earmark-text" className="text-sm" /><span className="text-[10px] font-semibold uppercase tracking-[0.16em]">Persistence notes</span></div><p className="mt-3 text-sm font-semibold">What stays with your account</p><p className="mt-2 text-xs leading-relaxed text-white/65">Profile, regional, and notification preferences are saved to your Finexy account. This summary is informational; edit the source sections to make changes.</p><div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-4 text-xs"><span className="text-white/60">Data &amp; Backup</span><span className="font-semibold text-white">Available</span></div><div className="mt-2 flex items-center justify-between gap-3 text-xs"><span className="text-white/60">2FA</span><span className="font-semibold text-white">Demo control</span></div></Card>
+          <Card padding="lg" className="border-dark bg-dark text-white"><div className="flex items-center gap-2 text-accent"><Icon name="file-earmark-text" className="text-sm" /><span className="text-[10px] font-semibold uppercase tracking-[0.16em]">Persistence notes</span></div><p className="mt-3 text-sm font-semibold">What stays with your account</p><p className="mt-2 text-xs leading-relaxed text-white/65">Regional, transaction, and notification preferences are saved to your Finexy account. Identity details are managed on your Profile page.</p><div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-4 text-xs"><span className="text-white/60">Data &amp; Backup</span><span className="font-semibold text-white">Available</span></div><div className="mt-2 flex items-center justify-between gap-3 text-xs"><span className="text-white/60">2FA</span><span className="font-semibold text-white">Demo control</span></div></Card>
         </aside>
       </div>
 

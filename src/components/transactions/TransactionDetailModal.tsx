@@ -14,7 +14,7 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
       isOpen={Boolean(transaction)}
       onClose={onClose}
       title="Transaction Details"
-      description="A read-only view of this persisted ledger transaction."
+      description="A read-only view of this logical financial activity."
       maxWidth="md"
     >
       {transaction && (
@@ -39,7 +39,7 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
               </div>
             </>}
             <div>
-              <dt className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Reference ID</dt>
+              <dt className="text-[10px] font-semibold uppercase tracking-wider text-secondary">Reference</dt>
               <dd className="text-xs font-mono text-primary mt-1">{transaction.reference}</dd>
             </div>
             <div>

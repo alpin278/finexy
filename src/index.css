@@ -79,8 +79,14 @@
     color: #171714;
   }
 
-  option:checked {
-    background: #FFF1ED;
+  select {
+    color-scheme: light;
+    background-color: #FFFFFF;
+    color: #171714;
+  }
+
+  select:active {
+    background-color: #FFFFFF;
     color: #171714;
   }
 

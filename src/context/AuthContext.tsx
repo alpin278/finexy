@@ -91,6 +91,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       loading,
       profileLoading,
+      refreshProfile: async () => {
+        if (!session?.user) return null;
+        setProfileLoading(true);
+        try {
+          const nextProfile = await loadOrCreateProfile(session.user);
+          setProfile(nextProfile);
+          return nextProfile;
+        } finally {
+          setProfileLoading(false);
+        }
+      },
       signIn: async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         return { error };

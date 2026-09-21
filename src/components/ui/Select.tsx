@@ -14,7 +14,7 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, options, icon, ...props }, ref) => {
+  ({ className, options, icon, style, ...props }, ref) => {
     const fullWidth = className?.split(/\s+/).includes('w-full');
 
     return (
@@ -28,12 +28,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           className={cn(
             'appearance-none h-10 min-w-0 pl-3.5 pr-10 bg-white hover:border-border-hover border border-border rounded-[12px] text-xs font-semibold text-primary shadow-[0_1px_2px_rgba(23,23,20,0.04)]',
-            'transition-[background-color,border-color,color,box-shadow] duration-150 cursor-pointer focus:outline-none focus:bg-white focus:border-accent focus:ring-[3px] focus:ring-accent/15',
+            'transition-[border-color,box-shadow] duration-150 cursor-pointer focus:outline-none focus:bg-white focus:border-accent focus:ring-[3px] focus:ring-accent/15',
             'disabled:cursor-not-allowed disabled:bg-canvas disabled:text-secondary disabled:opacity-70',
             'aria-[invalid=true]:border-danger aria-[invalid=true]:focus:border-danger aria-[invalid=true]:focus:ring-danger/15',
             icon && 'pl-8',
             className
           )}
+          style={{ ...style, colorScheme: 'light' }}
           {...props}
         >
           {options.map((option) => (

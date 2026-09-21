@@ -35,7 +35,7 @@ export function TransactionSummaryCard({
   };
 
   return (
-    <Card padding="none" className="flex min-h-[144px] min-w-0 flex-col justify-between overflow-hidden p-4 sm:p-5">
+    <Card padding="none" className="grid min-h-[164px] min-w-0 grid-rows-[auto_1fr_auto] overflow-hidden p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary">
           {label}
@@ -44,9 +44,11 @@ export function TransactionSummaryCard({
           {icon}
         </span>
       </div>
-      <div className="min-w-0">
-        <div className="min-w-0 text-xl font-bold tracking-tight text-primary sm:text-[22px]">{value}</div>
-        <p className="text-[11px] text-secondary mt-1">
+      <div className="flex min-w-0 items-center py-3">
+        <div className="min-w-0 w-full text-xl font-bold tracking-tight text-primary sm:text-[22px]">{value}</div>
+      </div>
+      <div className="min-w-0 border-t border-border/60 pt-2.5">
+        <p className="text-[11px] text-secondary">
           {trend && <span className={cn('font-semibold mr-1.5', trendTones[trendTone])}>{trend}</span>}
           {detail}
         </p>

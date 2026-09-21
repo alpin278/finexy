@@ -11,11 +11,12 @@ export function formatTransactionDate(date: string) {
 }
 
 export function formatTransactionAmount(transaction: Transaction) {
-  const amount = new Intl.NumberFormat('en-US', {
+  const amount = new Intl.NumberFormat(transaction.currency === 'IDR' ? 'id-ID' : 'en-US', {
     style: 'currency',
     currency: transaction.currency,
     currencyDisplay: 'narrowSymbol',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: transaction.currency === 'IDR' ? 0 : 2,
+    maximumFractionDigits: transaction.currency === 'IDR' ? 0 : 2,
   }).format(transaction.amount);
 
   if (transaction.type === 'transfer') return amount;

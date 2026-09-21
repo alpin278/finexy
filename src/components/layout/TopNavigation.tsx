@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { Avatar } from '../ui/Avatar';
@@ -20,16 +20,44 @@ export function TopNavigation({
   className,
 }: TopNavigationProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const notificationsPanelRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const location = useLocation();
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
   const profileName = profile?.display_name?.trim() || user?.email || 'Finexy user';
   const profileEmail = user?.email || profile?.email || '';
+
+  useEffect(() => {
+    if (!isNotificationsOpen && !isProfileOpen) return undefined;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!notificationsRef.current?.contains(target)) setIsNotificationsOpen(false);
+      if (!profileRef.current?.contains(target)) setIsProfileOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setIsNotificationsOpen(false);
+      setIsProfileOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isNotificationsOpen, isProfileOpen]);
+
+  useEffect(() => {
+    if (isNotificationsOpen) notificationsPanelRef.current?.focus();
+  }, [isNotificationsOpen]);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -153,14 +181,23 @@ export function TopNavigation({
         </div>
 
         {/* Notifications */}
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface hover:shadow-sm transition-[background-color,color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
-        >
-          <Icon name="bell" className="text-sm" />
-          <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-accent" />
-        </button>
+        <div className="relative" ref={notificationsRef}>
+          <button
+            type="button"
+            aria-label="Notifications"
+            aria-expanded={isNotificationsOpen}
+            aria-haspopup="dialog"
+            onClick={() => { setIsNotificationsOpen((open) => !open); setIsProfileOpen(false); }}
+            className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-secondary transition-[background-color,color,box-shadow,transform] duration-150 hover:bg-surface hover:text-primary hover:shadow-sm active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+          >
+            <Icon name="bell" className="text-sm" />
+          </button>
+          {isNotificationsOpen && <div ref={notificationsPanelRef} tabIndex={-1} role="dialog" aria-label="Notifications" className="menu-enter absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-border bg-white shadow-dropdown focus:outline-none">
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-3"><div><p className="text-sm font-semibold text-primary">Notifications</p><p className="mt-0.5 text-[11px] text-secondary">Current alerts and updates</p></div><span className="rounded-full bg-surface px-2 py-1 text-[10px] font-semibold text-secondary">All clear</span></div>
+            <div className="px-5 py-7 text-center"><span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-surface text-secondary"><Icon name="bell-slash" /></span><p className="mt-3 text-sm font-semibold text-primary">No new notifications</p><p className="mx-auto mt-1 max-w-[230px] text-xs leading-relaxed text-secondary">Finexy has no unread or actionable in-app alerts for your account.</p></div>
+            <div className="border-t border-border/60 p-2"><Link to="/settings#notifications" onClick={() => { onNavigate?.('settings'); setIsNotificationsOpen(false); }} className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"><span>Notification settings</span><Icon name="chevron-right" className="text-[10px] text-secondary" /></Link></div>
+          </div>}
+        </div>
 
         {/* Info/Help alert */}
         <button
@@ -172,10 +209,10 @@ export function TopNavigation({
         </button>
 
         {/* User Profile Chip */}
-        <div className="relative">
+        <div className="relative" ref={profileRef}>
           <button
             type="button"
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            onClick={() => { setIsProfileOpen((open) => !open); setIsNotificationsOpen(false); }}
             aria-expanded={isProfileOpen}
             aria-haspopup="true"
             className="flex items-center gap-2.5 pl-1.5 pr-2.5 py-1 rounded-full border border-border bg-surface hover:bg-white transition-all cursor-pointer select-none"
@@ -201,7 +238,6 @@ export function TopNavigation({
           {isProfileOpen && (
             <div
               className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-border bg-white py-2 shadow-dropdown menu-enter"
-              onMouseLeave={() => setIsProfileOpen(false)}
             >
               <div className="px-4 py-2.5 border-b border-border/60">
                 <p className="text-xs font-semibold text-primary">{profileName}</p>
@@ -210,9 +246,9 @@ export function TopNavigation({
 
               <div className="py-1">
                 <Link
-                  to="/settings#profile"
+                  to="/profile"
                   onClick={() => {
-                    onNavigate?.('settings');
+                    onNavigate?.('profile');
                     setIsProfileOpen(false);
                   }}
                   className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left text-xs text-primary transition-colors hover:bg-surface focus-visible:bg-surface focus-visible:outline-none"
@@ -220,24 +256,14 @@ export function TopNavigation({
                   <span>Profile</span>
                 </Link>
                 <Link
-                  to="/settings#preferences"
+                  to="/settings"
                   onClick={() => {
                     onNavigate?.('settings');
                     setIsProfileOpen(false);
                   }}
                   className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left text-xs text-primary transition-colors hover:bg-surface focus-visible:bg-surface focus-visible:outline-none"
                 >
-                  <span>Preferences</span>
-                </Link>
-                <Link
-                  to="/settings#appearance"
-                  onClick={() => {
-                    onNavigate?.('settings');
-                    setIsProfileOpen(false);
-                  }}
-                  className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left text-xs text-primary transition-colors hover:bg-surface focus-visible:bg-surface focus-visible:outline-none"
-                >
-                  <span>Appearance</span>
+                  <span>Settings</span>
                 </Link>
               </div>
 

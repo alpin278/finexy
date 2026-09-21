@@ -6,6 +6,7 @@ import { loadWalletsPage } from './wallets';
 import type { Enums, Tables, TablesInsert, TablesUpdate } from '../types/database';
 import type { Transaction, TransactionStatus } from '../types/finance';
 import { supabase } from './supabase';
+import { buildTransactionActivities } from './transaction-activities';
 
 type TransactionRow = Tables<'transactions'>;
 type TransactionStatusDb = Enums<'transaction_status'>;
@@ -98,7 +99,7 @@ function mapTransaction(row: JoinedTransactionRow, transfer?: TransferRow, walle
     id: row.id,
     description: isTransfer ? transferDescription : description,
     payee: isTransfer ? transferDescription : row.payee ?? description,
-    reference: row.reference ?? row.id.slice(0, 8),
+    reference: row.reference ?? 'Unreferenced',
     secondaryReference: row.note ?? 'No note',
     type: row.type === 'income' ? 'income' : row.type === 'expense' ? 'expense' : 'transfer',
     category: isTransfer ? 'Transfer' : row.category?.name ?? 'Uncategorized',
@@ -108,10 +109,12 @@ function mapTransaction(row: JoinedTransactionRow, transfer?: TransferRow, walle
     time: formatTime(row.occurred_at),
     amount: Number(row.amount),
     currency: row.currency,
-    status: mapStatus(row.status),
+    status: mapStatus(transfer?.status ?? row.status),
     ...(isTransfer && transferSourceWallet ? { transferSourceWallet } : {}),
     ...(isTransfer && transferDestinationWallet ? { transferDestinationWallet } : {}),
     ...(isTransfer && transfer?.reference ? { transferReference: transfer.reference } : {}),
+    ...(isTransfer && row.transfer_id ? { transferId: row.transfer_id } : {}),
+    ...(isTransfer && row.transfer_leg ? { transferLeg: row.transfer_leg } : {}),
   };
 }
 
@@ -249,7 +252,7 @@ export async function loadTransactionsPage(): Promise<TransactionPageData> {
   const transferRows = await listTransferRows(userId, rows.flatMap((row) => row.transfer_id ? [row.transfer_id] : []));
   const walletNames = new Map(walletOptions.map((wallet) => [wallet.id, wallet.name]));
   const transfersById = new Map(transferRows.map((transfer) => [transfer.id, transfer]));
-  const transactions = rows.map((row) => mapTransaction(row, row.transfer_id ? transfersById.get(row.transfer_id) : undefined, walletNames));
+  const transactions = buildTransactionActivities(rows.map((row) => mapTransaction(row, row.transfer_id ? transfersById.get(row.transfer_id) : undefined, walletNames)));
   return { transactions, categories: categoryOptions, wallets: walletOptions, summary: buildSummary(transactions) };
 }
 
