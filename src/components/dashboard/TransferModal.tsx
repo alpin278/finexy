@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { AmountInput } from '../ui/AmountInput';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Icon } from '../ui/Icon';
@@ -71,10 +72,12 @@ export function TransferModal({ isOpen, mode, onClose }: TransferModalProps) {
             <label className="block text-xs font-semibold text-primary mb-1">
               Amount ($)
             </label>
-            <Input
-              type="number"
+            <AmountInput
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onValueChange={setAmount}
+              locale="en-US"
+              numberFormat="1,234.56"
+              maximumFractionDigits={2}
               placeholder="0.00"
               required
             />

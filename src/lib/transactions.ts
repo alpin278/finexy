@@ -4,9 +4,9 @@ import { defaultTransactionSeeds } from '../data/transactions';
 import { loadCategoriesPage } from './categories';
 import { loadWalletsPage } from './wallets';
 import type { Enums, Tables, TablesInsert, TablesUpdate } from '../types/database';
-import type { Transaction, TransactionStatus } from '../types/finance';
+import type { Transaction, TransactionStatus, WalletCurrencyCode } from '../types/finance';
 import { supabase } from './supabase';
-import { buildTransactionActivities } from './transaction-activities';
+import { buildTransactionActivities, buildTransactionSummary } from './transaction-activities';
 
 type TransactionRow = Tables<'transactions'>;
 type TransactionStatusDb = Enums<'transaction_status'>;
@@ -31,6 +31,9 @@ export interface TransactionPageData {
   categories: TransactionCategoryOption[];
   wallets: TransactionWalletOption[];
   summary: TransactionSummaryData;
+  reportingCurrency: WalletCurrencyCode;
+  numberLocale: string;
+  numberFormat: string;
 }
 
 export interface CreateTransactionInput {
@@ -116,20 +119,6 @@ function mapTransaction(row: JoinedTransactionRow, transfer?: TransferRow, walle
     ...(isTransfer && row.transfer_id ? { transferId: row.transfer_id } : {}),
     ...(isTransfer && row.transfer_leg ? { transferLeg: row.transfer_leg } : {}),
   };
-}
-
-function buildSummary(transactions: Transaction[]): TransactionSummaryData {
-  const income: Record<string, number> = {};
-  const expenses: Record<string, number> = {};
-  for (const transaction of transactions) {
-    if (transaction.type === 'transfer' || transaction.status === 'canceled') continue;
-    const target = transaction.type === 'income' ? income : expenses;
-    target[transaction.currency] = (target[transaction.currency] ?? 0) + transaction.amount;
-  }
-  const currencies = new Set([...Object.keys(income), ...Object.keys(expenses)]);
-  const net: Record<string, number> = {};
-  for (const currency of currencies) net[currency] = (income[currency] ?? 0) - (expenses[currency] ?? 0);
-  return { count: transactions.length, income, expenses, net };
 }
 
 function categorySeedForMockName(name: string, type: 'income' | 'expense') {
@@ -253,7 +242,15 @@ export async function loadTransactionsPage(): Promise<TransactionPageData> {
   const walletNames = new Map(walletOptions.map((wallet) => [wallet.id, wallet.name]));
   const transfersById = new Map(transferRows.map((transfer) => [transfer.id, transfer]));
   const transactions = buildTransactionActivities(rows.map((row) => mapTransaction(row, row.transfer_id ? transfersById.get(row.transfer_id) : undefined, walletNames)));
-  return { transactions, categories: categoryOptions, wallets: walletOptions, summary: buildSummary(transactions) };
+  return {
+    transactions,
+    categories: categoryOptions,
+    wallets: walletOptions,
+    summary: buildTransactionSummary(transactions),
+    reportingCurrency: walletPage.displayPreferences.reportingCurrency,
+    numberLocale: walletPage.displayPreferences.locale,
+    numberFormat: walletPage.displayPreferences.numberFormat,
+  };
 }
 
 async function listRawWallets(userId: string) {

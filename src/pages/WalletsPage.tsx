@@ -3,6 +3,8 @@ import { archiveWallet, createWallet, loadWalletsPage, updateWallet, walletError
 import { loadTransactionsPage } from '../lib/transactions';
 import { createWalletTransfer, type CreateWalletTransferInput } from '../lib/transfers';
 import type { Wallet } from '../types/finance';
+import type { UserDisplayPreferences } from '../lib/user-display-preferences';
+import { parseAmountNumber } from '../lib/amount-format';
 import { Button } from '../components/ui/Button';
 import { Icon } from '../components/ui/Icon';
 import { DeleteWalletDialog, WalletDetailModal, WalletFormModal, WalletGrid, WalletSummary, WalletTransferModal, type WalletFormValues } from '../components/wallets';
@@ -20,6 +22,7 @@ export function WalletsPage() {
   const [deletingWallet, setDeletingWallet] = useState<Wallet | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [displayPreferences, setDisplayPreferences] = useState<UserDisplayPreferences>({ reportingCurrency: 'USD', locale: 'en-US', numberFormat: '1,234.56' });
 
   useEffect(() => {
     let active = true;
@@ -27,7 +30,7 @@ export function WalletsPage() {
       try {
         const transactionData = await loadTransactionsPage();
         const walletData = await loadWalletsPage();
-        if (active) { setWallets(walletData.wallets); setWalletTransactions(transactionData.transactions); setLoadError(''); }
+        if (active) { setWallets(walletData.wallets); setDisplayPreferences(walletData.displayPreferences); setWalletTransactions(transactionData.transactions); setLoadError(''); }
       } catch (error) {
         if (active) setLoadError(walletErrorMessage(error));
       } finally {
@@ -42,6 +45,7 @@ export function WalletsPage() {
     const data = await loadWalletsPage();
     setWalletTransactions(transactionData.transactions);
     setWallets(data.wallets);
+    setDisplayPreferences(data.displayPreferences);
     if (detailWallet) setDetailWallet(data.wallets.find((wallet) => wallet.id === detailWallet.id) ?? null);
   };
   const openAdd = () => { setActionError(''); setTransferFeedback(''); setEditingWallet(null); setFormOpen(true); };
@@ -49,11 +53,13 @@ export function WalletsPage() {
   const saveWallet = async (values: WalletFormValues) => {
     setActionError('');
     try {
-      const monthlyLimit = values.monthlyLimit === '' ? null : Number(values.monthlyLimit);
+      const monthlyLimit = values.monthlyLimit === '' ? null : parseAmountNumber(values.monthlyLimit);
+      const openingBalance = values.openingBalance === '' ? 0 : parseAmountNumber(values.openingBalance);
+      if ((monthlyLimit === null && values.monthlyLimit !== '') || openingBalance === null) throw new Error('Enter valid wallet amounts.');
       if (editingWallet) {
         await updateWallet(editingWallet.id, { name: values.name, type: values.type, currency: values.currency, monthlyLimit, accountMask: values.accountMask.trim() || null, status: values.status === 'Active' ? 'active' : 'inactive' });
       } else {
-        await createWallet({ name: values.name, type: values.type, currency: values.currency, openingBalance: Number(values.openingBalance || 0), monthlyLimit, accountMask: values.accountMask.trim() || null, status: values.status === 'Active' ? 'active' : 'inactive' });
+        await createWallet({ name: values.name, type: values.type, currency: values.currency, openingBalance, monthlyLimit, accountMask: values.accountMask.trim() || null, status: values.status === 'Active' ? 'active' : 'inactive' });
       }
       await refresh();
       setFormOpen(false); setEditingWallet(null);
@@ -77,7 +83,7 @@ export function WalletsPage() {
     <header className="flex min-w-0 flex-col lg:flex-row lg:items-center justify-between gap-4"><div className="min-w-0"><h1 className="text-2xl sm:text-[32px] font-bold text-primary tracking-tight">Wallets</h1><p className="text-xs sm:text-sm text-secondary mt-1">Manage your persisted accounts, balances, and payment sources.</p></div><div className="flex items-center gap-2.5 flex-wrap"><Button variant="secondary" size="sm" leftIcon={<Icon name="arrow-left-right"/>} onClick={()=>setTransferOpen(true)}>Transfer</Button><Button variant="accent" size="sm" leftIcon={<Icon name="plus-lg"/>} onClick={openAdd}>Add Wallet</Button></div></header>
     {actionError && <div role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{actionError}</div>}{transferFeedback && <div role="status" className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">{transferFeedback}</div>}
     {loading ? <div className="rounded-2xl border border-border bg-white p-10 text-center text-sm text-secondary" role="status">Loading wallets…</div> : loadError ? <div className="rounded-2xl border border-danger/30 bg-danger/10 p-8 text-center"><p className="text-sm font-semibold text-danger">Could not load wallets</p><p className="mt-1 text-xs text-secondary">{loadError}</p></div> : <><WalletSummary wallets={wallets}/><section className="space-y-4"><div className="flex items-center justify-between gap-4"><div><h2 className="text-base font-bold text-primary">Your wallets</h2><p className="mt-0.5 text-xs text-secondary">Persisted wallets with balances derived from opening positions and completed transactions.</p></div><span className="hidden sm:inline text-xs font-medium text-secondary">{wallets.length} total</span></div><WalletGrid wallets={wallets} openMenuId={openMenuId} onToggleMenu={(id)=>setOpenMenuId(current=>current===id?null:id)} onView={(wallet)=>{setOpenMenuId(null);setDetailWallet(wallet);}} onEdit={openEdit} onSetLimit={openEdit} onDelete={(wallet)=>{setOpenMenuId(null);setDeletingWallet(wallet);}}/></section></>}
-    {formOpen && <WalletFormModal key={editingWallet?.id ?? 'new-wallet'} wallet={editingWallet} onClose={()=>{setFormOpen(false);setEditingWallet(null);}} onSubmit={saveWallet}/>}<WalletDetailModal wallet={detailWallet} transactions={detailTransactions} onClose={()=>setDetailWallet(null)}/><DeleteWalletDialog wallet={deletingWallet} onCancel={()=>setDeletingWallet(null)} onConfirm={()=>void confirmDelete()}/>{transferOpen && <WalletTransferModal wallets={wallets} onClose={()=>setTransferOpen(false)} onSubmit={handleTransfer}/>}</div>;
+    {formOpen && <WalletFormModal key={editingWallet?.id ?? 'new-wallet'} wallet={editingWallet} locale={displayPreferences.locale} numberFormat={displayPreferences.numberFormat} onClose={()=>{setFormOpen(false);setEditingWallet(null);}} onSubmit={saveWallet}/>}<WalletDetailModal wallet={detailWallet} transactions={detailTransactions} onClose={()=>setDetailWallet(null)}/><DeleteWalletDialog wallet={deletingWallet} onCancel={()=>setDeletingWallet(null)} onConfirm={()=>void confirmDelete()}/>{transferOpen && <WalletTransferModal wallets={wallets} locale={displayPreferences.locale} numberFormat={displayPreferences.numberFormat} onClose={()=>setTransferOpen(false)} onSubmit={handleTransfer}/>}</div>;
 }
 
 export default WalletsPage;

@@ -5,6 +5,7 @@ import { loadBudgetPage, type BudgetSummaryData } from './budgets';
 import { supabase } from './supabase';
 import { formatWalletAmount, loadWalletsPage } from './wallets';
 import { calculateFinancialTotals, isSettledFinancialTransaction } from './financial-analytics';
+import { loadUserDisplayPreferences } from './user-display-preferences';
 
 type TransactionRow = Tables<'transactions'>;
 type Currency = WalletCurrencyCode;
@@ -137,9 +138,7 @@ async function requireUserId() {
 }
 
 async function loadReportingCurrency(userId: string): Promise<Currency> {
-  const { data, error } = await supabase.from('user_settings').select('default_currency').eq('user_id', userId).maybeSingle();
-  if (error) throw error;
-  return (data?.default_currency ?? 'USD') as Currency;
+  return (await loadUserDisplayPreferences(userId)).reportingCurrency;
 }
 
 async function loadOverviewTransactionRows(userId: string) {

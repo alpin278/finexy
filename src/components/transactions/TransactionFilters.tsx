@@ -4,6 +4,7 @@ import { Select, type SelectOption } from '../ui/Select';
 import { Icon } from '../ui/Icon';
 import { cn } from '../../lib/utils';
 import { transactionStatuses } from '../../data/transactions';
+import type { CurrencyCode, WalletCurrencyCode } from '../../types/finance';
 
 export interface TransactionFiltersProps {
   searchQuery: string;
@@ -18,6 +19,10 @@ export interface TransactionFiltersProps {
   onStatusChange: (value: string) => void;
   categories: readonly string[];
   wallets: readonly string[];
+  currency: 'all' | CurrencyCode;
+  onCurrencyChange: (value: 'all' | CurrencyCode) => void;
+  currencies: readonly CurrencyCode[];
+  reportingCurrency: WalletCurrencyCode;
 }
 
 const dateOptions: SelectOption[] = [
@@ -39,6 +44,10 @@ export function TransactionFilters({
   onStatusChange,
   categories,
   wallets,
+  currency,
+  onCurrencyChange,
+  currencies,
+  reportingCurrency,
 }: TransactionFiltersProps) {
   const [showStatusFilter, setShowStatusFilter] = useState(false);
 
@@ -56,6 +65,11 @@ export function TransactionFilters({
     { value: 'all', label: 'All Statuses' },
     ...transactionStatuses,
   ];
+  const currencyOptions: SelectOption[] = [
+    { value: reportingCurrency, label: `Reporting currency · ${reportingCurrency}` },
+    { value: 'all', label: 'All currencies' },
+    ...currencies.filter((item) => item !== reportingCurrency).map((item) => ({ value: item, label: item })),
+  ];
 
   const hasActiveFilter = category !== 'all' || wallet !== 'all' || status !== 'all';
 
@@ -63,6 +77,13 @@ export function TransactionFilters({
     <div className="min-w-0 rounded-[18px] border border-border bg-white p-3 sm:p-4">
       <div className="flex flex-col xl:flex-row xl:items-center gap-3">
         <div className="flex flex-wrap items-center gap-2.5 flex-1">
+          <Select
+            aria-label="Activity currency"
+            value={currency}
+            onChange={(event) => onCurrencyChange(event.target.value as 'all' | CurrencyCode)}
+            options={currencyOptions}
+            className="max-w-[210px]"
+          />
           <div className="flex items-center gap-2 text-xs font-semibold text-primary mr-1">
             <Icon name="calendar3" className="text-secondary" />
             <Select

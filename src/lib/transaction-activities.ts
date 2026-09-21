@@ -1,5 +1,26 @@
 import type { Transaction } from '../types/finance';
 
+export interface TransactionActivitySummary {
+  count: number;
+  income: Record<string, number>;
+  expenses: Record<string, number>;
+  net: Record<string, number>;
+}
+
+export function buildTransactionSummary(transactions: Transaction[]): TransactionActivitySummary {
+  const income: Record<string, number> = {};
+  const expenses: Record<string, number> = {};
+  for (const transaction of transactions) {
+    if (transaction.type === 'transfer' || transaction.status !== 'completed') continue;
+    const target = transaction.type === 'income' ? income : expenses;
+    target[transaction.currency] = (target[transaction.currency] ?? 0) + transaction.amount;
+  }
+  const currencies = new Set([...Object.keys(income), ...Object.keys(expenses)]);
+  const net: Record<string, number> = {};
+  for (const currency of currencies) net[currency] = (income[currency] ?? 0) - (expenses[currency] ?? 0);
+  return { count: transactions.length, income, expenses, net };
+}
+
 /**
  * Builds the Transactions-page activity stream. A wallet transfer remains two
  * ledger rows in persistence, but rows sharing the same database transfer_id

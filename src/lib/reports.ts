@@ -3,6 +3,7 @@ import type { WalletCurrencyCode } from '../types/finance';
 import { loadBudgetPage } from './budgets';
 import { calculateFinancialTotals, isSettledFinancialTransaction, type FinancialDateRange } from './financial-analytics';
 import { supabase } from './supabase';
+import { loadUserDisplayPreferences } from './user-display-preferences';
 
 type TransactionRow = Tables<'transactions'>;
 type Currency = WalletCurrencyCode;
@@ -64,9 +65,7 @@ async function requireUserId() {
 }
 
 async function loadReportingCurrency(userId: string): Promise<Currency> {
-  const { data, error } = await supabase.from('user_settings').select('default_currency').eq('user_id', userId).maybeSingle();
-  if (error) throw error;
-  return (data?.default_currency ?? 'USD') as Currency;
+  return (await loadUserDisplayPreferences(userId)).reportingCurrency;
 }
 
 function aggregateCategories(rows: ReportTransactionRow[], range: ReportPeriodRange, currency: Currency, type: 'income' | 'expense') {

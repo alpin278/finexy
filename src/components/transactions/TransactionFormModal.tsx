@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { AmountInput } from '../ui/AmountInput';
 import { Modal } from '../ui/Modal';
 import { Select, type SelectOption } from '../ui/Select';
 import type { Transaction, TransactionStatus, TransactionType } from '../../types/finance';
 import { transactionStatuses } from '../../data/transactions';
+import { parseAmountNumber } from '../../lib/amount-format';
 
 export interface TransactionFormValues {
   type: TransactionType;
@@ -26,6 +28,8 @@ export interface TransactionFormModalProps {
   transaction?: Transaction | null;
   categories: readonly TransactionCategoryOption[];
   wallets: readonly SelectOption[];
+  locale: string;
+  numberFormat: string;
   onClose: () => void;
   onSubmit: (values: TransactionFormValues) => void;
 }
@@ -61,6 +65,8 @@ export function TransactionFormModal({
   transaction,
   categories,
   wallets,
+  locale,
+  numberFormat,
   onClose,
   onSubmit,
 }: TransactionFormModalProps) {
@@ -79,7 +85,8 @@ export function TransactionFormModal({
     const nextErrors: Partial<Record<keyof TransactionFormValues, string>> = {};
 
     if (!values.type) nextErrors.type = 'Choose a transaction type.';
-    if (!values.amount || Number(values.amount) <= 0) nextErrors.amount = 'Enter an amount greater than 0.';
+    const amount = parseAmountNumber(values.amount);
+    if (amount === null || amount <= 0) nextErrors.amount = 'Enter an amount greater than 0.';
     if (!values.category) nextErrors.category = 'Choose a category.';
     if (!values.wallet) nextErrors.wallet = 'Choose a wallet or account.';
     if (!values.date) nextErrors.date = 'Choose a date.';
@@ -144,15 +151,15 @@ export function TransactionFormModal({
             <label htmlFor="transaction-amount" className="block text-xs font-semibold text-primary mb-1.5">
               Amount
             </label>
-            <Input
+            <AmountInput
               id="transaction-amount"
-              type="number"
               min="0.01"
-              step="0.01"
-              inputMode="decimal"
               placeholder="0.00"
               value={values.amount}
-              onChange={(event) => updateValue('amount', event.target.value)}
+              onValueChange={(amount) => updateValue('amount', amount)}
+              locale={locale}
+              numberFormat={numberFormat}
+              maximumFractionDigits={2}
               error={errors.amount}
             />
           </div>

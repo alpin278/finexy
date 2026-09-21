@@ -4,6 +4,7 @@ import type { Enums, Tables, TablesInsert, TablesUpdate } from '../types/databas
 import type { Wallet, WalletCurrencyCode, WalletStatus } from '../types/finance';
 import { loadWalletDerivedData } from './wallet-balances';
 import { supabase } from './supabase';
+import { loadUserDisplayPreferences, type UserDisplayPreferences } from './user-display-preferences';
 
 type WalletRow = Tables<'wallets'>;
 type WalletCurrency = Enums<'currency_code'>;
@@ -23,7 +24,7 @@ export interface CreateWalletInput {
 
 export type UpdateWalletInput = Partial<Omit<CreateWalletInput, 'openingBalance'>> & { openingBalance?: number };
 
-export interface WalletPageData { wallets: Wallet[]; }
+export interface WalletPageData { wallets: Wallet[]; displayPreferences: UserDisplayPreferences; }
 
 const currencyMetadata: Record<WalletCurrencyCode, { symbol: string; flag: string }> = {
   USD: { symbol: '$', flag: '🇺🇸' },
@@ -105,9 +106,13 @@ async function bootstrapDefaults(userId: string, walletRows: WalletRow[]) {
 
 export async function loadWalletsPage(): Promise<WalletPageData> {
   const userId = await requireUserId();
-  const walletRows = await bootstrapDefaults(userId, await listWalletRows(userId));
+  const existingRows = await listWalletRows(userId);
+  const [walletRows, displayPreferences] = await Promise.all([
+    bootstrapDefaults(userId, existingRows),
+    loadUserDisplayPreferences(userId),
+  ]);
   const derived = await loadWalletDerivedData(walletRows);
-  return { wallets: walletRows.map((row) => mapWallet(row, derived.balances.get(row.id) ?? Number(row.opening_balance), derived.spentThisMonth.get(row.id) ?? 0)) };
+  return { wallets: walletRows.map((row) => mapWallet(row, derived.balances.get(row.id) ?? Number(row.opening_balance), derived.spentThisMonth.get(row.id) ?? 0)), displayPreferences };
 }
 
 export async function getWallet(walletId: string) {

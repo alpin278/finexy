@@ -4,6 +4,7 @@ export * from './Card';
 export * from './Badge';
 export * from './StatusBadge';
 export * from './Input';
+export * from './AmountInput';
 export * from './SearchInput';
 export * from './Select';
 export * from './Checkbox';

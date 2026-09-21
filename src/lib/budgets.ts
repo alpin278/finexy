@@ -6,6 +6,7 @@ import type { Budget, BudgetCategoryOption, BudgetCurrencyTotal, BudgetPeriod, W
 import { ensureDefaultCategories } from './category-bootstrap';
 import { getBudgetStatus, currentBudgetPeriod, isBudgetPeriod, periodRange, periodStartDate } from './budget-utils';
 import { supabase } from './supabase';
+import { loadUserDisplayPreferences, type UserDisplayPreferences } from './user-display-preferences';
 
 type BudgetRow = Tables<'budgets'>;
 type BudgetCurrency = Enums<'currency_code'>;
@@ -56,6 +57,7 @@ export interface BudgetPageData extends CategoryBudgetLayer {
   availablePeriods: BudgetPeriod[];
   categories: BudgetCategoryOption[];
   summary: BudgetSummaryData;
+  displayPreferences: UserDisplayPreferences;
 }
 
 function isDuplicateError(error: unknown) {
@@ -245,7 +247,10 @@ export async function listBudgetPeriods() {
 export async function loadBudgetPage(period?: BudgetPeriod): Promise<BudgetPageData> {
   const userId = await requireUserId();
   if (period) validatePeriod(period);
-  const { categoryRows, rows } = await preparedBudgetRows(userId);
+  const [{ categoryRows, rows }, displayPreferences] = await Promise.all([
+    preparedBudgetRows(userId),
+    loadUserDisplayPreferences(userId),
+  ]);
   const selectedPeriod = period ?? preferredPeriod(rows);
   const budgets = await mapRowsForPeriod(userId, rows, selectedPeriod);
   const categories: BudgetCategoryOption[] = categoryRows
@@ -258,6 +263,7 @@ export async function loadBudgetPage(period?: BudgetPeriod): Promise<BudgetPageD
     availablePeriods: availablePeriods(rows),
     categories,
     summary: buildSummary(budgets),
+    displayPreferences,
   };
 }
 

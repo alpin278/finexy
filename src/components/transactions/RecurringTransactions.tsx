@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Input, Modal, Select, StatusBadge } from '../ui';
+import { AmountInput, Button, Card, Input, Modal, Select, StatusBadge } from '../ui';
 import { archiveRecurringRule, createRecurringRule, loadRecurringRules, setRecurringRuleActive, updateRecurringRule, type RecurringRule, type RecurringRuleInput } from '../../lib/recurring-transactions';
 import type { TransactionCategoryOption, TransactionWalletOption } from '../../lib/transactions';
+import { parseAmountNumber } from '../../lib/amount-format';
 
-type Props = { wallets: TransactionWalletOption[]; categories: TransactionCategoryOption[]; onChanged: () => Promise<void> };
+type Props = { wallets: TransactionWalletOption[]; categories: TransactionCategoryOption[]; locale: string; numberFormat: string; onChanged: () => Promise<void> };
+type RecurringFormState = Omit<RecurringRuleInput, 'amount'> & { amount: string };
 const today = () => new Date().toISOString().slice(0, 10);
-const initial = (): RecurringRuleInput => ({ type: 'expense', walletId: '', categoryId: '', amount: 0, note: '', frequency: 'monthly', startDate: today(), endDate: '', localTime: '09:00' });
+const initial = (): RecurringFormState => ({ type: 'expense', walletId: '', categoryId: '', amount: '', note: '', frequency: 'monthly', startDate: today(), endDate: '', localTime: '09:00' });
 
 function formatAmount(value: number, currency?: string) {
   if (!currency) return Number(value).toLocaleString();
   return new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', { style: 'currency', currency, maximumFractionDigits: 2 }).format(Number(value));
 }
 
-export function RecurringTransactions({ wallets, categories, onChanged }: Props) {
+export function RecurringTransactions({ wallets, categories, locale, numberFormat, onChanged }: Props) {
   const [rules, setRules] = useState<RecurringRule[]>([]);
   const [form, setForm] = useState(initial);
   const [open, setOpen] = useState(false);
@@ -31,16 +33,18 @@ export function RecurringTransactions({ wallets, categories, onChanged }: Props)
   const openEdit = (rule: RecurringRule) => {
     setError('');
     setEditing(rule);
-    setForm({ type: rule.type, walletId: rule.wallet_id, categoryId: rule.category_id, amount: Number(rule.amount), note: rule.note ?? '', frequency: rule.frequency, startDate: rule.start_date, endDate: rule.end_date ?? '', localTime: rule.local_time.slice(0, 5) });
+    setForm({ type: rule.type, walletId: rule.wallet_id, categoryId: rule.category_id, amount: String(rule.amount), note: rule.note ?? '', frequency: rule.frequency, startDate: rule.start_date, endDate: rule.end_date ?? '', localTime: rule.local_time.slice(0, 5) });
     setOpen(true);
   };
   const save = async () => {
     setBusy(true);
     setError('');
     try {
-      if (!form.walletId || !form.categoryId || !form.amount) throw new Error('Choose a wallet, matching category, and positive amount.');
-      if (editing) await updateRecurringRule(editing.id, form);
-      else await createRecurringRule(form);
+      const amount = parseAmountNumber(form.amount);
+      if (!form.walletId || !form.categoryId || amount === null || amount <= 0) throw new Error('Choose a wallet, matching category, and positive amount.');
+      const input: RecurringRuleInput = { ...form, amount };
+      if (editing) await updateRecurringRule(editing.id, input);
+      else await createRecurringRule(input);
       await refresh();
       await onChanged();
       closeForm();
@@ -102,7 +106,7 @@ export function RecurringTransactions({ wallets, categories, onChanged }: Props)
           <div><label htmlFor="recurring-frequency" className="mb-1.5 block text-xs font-semibold text-primary">Frequency</label><Select id="recurring-frequency" value={form.frequency} onChange={(event) => setForm((current) => ({ ...current, frequency: event.target.value as RecurringRuleInput['frequency'] }))} options={[{ value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }]} className="h-10 w-full bg-white" /></div>
           <div><label htmlFor="recurring-wallet" className="mb-1.5 block text-xs font-semibold text-primary">Wallet</label><Select id="recurring-wallet" value={form.walletId} onChange={(event) => setForm((current) => ({ ...current, walletId: event.target.value }))} options={[{ value: '', label: 'Choose wallet' }, ...wallets.map((wallet) => ({ value: wallet.id, label: wallet.name + ' (' + wallet.currency + ')' }))]} className="h-10 w-full bg-white" /></div>
           <div><label htmlFor="recurring-category" className="mb-1.5 block text-xs font-semibold text-primary">Category</label><Select id="recurring-category" value={form.categoryId} onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value }))} options={[{ value: '', label: 'Choose ' + form.type + ' category' }, ...eligible.map((category) => ({ value: category.id, label: category.name }))]} className="h-10 w-full bg-white" /></div>
-          <div><label htmlFor="recurring-amount" className="mb-1.5 block text-xs font-semibold text-primary">Amount</label><Input id="recurring-amount" type="number" min="0.0001" step="0.0001" value={form.amount || ''} onChange={(event) => setForm((current) => ({ ...current, amount: Number(event.target.value) }))} placeholder="0.00" /></div>
+          <div><label htmlFor="recurring-amount" className="mb-1.5 block text-xs font-semibold text-primary">Amount</label><AmountInput id="recurring-amount" min="0.0001" value={form.amount} onValueChange={(amount) => setForm((current) => ({ ...current, amount }))} locale={locale} numberFormat={numberFormat} maximumFractionDigits={4} placeholder="0.00" /></div>
           <div><label htmlFor="recurring-note" className="mb-1.5 block text-xs font-semibold text-primary">Note <span className="font-normal text-secondary">(optional)</span></label><Input id="recurring-note" value={form.note} onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))} placeholder="e.g. Rent or salary" /></div>
           <div><label htmlFor="recurring-start" className="mb-1.5 block text-xs font-semibold text-primary">Start date</label><Input id="recurring-start" type="date" value={form.startDate} onChange={(event) => setForm((current) => ({ ...current, startDate: event.target.value }))} /></div>
           <div><label htmlFor="recurring-time" className="mb-1.5 block text-xs font-semibold text-primary">Local time</label><Input id="recurring-time" type="time" value={form.localTime} onChange={(event) => setForm((current) => ({ ...current, localTime: event.target.value }))} /></div>
