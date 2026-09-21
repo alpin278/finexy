@@ -32,7 +32,7 @@ export function MetricCard({ metric, currency, className }: MetricCardProps) {
   return (
     <Card
       className={cn(
-        'flex min-h-[148px] min-w-0 flex-col justify-between overflow-hidden p-4 transition-[border-color,box-shadow,transform] duration-200 sm:p-5',
+        'grid min-h-[148px] min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-4 transition-[border-color,box-shadow,transform] duration-200 sm:p-5',
         highlighted ? 'border-accent/25 bg-accent/[0.06] shadow-card' : 'border-border bg-white',
         className
       )}
@@ -43,7 +43,7 @@ export function MetricCard({ metric, currency, className }: MetricCardProps) {
           <i className={'bi ' + icons[metric.id] + ' text-sm'} aria-hidden="true" />
         </span>
       </div>
-      <div className="my-3 min-w-0">
+      <div className="my-3 flex min-w-0 items-center">
         <AmountValue value={formatted} className="font-sans text-[clamp(1.1rem,1.8vw,1.7rem)] font-bold leading-tight tracking-[-0.035em] text-primary" />
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">

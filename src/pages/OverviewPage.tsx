@@ -51,10 +51,10 @@ export function OverviewPage() {
     {loading ? <PageSkeleton variant="dashboard" /> : null}
     {!loading && error ? <div className="rounded-2xl border border-danger/30 bg-white p-8 text-center"><p className="text-sm text-danger">{error}</p><Button variant="ghost" size="sm" onClick={() => void invalidate(['overview'])} className="mt-3 text-accent">Try again</Button></div> : null}
     {!loading && !error && data ? <>
-      <section aria-label="Financial summary" className="grid min-w-0 items-start gap-4 sm:gap-5 xl:grid-cols-12">
+      <section aria-label="Financial summary" className="grid min-w-0 items-stretch gap-4 sm:gap-5 xl:grid-cols-12">
         <div className="flex min-w-0 flex-col gap-4 sm:gap-5 md:col-span-1 xl:col-span-4"><BalanceCard amount={data.totalBalance} currency={data.reportingCurrency} period={periodLabel(data.period)} className="h-full" /><WalletList wallets={data.wallets} onAddWallet={() => navigate('/wallets')} onWalletAction={() => navigate('/wallets')} className="h-full" /></div>
         <div className="grid min-w-0 auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-1 xl:col-span-4">{data.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} currency={data.reportingCurrency} className="h-full" />)}</div>
-        <div className="min-w-0 md:col-span-2 xl:col-span-4"><WidgetErrorBoundary title="The cash-flow chart could not be displayed."><ProfitLossChart data={data.cashFlowTrend} currency={data.reportingCurrency} /></WidgetErrorBoundary></div>
+        <div className="min-w-0 md:col-span-2 xl:col-span-4"><WidgetErrorBoundary title="The cash-flow chart could not be displayed."><ProfitLossChart data={data.cashFlowTrend} currency={data.reportingCurrency} className="h-full" /></WidgetErrorBoundary></div>
       </section>
       <section aria-label="Planning and activity" className="grid min-w-0 items-start gap-4 sm:gap-5 xl:grid-cols-12"><div className="flex min-w-0 flex-col gap-4 sm:gap-5 xl:col-span-4"><SpendingLimitCard data={data.budgetProgress} currency={data.reportingCurrency} onViewBudget={() => navigate('/budgets')} /><SpendingInsightCard categories={data.categorySpending} currency={data.reportingCurrency} /><QuickActions /></div><div className="min-w-0 xl:col-span-8"><RecentActivityTable activities={data.recentTransactions} /></div></section>
     </> : null}

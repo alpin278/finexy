@@ -37,7 +37,7 @@ export function ProfitLossChart({ data, currency, className }: ProfitLossChartPr
           </div>
         </div>
       </div>
-      <div className="h-[240px] w-full pt-4 sm:h-[270px]">
+      <div className="flex min-h-[240px] w-full flex-1 pt-4 sm:min-h-[270px]">
         <ResponsiveContainer width="100%" height="100%" minWidth={200}>
           <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barCategoryGap="24%" barGap={3}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ECECE8" />
