@@ -11,6 +11,7 @@ import { StableFilterRegion } from '../components/ui/StableFilterRegion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isFinexyActionState } from '../lib/interaction-actions';
 import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
+import { occurredAtForTransactionDate } from '../lib/transaction-timestamp';
 
 const emptyData: TransactionPageData = { transactions: [], categories: [], wallets: [], summary: { count: 0, income: {}, expenses: {}, net: {} }, reportingCurrency: 'USD', numberLocale: 'en-US', numberFormat: '1,234.56' };
 
@@ -84,7 +85,7 @@ export function TransactionsPage() {
       if (!wallet || !category) throw new Error(`Choose a valid ${values.type} category and wallet.`);
       const amount = parseAmountNumber(values.amount);
       if (amount === null) throw new Error('Enter a valid transaction amount.');
-      const input = { walletId: wallet.id, categoryId: category.id, type, amount, currency: wallet.currency, payee: values.description, description: values.description, note: values.referenceNote, occurredAt: `${values.date}T12:00:00Z`, status: values.status === 'canceled' ? 'canceled' : values.status === 'completed' ? 'completed' : 'pending' } as const;
+      const input = { walletId: wallet.id, categoryId: category.id, type, amount, currency: wallet.currency, payee: values.description, description: values.description, note: values.referenceNote, occurredAt: occurredAtForTransactionDate(values.date), status: values.status === 'canceled' ? 'canceled' : values.status === 'completed' ? 'completed' : 'pending' } as const;
       if (editingTransaction) await updateTransaction(editingTransaction.id, input);
       else await createTransaction(input);
       await invalidate(['transactions', 'wallets', 'budgets', 'overview', 'reports', 'categories']);

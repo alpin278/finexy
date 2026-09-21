@@ -64,7 +64,9 @@ async function listTransactionRows(userId: string) {
     .select('*, wallet:wallets(id, name, currency), category:categories(id, name, type)')
     .eq('user_id', userId)
     .is('deleted_at', null)
-    .order('occurred_at', { ascending: false });
+    .order('occurred_at', { ascending: false })
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false });
   if (error) throw error;
   return data as unknown as JoinedTransactionRow[];
 }
