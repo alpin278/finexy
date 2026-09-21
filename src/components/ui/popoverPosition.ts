@@ -8,6 +8,13 @@ export interface AnchoredPopoverPosition {
   placement: 'top' | 'bottom';
 }
 
+export interface ModalPopoverPosition {
+  placement: 'top' | 'bottom';
+  alignment: 'left' | 'right';
+  width: number;
+  maxHeight: number;
+}
+
 interface PositionOptions {
   contentHeight: number;
   minWidth?: number;
@@ -34,6 +41,21 @@ export function calculateAnchoredPopoverPosition(
     : Math.max(viewportGutter, trigger.top - triggerGap - Math.min(desiredHeight, maxHeight));
 
   return { top, left, width, maxHeight, placement };
+}
+
+/** A one-time open/resize calculation for field-relative modal popovers. */
+export function calculateModalPopoverPosition(
+  trigger: DOMRect,
+  scrollRoot: DOMRect,
+  { contentHeight, minWidth = 160, preferredMaxHeight = 280 }: PositionOptions,
+): ModalPopoverPosition {
+  const availableBelow = Math.max(48, scrollRoot.bottom - trigger.bottom - triggerGap - viewportGutter);
+  const availableAbove = Math.max(48, trigger.top - scrollRoot.top - triggerGap - viewportGutter);
+  const desiredHeight = Math.min(contentHeight, preferredMaxHeight);
+  const placement = availableBelow < Math.min(desiredHeight, 180) && availableAbove > availableBelow ? 'top' : 'bottom';
+  const width = Math.min(Math.max(trigger.width, minWidth), Math.max(0, scrollRoot.width - viewportGutter * 2));
+  const alignment = scrollRoot.right - trigger.left < width && trigger.right - scrollRoot.left >= width ? 'right' : 'left';
+  return { placement, alignment, width, maxHeight: Math.min(preferredMaxHeight, placement === 'bottom' ? availableBelow : availableAbove) };
 }
 
 /**

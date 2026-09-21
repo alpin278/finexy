@@ -118,7 +118,7 @@ export function Modal({
         </div>
 
         {/* Content */}
-        <div className="min-h-0 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">{children}</div>
+        <div data-popover-scroll-root className="min-h-0 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">{children}</div>
 
         {/* Footer */}
         {footer && (

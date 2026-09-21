@@ -15,7 +15,7 @@ import {
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { Icon } from './Icon';
-import { useAnchoredPopoverPosition } from './popoverPosition';
+import { calculateModalPopoverPosition, useAnchoredPopoverPosition, type ModalPopoverPosition } from './popoverPosition';
 import { moveSelectIndex } from './selectPosition';
 
 export interface SelectOption {
@@ -67,9 +67,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const [activeIndex, setActiveIndex] = useState(selectedIndex >= 0 ? selectedIndex : 0);
     const [isMounted, setIsMounted] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
+    const [localPosition, setLocalPosition] = useState<ModalPopoverPosition | null>(null);
+    const [modalScrollRoot, setModalScrollRoot] = useState<HTMLElement | null>(null);
+    const [popoverContainer, setPopoverContainer] = useState<HTMLElement | null>(null);
     const fullWidth = className?.split(/\s+/).includes('w-full');
     const positioning = useMemo(() => ({ contentHeight: Math.max(14, options.length * 37 + 14) }), [options.length]);
-    const position = useAnchoredPopoverPosition(isMounted, triggerRef, positioning);
+    const isModalLocal = Boolean(modalScrollRoot);
+    const position = useAnchoredPopoverPosition(isMounted && !isModalLocal, triggerRef, positioning);
 
     useImperativeHandle(forwardedRef, () => nativeSelectRef.current as HTMLSelectElement, []);
 
@@ -88,12 +92,18 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         performance.mark('select_open_start');
       }
       clearScheduledClose();
+      const scrollRoot = triggerRef.current?.closest<HTMLElement>('[data-popover-scroll-root]');
+      setModalScrollRoot(scrollRoot ?? null);
+      setPopoverContainer(scrollRoot ? triggerRef.current?.parentElement ?? null : null);
+      setLocalPosition(scrollRoot && triggerRef.current
+        ? calculateModalPopoverPosition(triggerRef.current.getBoundingClientRect(), scrollRoot.getBoundingClientRect(), positioning)
+        : null);
       if (import.meta.env.DEV) performance.mark('select_position_ready');
       setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
       setIsMounted(true);
       if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = window.requestAnimationFrame(() => setIsVisible(true));
-    }, [clearScheduledClose, disabled, options.length, selectedIndex]);
+    }, [clearScheduledClose, disabled, options.length, positioning, selectedIndex]);
 
     const closeMenu = useCallback(() => {
       if (!isMounted) return;
@@ -102,9 +112,19 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       clearScheduledClose();
       closeTimerRef.current = window.setTimeout(() => {
         setIsMounted(false);
+        setLocalPosition(null);
+        setModalScrollRoot(null);
+        setPopoverContainer(null);
         closeTimerRef.current = null;
       }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 120);
     }, [clearScheduledClose, isMounted]);
+
+    useEffect(() => {
+      if (!isMounted || !modalScrollRoot || !triggerRef.current) return undefined;
+      const updateLocalPosition = () => setLocalPosition(calculateModalPopoverPosition(triggerRef.current!.getBoundingClientRect(), modalScrollRoot.getBoundingClientRect(), positioning));
+      window.addEventListener('resize', updateLocalPosition);
+      return () => window.removeEventListener('resize', updateLocalPosition);
+    }, [isMounted, modalScrollRoot, positioning]);
 
     useLayoutEffect(() => {
       if (!isVisible || !import.meta.env.DEV) return;
@@ -235,17 +255,25 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             aria-labelledby={ariaLabel ? undefined : ariaLabelledby ?? triggerId}
             aria-hidden={!isVisible}
             className={cn(
-              'fixed z-[80] overflow-y-auto rounded-[14px] border border-border bg-white p-1.5 shadow-dropdown',
+              isModalLocal ? 'absolute z-40 overflow-y-auto rounded-[14px] border border-border bg-white p-1.5 shadow-dropdown' : 'fixed z-[80] overflow-y-auto rounded-[14px] border border-border bg-white p-1.5 shadow-dropdown',
               'transition-[opacity,transform] ease-out',
               isVisible ? 'pointer-events-auto translate-y-0 scale-100 opacity-100 duration-[160ms]' : 'pointer-events-none -translate-y-1 scale-[0.98] opacity-0 duration-[120ms]',
             )}
-            style={position ? {
-              top: position.top,
-              left: position.left,
-              width: position.width,
-              maxHeight: position.maxHeight,
-              transformOrigin: position.placement === 'top' ? 'bottom center' : 'top center',
-            } : { visibility: 'hidden' }}
+            style={isModalLocal
+              ? localPosition ? {
+                [localPosition.placement === 'top' ? 'bottom' : 'top']: 'calc(100% + 6px)',
+                [localPosition.alignment]: 0,
+                width: localPosition.width,
+                maxHeight: localPosition.maxHeight,
+                transformOrigin: localPosition.placement === 'top' ? 'bottom center' : 'top center',
+              } : { visibility: 'hidden' }
+              : position ? {
+                top: position.top,
+                left: position.left,
+                width: position.width,
+                maxHeight: position.maxHeight,
+                transformOrigin: position.placement === 'top' ? 'bottom center' : 'top center',
+              } : { visibility: 'hidden' }}
           >
             {options.map((option, index) => {
               const selected = option.value === selectedValue;
@@ -269,7 +297,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               </div>;
             })}
           </div>,
-          document.body,
+          isModalLocal ? popoverContainer ?? document.body : document.body,
         )}
       </div>
     );

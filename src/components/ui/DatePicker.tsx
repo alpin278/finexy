@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { cn } from '../../lib/utils';
 import { Icon } from './Icon';
-import { useAnchoredPopoverPosition } from './popoverPosition';
+import { calculateModalPopoverPosition, useAnchoredPopoverPosition, type ModalPopoverPosition } from './popoverPosition';
 
 export interface DatePickerProps {
   id?: string;
@@ -68,11 +68,18 @@ export function DatePicker({
   const selectedDate = parseLocalDate(value);
   const [open, setOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(() => firstOfMonth(selectedDate ?? new Date()));
+  const [localPosition, setLocalPosition] = useState<ModalPopoverPosition | null>(null);
+  const [modalScrollRoot, setModalScrollRoot] = useState<HTMLElement | null>(null);
+  const [popoverContainer, setPopoverContainer] = useState<HTMLElement | null>(null);
   const positioning = useMemo(() => ({ contentHeight: 356, minWidth: 304, preferredMaxHeight: 380 }), []);
-  const position = useAnchoredPopoverPosition(open, triggerRef, positioning);
+  const isModalLocal = Boolean(modalScrollRoot);
+  const position = useAnchoredPopoverPosition(open && !isModalLocal, triggerRef, positioning);
 
   const close = useCallback((restoreFocus = true) => {
     setOpen(false);
+    setLocalPosition(null);
+    setModalScrollRoot(null);
+    setPopoverContainer(null);
     if (restoreFocus) window.requestAnimationFrame(() => triggerRef.current?.focus());
   }, []);
 
@@ -83,6 +90,12 @@ export function DatePicker({
 
   const openCalendar = () => {
     if (disabled) return;
+    const scrollRoot = triggerRef.current?.closest<HTMLElement>('[data-popover-scroll-root]');
+    setModalScrollRoot(scrollRoot ?? null);
+    setPopoverContainer(scrollRoot ? triggerRef.current?.parentElement ?? null : null);
+    setLocalPosition(scrollRoot && triggerRef.current
+      ? calculateModalPopoverPosition(triggerRef.current.getBoundingClientRect(), scrollRoot.getBoundingClientRect(), positioning)
+      : null);
     setDisplayMonth(firstOfMonth(selectedDate ?? new Date()));
     setOpen(true);
     window.requestAnimationFrame(() => focusDate(selectedDate ?? new Date()));
@@ -107,6 +120,13 @@ export function DatePicker({
       document.removeEventListener('keydown', onKeyDown, true);
     };
   }, [close, open]);
+
+  useEffect(() => {
+    if (!open || !modalScrollRoot || !triggerRef.current) return undefined;
+    const updateLocalPosition = () => setLocalPosition(calculateModalPopoverPosition(triggerRef.current!.getBoundingClientRect(), modalScrollRoot.getBoundingClientRect(), positioning));
+    window.addEventListener('resize', updateLocalPosition);
+    return () => window.removeEventListener('resize', updateLocalPosition);
+  }, [modalScrollRoot, open, positioning]);
 
   const monthStart = firstOfMonth(displayMonth);
   const gridStart = addDays(monthStart, -monthStart.getDay());
@@ -168,8 +188,15 @@ export function DatePicker({
           id={dialogId}
           role="dialog"
           aria-label="Choose date"
-          className="fixed z-[80] w-[min(304px,calc(100vw-1rem))] rounded-[16px] border border-border bg-white p-3 shadow-dropdown"
-          style={position ? { top: position.top, left: position.left, width: position.width, maxHeight: position.maxHeight } : { visibility: 'hidden' }}
+          className={cn(isModalLocal ? 'absolute z-40 w-[min(304px,calc(100vw-1rem))] rounded-[16px] border border-border bg-white p-3 shadow-dropdown' : 'fixed z-[80] w-[min(304px,calc(100vw-1rem))] rounded-[16px] border border-border bg-white p-3 shadow-dropdown')}
+          style={isModalLocal
+            ? localPosition ? {
+              [localPosition.placement === 'top' ? 'bottom' : 'top']: 'calc(100% + 6px)',
+              [localPosition.alignment]: 0,
+              width: localPosition.width,
+              maxHeight: localPosition.maxHeight,
+            } : { visibility: 'hidden' }
+            : position ? { top: position.top, left: position.left, width: position.width, maxHeight: position.maxHeight } : { visibility: 'hidden' }}
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <button type="button" aria-label="Previous month" onClick={() => setDisplayMonth((month) => addMonths(month, -1))} className="flex h-8 w-8 items-center justify-center rounded-[10px] text-secondary hover:bg-surface hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent/20"><Icon name="chevron-left" /></button>
@@ -209,7 +236,7 @@ export function DatePicker({
             <button type="button" onClick={() => close()} className="rounded-lg px-2 py-1 text-xs font-semibold text-secondary hover:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/20">Close</button>
           </div>
         </div>,
-        document.body,
+        isModalLocal ? popoverContainer ?? document.body : document.body,
       )}
     </div>
   );
