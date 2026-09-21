@@ -12,6 +12,7 @@ export * from './ProgressBar';
 export * from './Table';
 export * from './Modal';
 export * from './Avatar';
+export * from './AmountValue';
 export * from './Tooltip';
 export * from './Icon';
 export * from './LoadingState';

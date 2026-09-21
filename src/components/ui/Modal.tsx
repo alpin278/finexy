@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { IconButton } from './IconButton';
 import { Icon } from './Icon';
@@ -75,21 +76,22 @@ export function Modal({
     xl: 'max-w-xl',
   };
 
-  return (
+  if (!isOpen) return null;
+
+  return createPortal(
     <div className={cn('fixed inset-0 z-50 flex items-center justify-center p-3 transition-opacity duration-200 sm:p-6', isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0')} aria-hidden={!isOpen} inert={!isOpen ? true : undefined}>
       {/* Backdrop */}
       <div
-        className={cn('fixed inset-0 bg-primary/45 backdrop-blur-[4px] transition-opacity duration-200', isOpen && 'modal-backdrop-enter')}
+        className="fixed inset-0 bg-primary/45 backdrop-blur-[3px] modal-backdrop-enter"
         onClick={onClose}
       />
 
       {/* Dialog box */}
       <div
         className={cn(
-          'relative z-10 flex max-h-[min(88vh,760px)] w-full flex-col overflow-hidden rounded-[24px] border border-white/70 bg-white ring-1 ring-primary/5',
+          'relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-hidden rounded-[24px] border border-white/80 bg-white ring-1 ring-primary/5 sm:max-h-[min(88dvh,760px)]',
           'shadow-[0_28px_80px_rgba(23,23,20,0.2),0_10px_28px_rgba(23,23,20,0.1)]',
-          'transition-[opacity,transform] duration-200',
-          isOpen ? 'modal-panel-enter translate-y-0 scale-100 opacity-100' : 'translate-y-1 scale-[0.985] opacity-0',
+          'modal-panel-enter transition-[opacity,transform] duration-200',
           maxWidths[maxWidth]
         )}
         ref={dialogRef}
@@ -100,7 +102,7 @@ export function Modal({
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-border/70 bg-surface/65 px-5 py-5 sm:px-6 sm:py-6">
-          <div>
+          <div className="min-w-0 pr-1">
             {title && <h3 id={titleId} className="text-lg font-semibold text-primary">{title}</h3>}
             {description && <p id={descriptionId} className="text-xs text-secondary mt-0.5">{description}</p>}
           </div>
@@ -109,7 +111,7 @@ export function Modal({
             aria-label="Close modal"
             size="sm"
             onClick={onClose}
-            className="-mr-1 -mt-1 text-secondary hover:text-primary"
+            className="shrink-0 text-secondary hover:text-primary"
           >
             <Icon name="x-lg" className="text-sm" />
           </IconButton>
@@ -125,6 +127,7 @@ export function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

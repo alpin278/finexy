@@ -102,7 +102,7 @@ export function TransactionRow({
           </IconButton>
 
           {isActionMenuOpen && (
-            <div className="absolute right-0 top-9 z-20 w-32 rounded-xl border border-border bg-white py-1 shadow-lg">
+            <div className="menu-enter absolute right-0 top-9 z-20 w-32 rounded-xl border border-border bg-white py-1 shadow-dropdown">
               <button
                 type="button"
                 onClick={onView}

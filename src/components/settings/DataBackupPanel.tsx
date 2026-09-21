@@ -35,6 +35,7 @@ export function DataBackupPanel() {
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState('');
   const [summary, setSummary] = useState<BackupImportSummary | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState('');
 
   const handleExport = async () => {
     setBusy(true); setError(''); setFeedback(''); setSummary(null);
@@ -45,9 +46,10 @@ export function DataBackupPanel() {
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
+    setSelectedFileName(file.name);
     setBusy(true); setError(''); setFeedback(''); setSummary(null);
     try { const nextBackup = await readBackupFile(file); setBackup(nextBackup); setPreview(getBackupPreview(nextBackup)); }
-    catch (reason) { setBackup(null); setPreview(null); setError(reason instanceof Error ? reason.message : 'We could not read this backup.'); }
+    catch (reason) { setBackup(null); setPreview(null); setSelectedFileName(''); setError(reason instanceof Error ? reason.message : 'We could not read this backup.'); }
     finally { setBusy(false); if (fileInput.current) fileInput.current.value = ''; }
   };
 
@@ -67,14 +69,17 @@ export function DataBackupPanel() {
       </div>
       <div className="rounded-2xl border border-border bg-surface p-4">
         <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary"><Icon name="upload" className="text-lg" /></div><div><p className="text-sm font-semibold text-primary">Import backup</p><p className="mt-1 text-xs leading-relaxed text-secondary">Only Finexy JSON backups are accepted. The file is parsed and validated before anything can be written.</p></div></div>
-        <input ref={fileInput} className="sr-only" type="file" accept=".json,application/json" onChange={(event) => void handleFile(event.target.files?.[0])} />
-        <Button className="mt-4" variant="outline" size="sm" loading={busy} leftIcon={<Icon name="folder2-open" />} onClick={() => fileInput.current?.click()}>Choose backup file</Button>
+        <input ref={fileInput} className="sr-only" type="file" accept=".json,application/json" aria-label="Choose Finexy backup file" onChange={(event) => void handleFile(event.target.files?.[0])} />
+        <div className="mt-4 flex min-w-0 items-center gap-2 rounded-xl border border-dashed border-border bg-white p-2">
+          <Button variant="outline" size="sm" loading={busy} leftIcon={<Icon name="folder2-open" />} onClick={() => fileInput.current?.click()}>Choose file</Button>
+          <span className="min-w-0 truncate text-[11px] text-secondary">{selectedFileName || 'No backup selected'}</span>
+        </div>
       </div>
     </div>
 
     <div className="rounded-2xl border border-border bg-white p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-sm font-semibold text-primary">Backup format</p><p className="mt-1 text-xs leading-relaxed text-secondary">Finexy backup v1 uses opaque relationship references. It never contains passwords, auth tokens, Telegram secrets, Vault values, service-role data, or integration sessions.</p></div><span className="shrink-0 rounded-full bg-surface px-3 py-1 text-[11px] font-semibold text-secondary">finexy-backup · v1</span></div>
-      {preview && backup && <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-sm font-semibold text-primary">Import preview</p><p className="mt-1 text-xs text-secondary">Backup date: {new Date(preview.backupDate).toLocaleString()} · Version {preview.version}</p><p className="mt-1 text-xs text-secondary">Currencies: {preview.currencies.join(', ') || 'None'}</p></div><div className="w-full sm:w-64"><label htmlFor="backup-import-mode" className="mb-1.5 block text-xs font-semibold text-primary">Import mode</label><Select id="backup-import-mode" value={mode} onChange={(event) => setMode(event.target.value as 'merge' | 'restore_empty')} options={[{ value: 'merge', label: 'Merge into this account' }, { value: 'restore_empty', label: 'Restore into empty account' }]} className="w-full bg-white" /></div></div><dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">{previewRows(preview).map(([label, value]) => <div key={label} className="rounded-xl bg-white px-3 py-2"><dt className="text-[11px] text-secondary">{label}</dt><dd className="mt-0.5 text-sm font-semibold text-primary">{value}</dd></div>)}</dl><p className="mt-3 text-[11px] leading-relaxed text-secondary">Merge keeps existing financial history and imports only new backup records. Restore into an empty account refuses to run when financial records already exist. Re-importing the same backup is idempotent.</p><Button className="mt-4" variant="accent" size="sm" loading={busy} leftIcon={<Icon name="shield-check" />} onClick={() => void handleImport}>Confirm import</Button></div>}
+      {preview && backup && <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-sm font-semibold text-primary">Import preview</p><p className="mt-1 max-w-sm truncate text-xs font-medium text-primary">{selectedFileName}</p><p className="mt-1 text-xs text-secondary">Backup date: {new Date(preview.backupDate).toLocaleString()} · Version {preview.version}</p><p className="mt-1 text-xs text-secondary">Currencies: {preview.currencies.join(', ') || 'None'}</p></div><div className="w-full sm:w-64"><label htmlFor="backup-import-mode" className="mb-1.5 block text-xs font-semibold text-primary">Import mode</label><Select id="backup-import-mode" value={mode} onChange={(event) => setMode(event.target.value as 'merge' | 'restore_empty')} options={[{ value: 'merge', label: 'Merge into this account' }, { value: 'restore_empty', label: 'Restore into empty account' }]} className="w-full bg-white" /></div></div><dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">{previewRows(preview).map(([label, value]) => <div key={label} className="rounded-xl border border-border/70 bg-white px-3 py-2"><dt className="text-[11px] text-secondary">{label}</dt><dd className="mt-0.5 text-sm font-semibold text-primary">{value}</dd></div>)}</dl><div className="mt-3 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2.5 text-[11px] leading-relaxed text-primary">Review the counts and import mode before continuing. Merge keeps existing history; restore only works for an empty account.</div><div className="mt-4 flex flex-wrap items-center gap-2"><Button variant="accent" size="sm" loading={busy} leftIcon={<Icon name="shield-check" />} onClick={() => void handleImport}>Confirm import</Button><Button variant="ghost" size="sm" disabled={busy} onClick={() => { setBackup(null); setPreview(null); setSelectedFileName(''); }}>Choose another file</Button></div></div>}
       {!preview && <p className="mt-4 text-xs text-secondary">Choose a backup file to see its counts, currencies, date, and version before confirmation.</p>}
     </div>
 

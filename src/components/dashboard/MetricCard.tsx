@@ -3,6 +3,7 @@ import type { OverviewMetric } from '../../lib/overview';
 import { formatWalletAmount } from '../../lib/overview';
 import type { WalletCurrencyCode } from '../../types/finance';
 import { cn } from '../../lib/utils';
+import { AmountValue } from '../ui/AmountValue';
 
 const icons: Record<OverviewMetric['id'], string> = {
   income: 'bi-arrow-down-left',
@@ -31,7 +32,7 @@ export function MetricCard({ metric, currency, className }: MetricCardProps) {
   return (
     <Card
       className={cn(
-        'flex min-h-[140px] min-w-0 flex-col justify-between overflow-hidden p-4 transition-[border-color,box-shadow,transform] duration-200 sm:p-5',
+        'flex min-h-[148px] min-w-0 flex-col justify-between overflow-hidden p-4 transition-[border-color,box-shadow,transform] duration-200 sm:p-5',
         highlighted ? 'border-accent/25 bg-accent/[0.06] shadow-card' : 'border-border bg-white',
         className
       )}
@@ -43,7 +44,7 @@ export function MetricCard({ metric, currency, className }: MetricCardProps) {
         </span>
       </div>
       <div className="my-3 min-w-0">
-        <span className="block min-w-0 break-words font-sans text-[clamp(1.2rem,2vw,1.75rem)] font-bold leading-tight tracking-[-0.035em] text-primary">{formatted}</span>
+        <AmountValue value={formatted} className="font-sans text-[clamp(1.1rem,1.8vw,1.7rem)] font-bold leading-tight tracking-[-0.035em] text-primary" />
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold', metric.isPositive ? 'bg-success/12 text-success' : 'bg-danger/12 text-danger')}>

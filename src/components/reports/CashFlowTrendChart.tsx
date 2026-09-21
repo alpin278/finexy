@@ -22,15 +22,15 @@ export function CashFlowTrendChart({ data, stats, currency }: { data: ReportTren
           </div>
         </div>
         {data.length ? (
-          <div className="pt-4">
-            <ResponsiveContainer width="100%" height={290} minWidth={0}>
-              <LineChart data={data} margin={{ top: 10, right: 8, left: -12, bottom: 0 }}>
+          <div className="h-[250px] pt-4 sm:h-[300px]">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+              <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="#ECECE8" strokeDasharray="3 4" vertical={false} />
                 <XAxis dataKey="label" tick={{ fill: '#777771', fontSize: 10 }} axisLine={false} tickLine={false} dy={8} />
-                <YAxis tickFormatter={(value) => formatCompactMoney(Number(value), currency)} tick={{ fill: '#777771', fontSize: 10 }} axisLine={false} tickLine={false} width={52} />
+                <YAxis tickFormatter={(value) => formatCompactMoney(Number(value), currency)} tick={{ fill: '#777771', fontSize: 10 }} axisLine={false} tickLine={false} width={58} tickCount={5} />
                 <Tooltip
                   formatter={(value, name) => [formatMoney(Number(value), currency), String(name)]}
-                  contentStyle={{ border: '1px solid #ECECE8', borderRadius: 14, fontSize: 11, boxShadow: '0 14px 32px rgba(23,23,20,.12)' }}
+                  contentStyle={{ border: '1px solid #ECECE8', borderRadius: 14, background: '#FFFFFF', fontSize: 11, boxShadow: '0 14px 32px rgba(23,23,20,.12)', padding: '10px 12px' }}
                   labelStyle={{ color: '#171714', fontWeight: 700, marginBottom: 4 }}
                 />
                 <Line type="monotone" dataKey="income" name="Inflow" stroke="#22221C" strokeWidth={2.5} dot={{ r: 2.5, fill: '#22221C', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />

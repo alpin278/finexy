@@ -27,8 +27,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           className={cn(
-            'appearance-none h-9 min-w-0 pl-3 pr-9 bg-surface hover:bg-white border border-border rounded-[12px] text-xs font-semibold text-primary shadow-sm',
-            'transition-[background-color,border-color,color,box-shadow,transform] duration-150 cursor-pointer focus:outline-none focus:bg-white focus:border-accent focus:ring-2 focus:ring-accent/20 focus:ring-offset-1 focus:ring-offset-white active:translate-y-px',
+            'appearance-none h-10 min-w-0 pl-3.5 pr-10 bg-white hover:border-border-hover border border-border rounded-[12px] text-xs font-semibold text-primary shadow-[0_1px_2px_rgba(23,23,20,0.04)]',
+            'transition-[background-color,border-color,color,box-shadow] duration-150 cursor-pointer focus:outline-none focus:bg-white focus:border-accent focus:ring-[3px] focus:ring-accent/15',
             'disabled:cursor-not-allowed disabled:bg-canvas disabled:text-secondary disabled:opacity-70',
             'aria-[invalid=true]:border-danger aria-[invalid=true]:focus:border-danger aria-[invalid=true]:focus:ring-danger/15',
             icon && 'pl-8',
@@ -42,7 +42,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        <Icon name="chevron-down" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-secondary transition-[color,transform] duration-150 group-focus-within:text-accent group-focus-within:rotate-180" />
+        <Icon name="chevron-down" className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-secondary transition-colors duration-150 group-focus-within:text-accent" />
       </div>
     );
   }

@@ -1,5 +1,5 @@
 import { Card } from '../ui/Card';
-import { ResponsiveContainer, CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { CashFlowPoint } from '../../lib/overview';
 import { formatWalletAmount } from '../../lib/overview';
 import type { WalletCurrencyCode } from '../../types/finance';
@@ -37,12 +37,12 @@ export function ProfitLossChart({ data, currency, className }: ProfitLossChartPr
           </div>
         </div>
       </div>
-      <div className="min-h-[220px] w-full flex-1 pt-4">
-        <ResponsiveContainer width="100%" height="100%" minHeight={220} minWidth={200}>
-          <LineChart data={data} margin={{ top: 10, right: 8, left: 2, bottom: 0 }}>
+      <div className="h-[240px] w-full pt-4 sm:h-[270px]">
+        <ResponsiveContainer width="100%" height="100%" minWidth={200}>
+          <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barCategoryGap="24%" barGap={3}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ECECE8" />
             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#777771', fontSize: 11, fontWeight: 500 }} dy={8} />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#777771', fontSize: 10 }} tickFormatter={(value) => axisFormatter(Number(value))} width={48} />
+            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#777771', fontSize: 10 }} tickFormatter={(value) => axisFormatter(Number(value))} width={54} tickCount={5} />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
@@ -50,11 +50,11 @@ export function ProfitLossChart({ data, currency, className }: ProfitLossChartPr
                 const expenses = Number(payload.find((item) => item.dataKey === 'expenses')?.value ?? 0);
                 return <div className="rounded-2xl border border-border bg-white p-3 text-xs shadow-dropdown"><p className="mb-1.5 font-bold text-primary">{label} cash flow</p><p className="text-secondary">Income <span className="font-semibold text-primary">{formatWalletAmount(income, currency)}</span></p><p className="text-secondary">Expenses <span className="font-semibold text-primary">{formatWalletAmount(expenses, currency)}</span></p><p className="mt-1 border-t border-border pt-1 font-semibold text-primary">Net {formatWalletAmount(income - expenses, currency)}</p></div>;
               }}
-              cursor={{ stroke: '#D8D8D2', strokeWidth: 1 }}
+              cursor={{ fill: 'rgba(236,236,232,0.45)' }}
             />
-            <Line type="monotone" dataKey="income" name="Income" stroke="#FF5A36" strokeWidth={2.5} dot={{ r: 2.5, fill: '#FF5A36', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
-            <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#22221C" strokeWidth={2.5} dot={{ r: 2.5, fill: '#22221C', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
-          </LineChart>
+            <Bar dataKey="income" name="Income" fill="#FF5A36" radius={[5, 5, 0, 0]} maxBarSize={28} isAnimationActive={false} />
+            <Bar dataKey="expenses" name="Expenses" fill="#22221C" radius={[5, 5, 0, 0]} maxBarSize={28} isAnimationActive={false} />
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </Card>

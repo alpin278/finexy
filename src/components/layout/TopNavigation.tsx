@@ -95,7 +95,7 @@ export function TopNavigation({
       </div>
 
       {/* Center: Navigation Pills (Desktop & Tablet) */}
-      <nav className="hidden md:flex items-center gap-1 lg:gap-1.5" aria-label="Main Navigation">
+      <nav className="hidden items-center gap-1 overflow-hidden rounded-full p-0.5 md:flex lg:gap-1.5" aria-label="Main Navigation">
         {navTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -105,9 +105,9 @@ export function TopNavigation({
               onClick={() => onNavigate?.(tab.id)}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'px-3 xl:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-[background-color,color,border-color,box-shadow,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:translate-y-px active:scale-[0.99]',
+                'px-3 xl:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-[background-color,color,border-color,box-shadow] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
                 isActive
-                  ? 'border border-dark/10 bg-dark text-white shadow-sm ring-1 ring-dark/10'
+                  ? 'border border-dark/10 bg-dark text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)]'
                   : 'border border-transparent text-secondary hover:border-border hover:bg-surface hover:text-primary hover:shadow-sm'
               )}
             >
@@ -210,17 +210,17 @@ export function TopNavigation({
 
               <div className="py-1">
                 <Link
-                  to="/settings"
+                  to="/settings#profile"
                   onClick={() => {
                     onNavigate?.('settings');
                     setIsProfileOpen(false);
                   }}
                   className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left text-xs text-primary transition-colors hover:bg-surface focus-visible:bg-surface focus-visible:outline-none"
                 >
-                  <span>Profile Settings</span>
+                  <span>Profile</span>
                 </Link>
                 <Link
-                  to="/settings"
+                  to="/settings#preferences"
                   onClick={() => {
                     onNavigate?.('settings');
                     setIsProfileOpen(false);
@@ -228,6 +228,16 @@ export function TopNavigation({
                   className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left text-xs text-primary transition-colors hover:bg-surface focus-visible:bg-surface focus-visible:outline-none"
                 >
                   <span>Preferences</span>
+                </Link>
+                <Link
+                  to="/settings#appearance"
+                  onClick={() => {
+                    onNavigate?.('settings');
+                    setIsProfileOpen(false);
+                  }}
+                  className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left text-xs text-primary transition-colors hover:bg-surface focus-visible:bg-surface focus-visible:outline-none"
+                >
+                  <span>Appearance</span>
                 </Link>
               </div>
 

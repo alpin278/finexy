@@ -2,6 +2,7 @@ import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { formatWalletAmount } from '../../lib/overview';
 import type { WalletCurrencyCode } from '../../types/finance';
+import { AmountValue } from '../ui/AmountValue';
 
 export interface BalanceCardProps {
   amount: number;
@@ -18,7 +19,7 @@ export function BalanceCard({ amount, currency, period, className }: BalanceCard
         <span className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-primary">{currency}</span>
       </div>
       <div className="my-4 min-w-0">
-        <h2 className="break-words font-sans text-[clamp(1.8rem,3vw,2.4rem)] font-bold leading-tight tracking-[-0.04em] text-primary">{formatWalletAmount(amount, currency)}</h2>
+        <h2><AmountValue value={formatWalletAmount(amount, currency)} className="font-sans text-[clamp(1.55rem,2.5vw,2.35rem)] font-bold leading-tight tracking-[-0.04em] text-primary" /></h2>
         <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-2">
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-semibold text-success"><i className="bi bi-wallet2" aria-hidden="true" />Settled</span>
           <span className="text-xs text-secondary">Active wallets only</span>

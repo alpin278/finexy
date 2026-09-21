@@ -77,7 +77,7 @@ export function Sidebar({
                     className={cn(
                       'w-10 h-10 rounded-full flex items-center justify-center transition-[background-color,color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
                       isActive
-                        ? 'border border-dark/10 bg-dark text-white shadow-sm ring-1 ring-dark/10'
+                        ? 'border border-dark/10 bg-dark text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)]'
                         : 'text-secondary hover:text-primary hover:bg-surface hover:shadow-sm active:scale-[0.97]'
                     )}
                   >

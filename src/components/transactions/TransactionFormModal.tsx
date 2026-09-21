@@ -119,7 +119,7 @@ export function TransactionFormModal({
       <form id="transaction-form" onSubmit={handleSubmit} className="space-y-4">
         <fieldset>
           <legend className="text-xs font-semibold text-primary mb-2">Transaction Type</legend>
-          <div className="grid grid-cols-2 gap-1 rounded-[14px] border border-border bg-surface p-1">
+          <div className="isolate grid grid-cols-2 gap-1 overflow-hidden rounded-[14px] border border-border bg-surface p-1">
             {(['income', 'expense'] as TransactionType[]).map((type) => (
               <button
                 key={type}
@@ -128,8 +128,8 @@ export function TransactionFormModal({
                 onClick={() => updateValue('type', type)}
                 className={
                   values.type === type
-                    ? 'h-10 rounded-[10px] border border-dark/10 bg-dark text-white text-sm font-semibold shadow-sm ring-1 ring-dark/10 transition-[background-color,color,box-shadow,transform] duration-200 cursor-pointer active:translate-y-px'
-                    : 'h-10 rounded-[10px] border border-transparent bg-transparent text-secondary text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-200 hover:bg-white hover:text-primary cursor-pointer active:translate-y-px'
+                    ? 'h-10 rounded-[10px] border border-dark/10 bg-dark text-white text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)] transition-[background-color,color,box-shadow] duration-200 cursor-pointer'
+                    : 'h-10 rounded-[10px] border border-transparent bg-transparent text-secondary text-sm font-medium transition-[background-color,color,box-shadow] duration-200 hover:bg-white hover:text-primary cursor-pointer'
                 }
               >
                 {type === 'income' ? 'Income' : 'Expense'}

@@ -119,7 +119,7 @@ function buildSummary(transactions: Transaction[]): TransactionSummaryData {
   const income: Record<string, number> = {};
   const expenses: Record<string, number> = {};
   for (const transaction of transactions) {
-    if (transaction.type === 'transfer') continue;
+    if (transaction.type === 'transfer' || transaction.status === 'canceled') continue;
     const target = transaction.type === 'income' ? income : expenses;
     target[transaction.currency] = (target[transaction.currency] ?? 0) + transaction.amount;
   }

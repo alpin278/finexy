@@ -1,6 +1,7 @@
 import type { ReportSummaryMetric } from '../../types/reports';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
+import { AmountValue } from '../ui/AmountValue';
 
 const icons = { savings: 'bi-percent', inflow: 'bi-arrow-down-left', outflow: 'bi-arrow-up-right', retained: 'bi-wallet2' };
 
@@ -11,7 +12,7 @@ export function ReportMetricCard({ metric }: { metric: ReportSummaryMetric }) {
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary">{metric.label}</p>
-          <p className="mt-3 break-words text-[clamp(1.35rem,2.4vw,1.75rem)] font-bold leading-tight tracking-[-0.04em] text-primary">{metric.value}</p>
+          <p className="mt-3"><AmountValue value={metric.value} className="text-[clamp(1.1rem,2vw,1.7rem)] font-bold leading-tight tracking-[-0.04em] text-primary" /></p>
         </div>
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-surface text-secondary"><i className={'bi ' + icons[metric.icon]} aria-hidden="true" /></div>
       </div>
