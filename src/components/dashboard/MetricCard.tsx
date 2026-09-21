@@ -4,7 +4,56 @@ import { formatWalletAmount } from '../../lib/overview';
 import type { WalletCurrencyCode } from '../../types/finance';
 import { cn } from '../../lib/utils';
 
-const icons: Record<OverviewMetric['id'], string> = { income: 'bi-arrow-down-left', expenses: 'bi-arrow-up-right', 'net-cash-flow': 'bi-activity', 'savings-rate': 'bi-percent' };
-export interface MetricCardProps { metric: OverviewMetric; currency: WalletCurrencyCode; className?: string; }
-export function MetricCard({ metric, currency, className }: MetricCardProps) { const highlighted = metric.id === 'income'; const formatted = metric.format === 'percentage' ? `${metric.amount.toFixed(1)}%` : formatWalletAmount(metric.amount, currency); return <Card className={cn('flex min-w-0 flex-col justify-between p-4 transition-[border-color,box-shadow,transform] duration-200 sm:p-5', highlighted ? 'border-accent/20 bg-accent text-white shadow-[0_10px_25px_-5px_rgba(255,90,54,0.24)]' : 'border-border bg-white text-primary', className)}><div className="mb-3 flex items-center justify-between gap-3"><span className={cn('min-w-0 text-xs font-medium sm:text-sm', highlighted ? 'text-white/90' : 'text-secondary')}>{metric.title}</span><span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-xl', highlighted ? 'bg-white/20 text-white' : 'bg-surface text-secondary')}><i className={`bi ${icons[metric.id]} text-sm`} aria-hidden="true" /></span></div><div className="my-1 min-w-0"><span className="block break-words font-sans text-[clamp(1.25rem,2.1vw,1.75rem)] font-bold leading-tight tracking-[-0.035em]">{formatted}</span></div><div className="mt-3 flex min-w-0 flex-wrap items-center gap-1.5"><span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold', highlighted ? 'bg-white/20 text-white' : metric.isPositive ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger')}><i className={`bi ${metric.isPositive ? 'bi-arrow-up-right' : 'bi-arrow-down-right'}`} aria-hidden="true" /><span>{metric.isPositive ? 'Derived' : 'Outflow'}</span></span><span className={cn('text-[11px]', highlighted ? 'text-white/80' : 'text-secondary')}>{metric.trendLabel}</span></div></Card>; }
+const icons: Record<OverviewMetric['id'], string> = {
+  income: 'bi-arrow-down-left',
+  expenses: 'bi-arrow-up-right',
+  'net-cash-flow': 'bi-activity',
+  'savings-rate': 'bi-percent',
+};
+
+const labels: Record<OverviewMetric['id'], string> = {
+  income: 'Inflow',
+  expenses: 'Outflow',
+  'net-cash-flow': 'Cash flow',
+  'savings-rate': 'Efficiency',
+};
+
+export interface MetricCardProps {
+  metric: OverviewMetric;
+  currency: WalletCurrencyCode;
+  className?: string;
+}
+
+export function MetricCard({ metric, currency, className }: MetricCardProps) {
+  const highlighted = metric.id === 'income';
+  const formatted = metric.format === 'percentage' ? metric.amount.toFixed(1) + '%' : formatWalletAmount(metric.amount, currency);
+
+  return (
+    <Card
+      className={cn(
+        'flex min-h-[140px] min-w-0 flex-col justify-between overflow-hidden p-4 transition-[border-color,box-shadow,transform] duration-200 sm:p-5',
+        highlighted ? 'border-accent/25 bg-accent/[0.06] shadow-card' : 'border-border bg-white',
+        className
+      )}
+    >
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <span className="min-w-0 truncate text-xs font-medium text-secondary sm:text-sm">{metric.title}</span>
+        <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-xl', highlighted ? 'bg-accent/12 text-accent' : 'bg-surface text-secondary')}>
+          <i className={'bi ' + icons[metric.id] + ' text-sm'} aria-hidden="true" />
+        </span>
+      </div>
+      <div className="my-3 min-w-0">
+        <span className="block min-w-0 break-words font-sans text-[clamp(1.2rem,2vw,1.75rem)] font-bold leading-tight tracking-[-0.035em] text-primary">{formatted}</span>
+      </div>
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+        <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-semibold', metric.isPositive ? 'bg-success/12 text-success' : 'bg-danger/12 text-danger')}>
+          <i className={'bi ' + (metric.isPositive ? 'bi-arrow-up-right' : 'bi-arrow-down-right')} aria-hidden="true" />
+          <span>{labels[metric.id]}</span>
+        </span>
+        <span className="truncate text-[11px] text-secondary">{metric.trendLabel}</span>
+      </div>
+    </Card>
+  );
+}
+
 export default MetricCard;

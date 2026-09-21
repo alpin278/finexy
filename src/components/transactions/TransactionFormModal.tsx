@@ -119,7 +119,7 @@ export function TransactionFormModal({
       <form id="transaction-form" onSubmit={handleSubmit} className="space-y-4">
         <fieldset>
           <legend className="text-xs font-semibold text-primary mb-2">Transaction Type</legend>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1 rounded-[14px] border border-border bg-surface p-1">
             {(['income', 'expense'] as TransactionType[]).map((type) => (
               <button
                 key={type}
@@ -128,8 +128,8 @@ export function TransactionFormModal({
                 onClick={() => updateValue('type', type)}
                 className={
                   values.type === type
-                    ? 'h-10 rounded-xl border border-dark bg-dark text-white text-sm font-semibold cursor-pointer'
-                    : 'h-10 rounded-xl border border-border bg-white text-secondary text-sm font-medium hover:bg-surface hover:text-primary cursor-pointer'
+                    ? 'h-10 rounded-[10px] border border-dark/10 bg-dark text-white text-sm font-semibold shadow-sm ring-1 ring-dark/10 transition-[background-color,color,box-shadow,transform] duration-200 cursor-pointer active:translate-y-px'
+                    : 'h-10 rounded-[10px] border border-transparent bg-transparent text-secondary text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-200 hover:bg-white hover:text-primary cursor-pointer active:translate-y-px'
                 }
               >
                 {type === 'income' ? 'Income' : 'Expense'}
@@ -224,7 +224,7 @@ export function TransactionFormModal({
             placeholder="Add a reference, invoice ID, or note"
             value={values.referenceNote}
             onChange={(event) => updateValue('referenceNote', event.target.value)}
-            className="w-full px-3.5 py-2.5 bg-white border border-border rounded-[12px] text-sm text-primary placeholder:text-secondary/70 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-y"
+            className="w-full resize-y rounded-[12px] border border-border bg-white px-3.5 py-2.5 text-sm text-primary placeholder:text-secondary/70 transition-[border-color,box-shadow] duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
           />
         </div>
 

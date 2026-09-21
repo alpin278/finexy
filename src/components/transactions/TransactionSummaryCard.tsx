@@ -44,8 +44,8 @@ export function TransactionSummaryCard({
           {icon}
         </span>
       </div>
-      <div>
-        <div className="min-w-0 text-xl font-bold tracking-tight text-primary sm:text-[22px]">{value}</div>
+      <div className="min-w-0">
+        <div className="min-w-0 break-words text-xl font-bold tracking-tight text-primary sm:text-[22px]">{value}</div>
         <p className="text-[11px] text-secondary mt-1">
           {trend && <span className={cn('font-semibold mr-1.5', trendTones[trendTone])}>{trend}</span>}
           {detail}

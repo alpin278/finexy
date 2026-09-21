@@ -18,7 +18,7 @@ export function Tabs({ tabs, activeTab, onChange, className, size = 'md' }: Tabs
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-0.5 p-1 bg-surface border border-border rounded-full shadow-sm',
+        'inline-flex max-w-full items-center gap-0.5 overflow-hidden rounded-full border border-border bg-surface p-1 shadow-sm',
         className
       )}
     >
@@ -31,13 +31,12 @@ export function Tabs({ tabs, activeTab, onChange, className, size = 'md' }: Tabs
             onClick={() => onChange(tab.id)}
             aria-selected={isActive}
             className={cn(
-              'relative inline-flex items-center gap-1.5 rounded-full font-medium transition-[background-color,color,box-shadow,transform] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
+              'relative inline-flex shrink-0 items-center gap-1.5 overflow-hidden rounded-full font-medium transition-[background-color,color,box-shadow,transform] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 active:translate-y-px',
               size === 'sm' ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-xs sm:text-sm',
-              isActive ? 'text-white' : 'text-secondary hover:text-primary hover:bg-white'
+              isActive ? 'bg-dark text-white shadow-sm ring-1 ring-dark/10' : 'text-secondary hover:bg-white hover:text-primary'
             )}
           >
-            {isActive && <span className="absolute inset-0 rounded-full border border-dark/10 bg-dark shadow-sm" aria-hidden="true" />}
-            <span className="relative z-[1] inline-flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1.5">
               <span>{tab.label}</span>
               {typeof tab.count === 'number' && (
                 <span className={cn('px-1.5 py-0.2 rounded-full text-[10px] font-semibold', isActive ? 'bg-white/20 text-white' : 'bg-border text-secondary')}>

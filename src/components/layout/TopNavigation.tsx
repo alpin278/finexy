@@ -107,7 +107,7 @@ export function TopNavigation({
               className={cn(
                 'px-3 xl:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-[background-color,color,border-color,box-shadow,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:translate-y-px active:scale-[0.99]',
                 isActive
-                  ? 'border border-dark/10 bg-dark text-white shadow-sm'
+                  ? 'border border-dark/10 bg-dark text-white shadow-sm ring-1 ring-dark/10'
                   : 'border border-transparent text-secondary hover:border-border hover:bg-surface hover:text-primary hover:shadow-sm'
               )}
             >
@@ -200,7 +200,7 @@ export function TopNavigation({
           {/* Profile Dropdown Menu */}
           {isProfileOpen && (
             <div
-              className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-border shadow-[0_10px_30px_-5px_rgba(0,0,0,0.08)] py-2 z-50 menu-enter"
+              className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-border bg-white py-2 shadow-dropdown menu-enter"
               onMouseLeave={() => setIsProfileOpen(false)}
             >
               <div className="px-4 py-2.5 border-b border-border/60">
@@ -215,7 +215,7 @@ export function TopNavigation({
                     onNavigate?.('settings');
                     setIsProfileOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-xs text-primary hover:bg-surface transition-colors cursor-pointer flex items-center justify-between"
+                  className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left text-xs text-primary transition-colors hover:bg-surface focus-visible:bg-surface focus-visible:outline-none"
                 >
                   <span>Profile Settings</span>
                 </Link>
@@ -225,7 +225,7 @@ export function TopNavigation({
                     onNavigate?.('settings');
                     setIsProfileOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-xs text-primary hover:bg-surface transition-colors cursor-pointer flex items-center justify-between"
+                  className="flex w-full cursor-pointer items-center justify-between px-4 py-2 text-left text-xs text-primary transition-colors hover:bg-surface focus-visible:bg-surface focus-visible:outline-none"
                 >
                   <span>Preferences</span>
                 </Link>
@@ -236,7 +236,7 @@ export function TopNavigation({
                   type="button"
                   onClick={() => void handleSignOut()}
                   disabled={isSigningOut}
-                  className="w-full text-left px-4 py-2 text-xs text-danger hover:bg-danger/10 transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-60"
+                  className="w-full cursor-pointer px-4 py-2 text-left text-xs text-danger transition-colors hover:bg-danger/10 focus-visible:bg-danger/10 focus-visible:outline-none disabled:cursor-wait disabled:opacity-60"
                 >
                   {isSigningOut ? 'Signing out...' : 'Sign out'}
                 </button>

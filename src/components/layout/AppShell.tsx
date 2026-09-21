@@ -139,7 +139,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                       className={cn(
                         'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:translate-y-px',
                         isActive
-                          ? 'border border-dark/10 bg-dark text-white shadow-sm'
+                          ? 'border border-dark/10 bg-dark text-white shadow-sm ring-1 ring-dark/10'
                           : 'text-secondary hover:text-primary hover:bg-white hover:shadow-sm'
                       )}
                     >
@@ -165,7 +165,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                         className={cn(
                         'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-150 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 active:translate-y-px',
                         isActive
-                          ? 'border border-dark/10 bg-dark text-white shadow-sm'
+                          ? 'border border-dark/10 bg-dark text-white shadow-sm ring-1 ring-dark/10'
                           : 'text-secondary hover:text-primary hover:bg-white hover:shadow-sm'
                         )}
                       >

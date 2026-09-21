@@ -20,8 +20,8 @@ export function ReportPeriodTabs({ activePeriod, onChange }: ReportPeriodTabsPro
             aria-selected={isActive}
             onClick={() => onChange(option.id)}
             className={cn(
-              'min-h-8 rounded-[10px] px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 sm:px-3 sm:text-xs',
-              isActive ? 'bg-dark text-white shadow-sm' : 'text-secondary hover:bg-surface hover:text-primary'
+              'min-h-8 rounded-[10px] px-2.5 text-[11px] font-semibold transition-[background-color,color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 active:translate-y-px sm:px-3 sm:text-xs',
+              isActive ? 'border border-dark/10 bg-dark text-white shadow-sm ring-1 ring-dark/10' : 'border border-transparent text-secondary hover:bg-surface hover:text-primary'
             )}
           >
             {option.label}

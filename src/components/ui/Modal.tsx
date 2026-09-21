@@ -79,17 +79,17 @@ export function Modal({
     <div className={cn('fixed inset-0 z-50 flex items-center justify-center p-3 transition-opacity duration-200 sm:p-6', isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0')} aria-hidden={!isOpen} inert={!isOpen ? true : undefined}>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-primary/35 backdrop-blur-[2px] transition-opacity duration-200"
+        className={cn('fixed inset-0 bg-primary/45 backdrop-blur-[4px] transition-opacity duration-200', isOpen && 'modal-backdrop-enter')}
         onClick={onClose}
       />
 
       {/* Dialog box */}
       <div
         className={cn(
-          'relative z-10 flex max-h-[min(88vh,760px)] w-full flex-col overflow-hidden rounded-[24px] border border-border bg-white',
-          'shadow-elevated',
+          'relative z-10 flex max-h-[min(88vh,760px)] w-full flex-col overflow-hidden rounded-[24px] border border-white/70 bg-white ring-1 ring-primary/5',
+          'shadow-[0_28px_80px_rgba(23,23,20,0.2),0_10px_28px_rgba(23,23,20,0.1)]',
           'transition-[opacity,transform] duration-200',
-          isOpen ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-1 scale-[0.985] opacity-0',
+          isOpen ? 'modal-panel-enter translate-y-0 scale-100 opacity-100' : 'translate-y-1 scale-[0.985] opacity-0',
           maxWidths[maxWidth]
         )}
         ref={dialogRef}
@@ -99,7 +99,7 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-border/70 bg-white px-5 py-5 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-border/70 bg-surface/65 px-5 py-5 sm:px-6 sm:py-6">
           <div>
             {title && <h3 id={titleId} className="text-lg font-semibold text-primary">{title}</h3>}
             {description && <p id={descriptionId} className="text-xs text-secondary mt-0.5">{description}</p>}
@@ -120,7 +120,7 @@ export function Modal({
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-2.5 border-t border-border/70 bg-surface px-5 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-border/70 bg-surface/75 px-5 py-4 sm:px-6">
             {footer}
           </div>
         )}

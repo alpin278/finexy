@@ -54,8 +54,8 @@ export function CategoryFormModal({ isOpen, category, categories, onClose, onSub
 
         <fieldset>
           <legend className="mb-2 text-xs font-semibold text-primary">Type</legend>
-          <div className="grid grid-cols-2 gap-2">
-            {(['expense', 'income'] as CategoryType[]).map((type) => <button key={type} type="button" aria-pressed={values.type === type} disabled={Boolean(category)} onClick={() => update('type', type)} className={values.type === type ? 'h-10 cursor-pointer rounded-xl border border-dark bg-dark text-sm font-semibold text-white disabled:cursor-not-allowed' : 'h-10 cursor-pointer rounded-xl border border-border bg-white text-sm font-medium text-secondary hover:bg-surface hover:text-primary disabled:cursor-not-allowed'}>{type === 'expense' ? 'Expense' : 'Income'}</button>)}
+          <div className="grid grid-cols-2 gap-1 rounded-[14px] border border-border bg-surface p-1">
+            {(['expense', 'income'] as CategoryType[]).map((type) => <button key={type} type="button" aria-pressed={values.type === type} disabled={Boolean(category)} onClick={() => update('type', type)} className={values.type === type ? 'h-10 cursor-pointer rounded-[10px] border border-dark/10 bg-dark text-sm font-semibold text-white shadow-sm ring-1 ring-dark/10 transition-[background-color,color,box-shadow,transform] duration-200 active:translate-y-px disabled:cursor-not-allowed' : 'h-10 cursor-pointer rounded-[10px] border border-transparent bg-transparent text-sm font-medium text-secondary transition-[background-color,color,box-shadow,transform] duration-200 hover:bg-white hover:text-primary active:translate-y-px disabled:cursor-not-allowed'}>{type === 'expense' ? 'Expense' : 'Income'}</button>)}
           </div>
           {category && <p className="mt-1.5 text-[11px] text-secondary">Type stays fixed during edits to protect budget semantics.</p>}
           {errors.type && <p className="mt-1 text-xs text-danger">{errors.type}</p>}

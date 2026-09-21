@@ -51,7 +51,7 @@ export function OverviewPage() {
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 md:col-span-1 xl:col-span-4">{data.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} currency={data.reportingCurrency} className="h-full" />)}</div>
         <div className="h-full min-w-0 md:col-span-2 xl:col-span-4"><ProfitLossChart data={data.cashFlowTrend} currency={data.reportingCurrency} className="h-full min-h-[320px]" /></div>
       </section>
-      <section aria-label="Planning and activity" className="grid min-w-0 items-stretch gap-4 sm:gap-5 xl:grid-cols-12"><div className="flex min-w-0 flex-col gap-4 sm:gap-5 xl:col-span-4"><SpendingLimitCard data={data.budgetProgress} currency={data.reportingCurrency} onViewBudget={() => navigate('/budgets')} /><SpendingInsightCard categories={data.categorySpending} currency={data.reportingCurrency} /><QuickActions /></div><div className="min-w-0 xl:col-span-8"><RecentActivityTable activities={data.recentTransactions} className="h-full" /></div></section>
+      <section aria-label="Planning and activity" className="grid min-w-0 items-start gap-4 sm:gap-5 xl:grid-cols-12"><div className="flex min-w-0 flex-col gap-4 sm:gap-5 xl:col-span-4"><SpendingLimitCard data={data.budgetProgress} currency={data.reportingCurrency} onViewBudget={() => navigate('/budgets')} /><SpendingInsightCard categories={data.categorySpending} currency={data.reportingCurrency} /><QuickActions /></div><div className="min-w-0 xl:col-span-8"><RecentActivityTable activities={data.recentTransactions} /></div></section>
     </> : null}
   </div>;
 }

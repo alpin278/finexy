@@ -78,6 +78,21 @@
     background: #FFFFFF;
     color: #171714;
   }
+
+  textarea {
+    border-color: #ECECE8;
+    border-radius: 12px;
+    background: #FFFFFF;
+    color: #171714;
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out, background-color 150ms ease-out;
+  }
+
+  textarea:focus {
+    border-color: #FF5A36;
+    background: #FFFFFF;
+    box-shadow: 0 0 0 3px rgba(255, 90, 54, 0.15);
+    outline: none;
+  }
 }
 
 @layer utilities {

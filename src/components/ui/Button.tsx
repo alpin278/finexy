@@ -44,7 +44,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       destructive:
         'border border-danger/25 bg-danger/5 text-danger hover:border-danger/40 hover:bg-danger/10 hover:-translate-y-px',
       selected:
-        'border border-dark/10 bg-dark text-white shadow-sm hover:bg-dark-hover',
+        'border border-dark/10 bg-dark text-white shadow-sm ring-1 ring-dark/10 hover:bg-dark-hover',
     };
 
     const sizes = {
