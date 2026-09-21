@@ -14,7 +14,7 @@ import {
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { Icon } from './Icon';
-import { calculateSelectPopoverPosition, moveSelectIndex, type SelectPopoverPosition } from './selectPosition';
+import { calculateSelectPopoverPosition, estimateSelectMenuHeight, moveSelectIndex, type SelectPopoverPosition } from './selectPosition';
 
 export interface SelectOption {
   value: string;
@@ -75,14 +75,36 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       closeTimerRef.current = null;
     }, []);
 
+    const calculatePosition = useCallback(() => {
+      const trigger = triggerRef.current;
+      if (!trigger) return null;
+      return calculateSelectPopoverPosition(
+        trigger.getBoundingClientRect(),
+        window.innerWidth,
+        window.innerHeight,
+        estimateSelectMenuHeight(options.length),
+      );
+    }, [options.length]);
+
     const openMenu = useCallback(() => {
       if (disabled || !options.length) return;
+      if (import.meta.env.DEV) {
+        performance.clearMarks('select_open_start');
+        performance.clearMarks('select_position_ready');
+        performance.clearMarks('select_visible');
+        performance.clearMeasures('select_open_latency');
+        performance.mark('select_open_start');
+      }
       clearScheduledClose();
+      const nextPosition = calculatePosition();
+      if (!nextPosition) return;
+      if (import.meta.env.DEV) performance.mark('select_position_ready');
       setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+      setPosition(nextPosition);
       setIsMounted(true);
       if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = window.requestAnimationFrame(() => setIsVisible(true));
-    }, [clearScheduledClose, disabled, options.length, selectedIndex]);
+    }, [calculatePosition, clearScheduledClose, disabled, options.length, selectedIndex]);
 
     const closeMenu = useCallback(() => {
       if (!isMounted) return;
@@ -97,24 +119,42 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     }, [clearScheduledClose, isMounted]);
 
     const updatePosition = useCallback(() => {
-      const trigger = triggerRef.current;
-      const menu = menuRef.current;
-      if (!trigger || !menu) return;
-      const rect = trigger.getBoundingClientRect();
-      setPosition(calculateSelectPopoverPosition(rect, window.innerWidth, window.innerHeight, menu.scrollHeight));
-    }, []);
+      const nextPosition = calculatePosition();
+      if (!nextPosition) return;
+      setPosition((current) => current
+        && current.top === nextPosition.top
+        && current.left === nextPosition.left
+        && current.width === nextPosition.width
+        && current.maxHeight === nextPosition.maxHeight
+        && current.placement === nextPosition.placement
+        ? current
+        : nextPosition);
+    }, [calculatePosition]);
 
-    useLayoutEffect(() => {
+    useEffect(() => {
       if (!isMounted) return undefined;
-      updatePosition();
-      const handleViewportChange = () => updatePosition();
+      let viewportFrame: number | null = null;
+      const handleViewportChange = () => {
+        if (viewportFrame !== null) return;
+        viewportFrame = window.requestAnimationFrame(() => {
+          viewportFrame = null;
+          updatePosition();
+        });
+      };
       window.addEventListener('resize', handleViewportChange);
       window.addEventListener('scroll', handleViewportChange, true);
       return () => {
+        if (viewportFrame !== null) window.cancelAnimationFrame(viewportFrame);
         window.removeEventListener('resize', handleViewportChange);
         window.removeEventListener('scroll', handleViewportChange, true);
       };
-    }, [isMounted, options.length, updatePosition]);
+    }, [isMounted, updatePosition]);
+
+    useLayoutEffect(() => {
+      if (!isVisible || !import.meta.env.DEV) return;
+      performance.mark('select_visible');
+      performance.measure('select_open_latency', 'select_open_start', 'select_visible');
+    }, [isVisible]);
 
     useEffect(() => {
       if (!isMounted) return undefined;

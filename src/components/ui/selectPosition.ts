@@ -18,6 +18,12 @@ const viewportGutter = 8;
 const triggerGap = 6;
 const preferredMaxHeight = 280;
 const minimumWidth = 160;
+const optionHeight = 37;
+const menuChromeHeight = 14;
+
+export function estimateSelectMenuHeight(optionCount: number) {
+  return Math.max(menuChromeHeight, optionCount * optionHeight + menuChromeHeight);
+}
 
 export function calculateSelectPopoverPosition(
   trigger: SelectTriggerRect,
