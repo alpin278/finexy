@@ -35,12 +35,19 @@ export interface TransactionFormModalProps {
   submitting?: boolean;
 }
 
+function currentLocalDate() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 const defaultValues = (categories: readonly TransactionCategoryOption[], wallets: readonly SelectOption[]): TransactionFormValues => ({
   type: 'expense',
   amount: '',
   category: categories.find((category) => category.type === 'expense')?.value ?? '',
   wallet: wallets[0]?.value ?? '',
-  date: '2026-04-18',
+  // Use the user's local calendar day so a newly recorded web entry is ordered
+  // with current activity instead of inheriting the fixed prototype seed date.
+  date: currentLocalDate(),
   description: '',
   referenceNote: '',
   status: 'completed',
