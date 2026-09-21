@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Icon } from '../components/ui/Icon';
 import { LoadingState } from '../components/ui/LoadingState';
+import { StableFilterRegion } from '../components/ui/StableFilterRegion';
 import {
   CategoryDetailModal,
   CategoryFilters,
@@ -210,7 +211,7 @@ export function CategoriesPage() {
         <section className="min-w-0 space-y-4" aria-label="Category management">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><CategoryTabs active={activeTab} onChange={setActiveTab} counts={counts} /><p className="shrink-0 text-[11px] text-secondary">Showing {visibleCategories.length} of {selectedTabCount} persisted categories</p></div>
           <CategoryFilters values={filters} onChange={(next) => setFilters((current) => ({ ...current, ...next }))} />
-          <CategoryGrid categories={visibleCategories} ruleCounts={ruleCounts} openMenuId={openMenuId} onToggleMenu={(id) => setOpenMenuId((current) => current === id ? null : id)} onView={(category) => { setOpenMenuId(null); setDetailCategory(category); }} onEdit={openEditCategory} onDelete={(category) => { setOpenMenuId(null); setDeleteTarget(category); }} emptyTitle={categories.length ? undefined : 'No categories yet.'} emptyDescription={categories.length ? undefined : 'Create a category to start organizing your transactions.'} />
+          <StableFilterRegion><CategoryGrid categories={visibleCategories} ruleCounts={ruleCounts} openMenuId={openMenuId} onToggleMenu={(id) => setOpenMenuId((current) => current === id ? null : id)} onView={(category) => { setOpenMenuId(null); setDetailCategory(category); }} onEdit={openEditCategory} onDelete={(category) => { setOpenMenuId(null); setDeleteTarget(category); }} emptyTitle={categories.length ? undefined : 'No categories yet.'} emptyDescription={categories.length ? undefined : 'Create a category to start organizing your transactions.'} /></StableFilterRegion>
         </section>
 
         <aside className="min-w-0 space-y-5">

@@ -1,3 +1,5 @@
+import type { CategoryIconName } from './categories';
+
 export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'IDR' | 'JPY' | 'AUD' | 'CAD';
 export type WalletCurrencyCode = 'USD' | 'EUR' | 'GBP' | 'IDR';
 
@@ -11,7 +13,7 @@ export type BudgetPeriod = string;
 export interface BudgetCategoryOption {
   id: string;
   name: string;
-  icon: string | null;
+  icon: CategoryIconName;
 }
 
 export interface BudgetCurrencyTotal {
@@ -31,7 +33,7 @@ export interface Budget {
   transactionCount: number;
   period: BudgetPeriod;
   status: BudgetStatus;
-  icon?: string;
+  icon: CategoryIconName;
   notes?: string;
 }
 

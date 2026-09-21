@@ -8,21 +8,6 @@ export const money = (value: number, currency: 'USD' | 'EUR' | 'GBP' | 'IDR' = '
   return `${symbol}${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-export const categoryIconMap: Record<CategoryIconName, string> = {
-  utensils: 'fork-knife',
-  home: 'house',
-  plane: 'airplane',
-  'shopping-bag': 'bag',
-  gamepad: 'controller',
-  'heart-pulse': 'heart-pulse',
-  'graduation-cap': 'mortarboard',
-  car: 'car-front',
-  wallet: 'wallet2',
-  briefcase: 'briefcase',
-  'dollar-sign': 'currency-dollar',
-  gift: 'gift',
-};
-
 export const accentOptions: { value: CategoryAccent; label: string; className: string }[] = [
   { value: 'orange', label: 'Orange', className: 'bg-accent' },
   { value: 'blue', label: 'Blue', className: 'bg-[#5E8EE9]' },

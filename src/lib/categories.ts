@@ -4,6 +4,7 @@ import type { Enums, TablesInsert, TablesUpdate } from '../types/database';
 import type { CategoryAccent, CategoryIconName, CategoryRule, CategorySummaryData, FinanceCategory } from '../types/categories';
 import type { Budget } from '../types/finance';
 import { ensureDefaultCategories, listActiveCategoryRuleRows, type CategoryRow, type CategoryRuleRow } from './category-bootstrap';
+import { resolveCategoryIconName } from './category-icons';
 import { supabase } from './supabase';
 
 type CategoryType = Enums<'category_type'>;
@@ -56,10 +57,6 @@ function presentationForCategory(row: CategoryRow) {
   };
 }
 
-function safeIcon(value: string | null): CategoryIconName {
-  return defaultCategorySeeds.some((seed) => seed.icon === value) ? value as CategoryIconName : 'wallet';
-}
-
 function safeAccent(value: string | null): CategoryAccent {
   return ['orange', 'blue', 'green', 'purple', 'yellow', 'red'].includes(value ?? '') ? value as CategoryAccent : 'orange';
 }
@@ -70,7 +67,7 @@ function mapCategory(row: CategoryRow): FinanceCategory {
     id: row.id,
     name: row.name,
     type: row.type,
-    icon: safeIcon(row.icon_identifier),
+    icon: resolveCategoryIconName(row.icon_identifier),
     accent: safeAccent(row.accent_identifier),
     ...presentation,
     keywords: row.keywords,

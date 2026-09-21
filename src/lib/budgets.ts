@@ -5,6 +5,7 @@ import type { Enums, Tables, TablesInsert, TablesUpdate } from '../types/databas
 import type { Budget, BudgetCategoryOption, BudgetCurrencyTotal, BudgetPeriod, WalletCurrencyCode } from '../types/finance';
 import { ensureDefaultCategories } from './category-bootstrap';
 import { getBudgetStatus, currentBudgetPeriod, isBudgetPeriod, periodRange, periodStartDate } from './budget-utils';
+import { resolveCategoryIconName } from './category-icons';
 import { supabase } from './supabase';
 import { loadUserDisplayPreferences, type UserDisplayPreferences } from './user-display-preferences';
 
@@ -116,10 +117,6 @@ async function listBudgetableTransactions(userId: string, period: BudgetPeriod) 
   return data as unknown as BudgetSpendRow[];
 }
 
-function seedForBudget(categoryName: string) {
-  return defaultBudgetSeeds.find((seed) => defaultCategorySeeds.some((category) => category.seedId === seed.categorySeedId && category.name.toLowerCase() === categoryName.toLowerCase()));
-}
-
 function usageForRow(row: JoinedBudgetRow, transactions: BudgetSpendRow[]) {
   const matches = transactions.filter((transaction) => (
     transaction.category_id === row.category_id
@@ -138,7 +135,6 @@ function usageForRow(row: JoinedBudgetRow, transactions: BudgetSpendRow[]) {
 function mapBudget(row: JoinedBudgetRow, transactions: BudgetSpendRow[]): Budget {
   const usage = usageForRow(row, transactions);
   const limit = Number(row.limit_amount);
-  const seed = row.category ? seedForBudget(row.category.name) : undefined;
   return {
     id: row.id,
     categoryId: row.category_id,
@@ -149,7 +145,7 @@ function mapBudget(row: JoinedBudgetRow, transactions: BudgetSpendRow[]): Budget
     transactionCount: usage.transactionCount,
     period: row.period_start.slice(0, 7),
     status: getBudgetStatus(usage.spent, limit),
-    icon: seed?.icon ?? row.category?.icon_identifier ?? '◌',
+    icon: resolveCategoryIconName(row.category?.icon_identifier),
     ...(row.notes ? { notes: row.notes } : {}),
   };
 }
@@ -255,7 +251,7 @@ export async function loadBudgetPage(period?: BudgetPeriod): Promise<BudgetPageD
   const budgets = await mapRowsForPeriod(userId, rows, selectedPeriod);
   const categories: BudgetCategoryOption[] = categoryRows
     .filter((category) => category.type === 'expense' && category.status === 'active')
-    .map((category) => ({ id: category.id, name: category.name, icon: category.icon_identifier }));
+    .map((category) => ({ id: category.id, name: category.name, icon: resolveCategoryIconName(category.icon_identifier) }));
   return {
     period: selectedPeriod,
     budgets,

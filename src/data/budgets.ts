@@ -8,18 +8,17 @@ export interface DefaultBudgetSeed {
   categorySeedId: string;
   limitAmount: number;
   currency: WalletCurrencyCode;
-  icon: string;
 }
 
 // The seeded transaction dataset is dated April 2026, so the first eight
 // visible budgets use that period. New budgets default to the actual month.
 export const defaultBudgetSeeds: DefaultBudgetSeed[] = [
-  { categorySeedId: 'food-dining', limitAmount: 2000, currency: 'USD', icon: '🍽️' },
-  { categorySeedId: 'housing-bills', limitAmount: 3500, currency: 'USD', icon: '🏠' },
-  { categorySeedId: 'travel-flights', limitAmount: 2000, currency: 'USD', icon: '✈️' },
-  { categorySeedId: 'shopping-goods', limitAmount: 1500, currency: 'USD', icon: '🛍️' },
-  { categorySeedId: 'entertainment-tech', limitAmount: 600, currency: 'USD', icon: '🎧' },
-  { categorySeedId: 'health-wellness', limitAmount: 500, currency: 'USD', icon: '💚' },
-  { categorySeedId: 'education-growth', limitAmount: 1000, currency: 'USD', icon: '📚' },
-  { categorySeedId: 'transport-fuel', limitAmount: 600, currency: 'USD', icon: '🚗' },
+  { categorySeedId: 'food-dining', limitAmount: 2000, currency: 'USD' },
+  { categorySeedId: 'housing-bills', limitAmount: 3500, currency: 'USD' },
+  { categorySeedId: 'travel-flights', limitAmount: 2000, currency: 'USD' },
+  { categorySeedId: 'shopping-goods', limitAmount: 1500, currency: 'USD' },
+  { categorySeedId: 'entertainment-tech', limitAmount: 600, currency: 'USD' },
+  { categorySeedId: 'health-wellness', limitAmount: 500, currency: 'USD' },
+  { categorySeedId: 'education-growth', limitAmount: 1000, currency: 'USD' },
+  { categorySeedId: 'transport-fuel', limitAmount: 600, currency: 'USD' },
 ];
