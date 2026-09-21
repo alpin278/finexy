@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { CashFlowTrendChart, ExpenseCategoryChart, FinancialHealthCard, LiquidityBreakdown, ReportPeriodTabs, ReportSummary, SurplusInsight } from '../components/reports';
+import { useDataRevalidation } from '../context/DataRevalidationContext';
 
 function day(value: Date) { return value.toISOString().slice(0, 10); }
 function initialRange() { return reportRange('this-month'); }
@@ -19,8 +20,9 @@ export function ReportsPage() {
   const [isExportOpen, setIsExportOpen] = useState(false); const [exportFeedback, setExportFeedback] = useState(''); const [isCustomRangeOpen, setIsCustomRangeOpen] = useState(false);
   const [customStart, setCustomStart] = useState(day(new Date())); const [customEnd, setCustomEnd] = useState(day(new Date()));
   const customRangeError = customStart > customEnd ? 'End date must be on or after the start date.' : '';
-  const refresh = async (nextRange: ReportPeriodRange) => { setLoading(true); setError(null); try { setData(await loadReportsData(nextRange)); } catch (reason) { setData(null); setError(reportsErrorMessage(reason)); } finally { setLoading(false); } };
-  useEffect(() => { const timer = window.setTimeout(() => { void refresh(range); }, 0); return () => window.clearTimeout(timer); }, [range]);
+  const refresh = async (nextRange: ReportPeriodRange, initial = false) => { if (initial) setLoading(true); setError(null); try { setData(await loadReportsData(nextRange)); } catch (reason) { if (initial) { setData(null); setError(reportsErrorMessage(reason)); } } finally { if (initial) setLoading(false); } };
+  useDataRevalidation(['transactions', 'budgets', 'reports', 'settings'], () => refresh(range));
+  useEffect(() => { const timer = window.setTimeout(() => { void refresh(range, true); }, 0); return () => window.clearTimeout(timer); }, [range]);
   const metrics = useMemo<ReportSummaryMetric[]>(() => {
     if (!data) return [];
     const { totals, reportingCurrency } = data;

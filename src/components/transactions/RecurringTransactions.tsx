@@ -3,6 +3,7 @@ import { AmountInput, Button, Card, Input, Modal, Select, StatusBadge } from '..
 import { archiveRecurringRule, createRecurringRule, loadRecurringRules, setRecurringRuleActive, updateRecurringRule, type RecurringRule, type RecurringRuleInput } from '../../lib/recurring-transactions';
 import type { TransactionCategoryOption, TransactionWalletOption } from '../../lib/transactions';
 import { parseAmountNumber } from '../../lib/amount-format';
+import { useDataInvalidation, useDataRevalidation } from '../../context/DataRevalidationContext';
 
 type Props = { wallets: TransactionWalletOption[]; categories: TransactionCategoryOption[]; locale: string; numberFormat: string; onChanged: () => Promise<void>; openCreateSignal?: number };
 type RecurringFormState = Omit<RecurringRuleInput, 'amount'> & { amount: string };
@@ -21,8 +22,10 @@ export function RecurringTransactions({ wallets, categories, locale, numberForma
   const [editing, setEditing] = useState<RecurringRule | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const invalidate = useDataInvalidation();
 
   const refresh = async () => setRules(await loadRecurringRules());
+  useDataRevalidation(['recurring', 'wallets', 'categories'], refresh);
   useEffect(() => {
     void loadRecurringRules().then((items) => queueMicrotask(() => setRules(items))).catch(() => queueMicrotask(() => setError('Could not load recurring transactions.')));
   }, []);
@@ -47,6 +50,7 @@ export function RecurringTransactions({ wallets, categories, locale, numberForma
       if (editing) await updateRecurringRule(editing.id, input);
       else await createRecurringRule(input);
       await refresh();
+      await invalidate(['recurring']);
       await onChanged();
       closeForm();
     } catch (reason) {
@@ -62,6 +66,7 @@ export function RecurringTransactions({ wallets, categories, locale, numberForma
       if (kind === 'archive') await archiveRecurringRule(id);
       else await setRecurringRuleActive(id, !active);
       await refresh();
+      await invalidate(['recurring']);
       await onChanged();
     } catch {
       setError('Could not update recurring transaction.');

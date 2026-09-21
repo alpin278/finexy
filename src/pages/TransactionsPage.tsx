@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 import { DeleteTransactionDialog, TransactionDetailModal, TransactionExportModal, TransactionFilters, TransactionFormModal, TransactionSummary, TransactionTable, TransactionTabs, RecurringTransactions, type TransactionCategoryOption, type TransactionFormValues, type TransactionTab } from '../components/transactions';
 import { archiveTransaction, createTransaction, loadTransactionsPage, transactionErrorMessage, updateTransaction, type TransactionPageData } from '../lib/transactions';
 import type { CurrencyCode, Transaction } from '../types/finance';
@@ -9,6 +10,7 @@ import { parseAmountNumber } from '../lib/amount-format';
 import { StableFilterRegion } from '../components/ui/StableFilterRegion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isFinexyActionState } from '../lib/interaction-actions';
+import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
 
 const emptyData: TransactionPageData = { transactions: [], categories: [], wallets: [], summary: { count: 0, income: {}, expenses: {}, net: {} }, reportingCurrency: 'USD', numberLocale: 'en-US', numberFormat: '1,234.56' };
 
@@ -35,6 +37,7 @@ export function TransactionsPage() {
   const [activityCurrency, setActivityCurrency] = useState<'all' | CurrencyCode | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [recurringSignal, setRecurringSignal] = useState(0);
+  const invalidate = useDataInvalidation();
 
   useEffect(() => {
     let active = true;
@@ -51,11 +54,12 @@ export function TransactionsPage() {
     return () => { active = false; };
   }, []);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const data = await loadTransactionsPage();
     setPageData(data);
-    if (detailTransaction) setDetailTransaction(data.transactions.find((transaction) => transaction.id === detailTransaction.id) ?? null);
-  };
+    setDetailTransaction((current) => current ? data.transactions.find((transaction) => transaction.id === current.id) ?? null : null);
+  }, []);
+  useDataRevalidation(['transactions', 'wallets', 'categories', 'settings'], refresh);
   const openAddTransaction = () => { setActionError(''); setEditingTransaction(null); setIsFormOpen(true); };
   const openEditTransaction = (transaction: Transaction) => { setActionError(''); setEditingTransaction(transaction); setIsFormOpen(true); };
   const handleFormClose = () => { setIsFormOpen(false); setEditingTransaction(null); };
@@ -83,7 +87,7 @@ export function TransactionsPage() {
       const input = { walletId: wallet.id, categoryId: category.id, type, amount, currency: wallet.currency, payee: values.description, description: values.description, note: values.referenceNote, occurredAt: `${values.date}T12:00:00Z`, status: values.status === 'canceled' ? 'canceled' : values.status === 'completed' ? 'completed' : 'pending' } as const;
       if (editingTransaction) await updateTransaction(editingTransaction.id, input);
       else await createTransaction(input);
-      await refresh();
+      await invalidate(['transactions', 'wallets', 'budgets', 'overview', 'reports', 'categories']);
       setActionFeedback(editingTransaction ? 'Transaction updated.' : 'Transaction recorded.');
       window.setTimeout(() => setActionFeedback(''), 2400);
       handleFormClose();
@@ -93,7 +97,7 @@ export function TransactionsPage() {
   const handleDeleteTransaction = async () => {
     if (!deletingTransaction) return;
     setActionError('');
-    try { await archiveTransaction(deletingTransaction.id); await refresh(); setDeletingTransaction(null); setActionFeedback('Transaction archived.'); window.setTimeout(() => setActionFeedback(''), 2400); }
+    try { await archiveTransaction(deletingTransaction.id); await invalidate(['transactions', 'wallets', 'budgets', 'overview', 'reports', 'categories']); setDeletingTransaction(null); setActionFeedback('Transaction archived.'); window.setTimeout(() => setActionFeedback(''), 2400); }
     catch (error) { setActionError(transactionErrorMessage(error)); }
   };
   const exportDateDefaults = (): Pick<TransactionExportFilters, 'dateFrom' | 'dateTo'> => {

@@ -8,6 +8,7 @@ import { Card } from '../components/ui/Card';
 import { Icon } from '../components/ui/Icon';
 import { LoadingState } from '../components/ui/LoadingState';
 import { StableFilterRegion } from '../components/ui/StableFilterRegion';
+import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
 import {
   CategoryDetailModal,
   CategoryFilters,
@@ -28,6 +29,7 @@ const initialFilters: CategoryFilterValues = { search: '', type: 'all', budget: 
 
 export function CategoriesPage() {
   const navigate = useNavigate();
+  const invalidate = useDataInvalidation();
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [rules, setRules] = useState<CategoryRule[]>([]);
   const [summary, setSummary] = useState<CategorySummaryData>(() => buildCategorySummary([]));
@@ -69,6 +71,7 @@ export function CategoriesPage() {
       if (showLoading) setIsLoading(false);
     }
   }, []);
+  useDataRevalidation(['categories', 'budgets', 'transactions'], () => refreshData(false));
 
   useEffect(() => {
     let isActive = true;
@@ -130,7 +133,7 @@ export function CategoriesPage() {
         await createCategory(input);
       }
       closeCategoryForm();
-      await refreshData(false);
+      await invalidate(['categories', 'transactions', 'budgets', 'recurring', 'overview', 'reports']);
     } catch (error) {
       setActionError(categoryErrorMessage(error));
     }
@@ -143,7 +146,7 @@ export function CategoriesPage() {
       await archiveCategory(deleteTarget.id);
       setDeleteTarget(null);
       setOpenMenuId(null);
-      await refreshData(false);
+      await invalidate(['categories', 'transactions', 'budgets', 'recurring', 'overview', 'reports']);
     } catch (error) {
       setActionError(categoryErrorMessage(error));
     }
@@ -154,7 +157,7 @@ export function CategoriesPage() {
     try {
       await createCategoryRule(values);
       setIsRuleFormOpen(false);
-      await refreshData(false);
+      await invalidate(['categories']);
     } catch (error) {
       setActionError(categoryErrorMessage(error));
     }
@@ -164,7 +167,7 @@ export function CategoriesPage() {
     setActionError(null);
     try {
       await setCategoryRuleEnabled(rule.id, !rule.active);
-      await refreshData(false);
+      await invalidate(['categories']);
     } catch (error) {
       setActionError(categoryErrorMessage(error));
     }

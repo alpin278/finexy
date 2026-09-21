@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { archiveWallet, createWallet, loadWalletsPage, updateWallet, walletErrorMessage } from '../lib/wallets';
 import { loadTransactionsPage } from '../lib/transactions';
 import { createWalletTransfer, type CreateWalletTransferInput } from '../lib/transfers';
@@ -10,6 +11,7 @@ import { Icon } from '../components/ui/Icon';
 import { DeleteWalletDialog, WalletDetailModal, WalletFormModal, WalletGrid, WalletSummary, WalletTransferModal, type WalletFormValues } from '../components/wallets';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isFinexyActionState } from '../lib/interaction-actions';
+import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
 
 export function WalletsPage() {
   const location = useLocation();
@@ -27,6 +29,7 @@ export function WalletsPage() {
   const [transferOpen, setTransferOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [displayPreferences, setDisplayPreferences] = useState<UserDisplayPreferences>({ reportingCurrency: 'USD', locale: 'en-US', numberFormat: '1,234.56' });
+  const invalidate = useDataInvalidation();
 
   useEffect(() => {
     let active = true;
@@ -44,14 +47,15 @@ export function WalletsPage() {
     return () => { active = false; };
   }, []);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const transactionData = await loadTransactionsPage();
     const data = await loadWalletsPage();
     setWalletTransactions(transactionData.transactions);
     setWallets(data.wallets);
     setDisplayPreferences(data.displayPreferences);
-    if (detailWallet) setDetailWallet(data.wallets.find((wallet) => wallet.id === detailWallet.id) ?? null);
-  };
+    setDetailWallet((current) => current ? data.wallets.find((wallet) => wallet.id === current.id) ?? null : null);
+  }, []);
+  useDataRevalidation(['transactions', 'wallets', 'settings'], refresh);
   const openAdd = () => { setActionError(''); setTransferFeedback(''); setEditingWallet(null); setFormOpen(true); };
   useEffect(() => {
     if (loading || !isFinexyActionState(location.state)) return;
@@ -71,20 +75,20 @@ export function WalletsPage() {
       } else {
         await createWallet({ name: values.name, type: values.type, currency: values.currency, openingBalance, monthlyLimit, accountMask: values.accountMask.trim() || null, status: values.status === 'Active' ? 'active' : 'inactive' });
       }
-      await refresh();
+      await invalidate(['wallets', 'transactions', 'overview', 'recurring']);
       setFormOpen(false); setEditingWallet(null);
     } catch (error) { setActionError(walletErrorMessage(error)); }
   };
   const confirmDelete = async () => {
     if (!deletingWallet) return;
     setActionError('');
-    try { await archiveWallet(deletingWallet.id); await refresh(); if (detailWallet?.id === deletingWallet.id) setDetailWallet(null); setDeletingWallet(null); }
+    try { await archiveWallet(deletingWallet.id); await invalidate(['wallets', 'transactions', 'overview', 'recurring']); setDetailWallet((current) => current?.id === deletingWallet.id ? null : current); setDeletingWallet(null); }
     catch (error) { setActionError(walletErrorMessage(error)); }
   };
   const handleTransfer = async (input: CreateWalletTransferInput) => {
     setActionError('');
     await createWalletTransfer(input);
-    await refresh();
+    await invalidate(['transactions', 'wallets', 'overview', 'reports']);
     setTransferFeedback('Transfer completed. Wallet balances and ledger entries are now updated.');
   };
   const detailTransactions = detailWallet ? walletTransactions.filter((transaction) => transaction.wallet === detailWallet.name) : [];

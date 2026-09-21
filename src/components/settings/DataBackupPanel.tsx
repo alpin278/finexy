@@ -3,6 +3,7 @@ import { getBackupPreview, importBackup, readBackupFile, exportFullBackup, type 
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import { Select } from '../ui/Select';
+import { useDataInvalidation } from '../../context/DataRevalidationContext';
 
 function previewRows(preview: BackupPreview) {
   return [
@@ -27,6 +28,7 @@ function summaryRows(summary: BackupImportSummary) {
 }
 
 export function DataBackupPanel() {
+  const invalidate = useDataInvalidation();
   const fileInput = useRef<HTMLInputElement>(null);
   const [backup, setBackup] = useState<BackupDocument | null>(null);
   const [preview, setPreview] = useState<BackupPreview | null>(null);
@@ -56,7 +58,7 @@ export function DataBackupPanel() {
   const handleImport = async () => {
     if (!backup) return;
     setBusy(true); setError(''); setFeedback('');
-    try { const result = await importBackup(backup, mode); setSummary(result); setFeedback(result.already_imported ? 'This backup was already imported; no records were duplicated.' : 'Backup imported successfully.'); }
+    try { const result = await importBackup(backup, mode); await invalidate(['transactions', 'wallets', 'budgets', 'overview', 'reports', 'categories', 'recurring', 'settings']); setSummary(result); setFeedback(result.already_imported ? 'This backup was already imported; no records were duplicated.' : 'Backup imported successfully.'); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'We could not import this backup.'); }
     finally { setBusy(false); }
   };

@@ -13,6 +13,7 @@ import { BudgetFormModal, BudgetGrid, BudgetInsights, BudgetOverviewCard, Budget
 import { parseAmountNumber } from '../lib/amount-format';
 import { StableFilterRegion } from '../components/ui/StableFilterRegion';
 import { isFinexyActionState } from '../lib/interaction-actions';
+import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
 
 const emptyData: BudgetPageData = { period: currentBudgetPeriod(), budgets: [], byCategory: {}, availablePeriods: [currentBudgetPeriod()], categories: [], summary: { activeBudgetCount: 0, totalsByCurrency: [], overBudgetCategoryCount: 0 }, displayPreferences: { reportingCurrency: 'USD', locale: 'en-US', numberFormat: '1,234.56' } };
 
@@ -32,6 +33,7 @@ export function BudgetsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
+  const invalidate = useDataInvalidation();
 
   const refresh = useCallback(async (period?: BudgetPeriod) => {
     const next = await loadBudgetPage(period);
@@ -39,6 +41,7 @@ export function BudgetsPage() {
     setLoadError('');
     setDetailBudget((current) => current ? next.budgets.find((budget) => budget.id === current.id) ?? null : null);
   }, []);
+  useDataRevalidation(['transactions', 'budgets', 'categories', 'settings'], () => refresh(pageData.period));
 
   useEffect(() => {
     let active = true;
@@ -75,11 +78,13 @@ export function BudgetsPage() {
     try {
       const limitAmount = parseAmountNumber(values.monthlyLimit);
       if (limitAmount === null) throw new Error('Enter a valid budget limit.');
-      const saved = editingBudget
-        ? await updateBudget(editingBudget.id, { period: values.period, limitAmount, currency: values.currency, notes: values.notes.trim() || null })
-        : await createBudget({ categoryId: values.categoryId, period: values.period, limitAmount, currency: values.currency, notes: values.notes.trim() || null });
+      if (editingBudget) {
+        await updateBudget(editingBudget.id, { period: values.period, limitAmount, currency: values.currency, notes: values.notes.trim() || null });
+      } else {
+        await createBudget({ categoryId: values.categoryId, period: values.period, limitAmount, currency: values.currency, notes: values.notes.trim() || null });
+      }
       closeForm();
-      await refresh(saved?.period ?? values.period);
+      await invalidate(['budgets', 'overview', 'reports', 'categories']);
     } catch (error) {
       setDuplicateError(budgetErrorMessage(error));
     }
@@ -87,7 +92,7 @@ export function BudgetsPage() {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setActionError('');
-    try { await archiveBudget(deleteTarget.id); setDeleteTarget(null); await refresh(pageData.period); }
+    try { await archiveBudget(deleteTarget.id); setDeleteTarget(null); await invalidate(['budgets', 'overview', 'reports', 'categories']); }
     catch (error) { setActionError(budgetErrorMessage(error)); }
   };
 

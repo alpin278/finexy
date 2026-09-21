@@ -15,6 +15,7 @@ import type { AppearancePreference, SettingsCurrency, SettingsProfile, SettingsS
 import { cn } from '../lib/utils';
 import { loadSettings, saveSettings, settingsErrorMessage } from '../lib/settings';
 import { loadTelegramDiagnostics, sendTelegramTestNotification, disconnectTelegram, generateTelegramLinkCode, loadTelegramBudgetNotificationPreferences, loadTelegramConnection, saveTelegramBudgetNotificationPreferences, type TelegramBudgetNotificationPreferences, type TelegramConnection, type TelegramDiagnostics } from '../lib/telegram';
+import { useDataInvalidation } from '../context/DataRevalidationContext';
 
 const appearanceIcons: Record<AppearancePreference, string> = {
   light: 'sun',
@@ -60,6 +61,7 @@ function createInitialSettings(): SettingsState {
 
 export function SettingsPage() {
   const location = useLocation();
+  const invalidate = useDataInvalidation();
   const [settings, setSettings] = useState<SettingsState>(createInitialSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -95,7 +97,7 @@ export function SettingsPage() {
     setSaveMessage('');
   };
 
-  const handleSave = async () => { setSaving(true); setError(''); setSaveMessage(''); try { await saveSettings(settings); if (telegram.status === 'connected') await saveTelegramBudgetNotificationPreferences(telegramNotifications); setSaveMessage('Settings saved.'); } catch (reason) { setError(settingsErrorMessage(reason)); } finally { setSaving(false); } };
+  const handleSave = async () => { setSaving(true); setError(''); setSaveMessage(''); try { await saveSettings(settings); if (telegram.status === 'connected') await saveTelegramBudgetNotificationPreferences(telegramNotifications); await invalidate(['settings', 'overview', 'transactions', 'reports', 'wallets', 'budgets']); setSaveMessage('Settings saved.'); } catch (reason) { setError(settingsErrorMessage(reason)); } finally { setSaving(false); } };
   const enabledInAppNotifications = settings.notifications.filter((notification) => notification.enabled).length;
   const enabledTelegramNotifications = Object.values(telegramNotifications).filter(Boolean).length;
   const handleGenerateTelegramCode = async () => {
