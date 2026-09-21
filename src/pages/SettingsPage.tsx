@@ -213,7 +213,7 @@ export function SettingsPage() {
           </SettingsSection>
         </div>
 
-        <aside className="self-start space-y-6 lg:sticky lg:top-4 lg:max-h-[calc(100dvh-8rem)] lg:overflow-y-auto lg:pr-1">
+        <aside className="self-start space-y-6">
           <Card padding="sm">
             <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface text-secondary"><Icon name="list-ul" /></div><div><h2 className="text-sm font-semibold text-primary">Settings sections</h2><p className="mt-0.5 text-[11px] text-secondary">Jump directly to a preference area</p></div></div>
             <nav className="mt-4 space-y-1" aria-label="Settings sections">
