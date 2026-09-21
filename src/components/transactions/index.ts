@@ -8,6 +8,7 @@ export * from './TransactionFormModal';
 export * from './TransactionDetailModal';
 export * from './DeleteTransactionDialog';
 export * from './TransactionExportModal';
+export * from './BankStatementImportModal';
 
 export { RecurringTransactions } from './RecurringTransactions';
 
