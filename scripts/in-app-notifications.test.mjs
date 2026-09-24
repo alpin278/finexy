@@ -609,9 +609,199 @@ try {
     console.log('✓ Test 11 skipped Telegram event verification because User A has no active Telegram integration.');
   }
 
+  // --- Test 12: Budget limit decrease generates over-limit notification ---
+  console.log('\n--- Running Test 12: budget limit decrease generates over-limit notification ---');
+  // Create a category with limit 1,000,000 and spent 500,000 (50% - on track, no notification)
+  const { data: catLimit, error: catLimitErr } = await clientA
+    .from('categories')
+    .insert({
+      user_id: userA.id,
+      name: `${tag}-cat-limit`,
+      type: 'expense',
+      keywords: [],
+    })
+    .select()
+    .single();
+  if (catLimitErr) throw catLimitErr;
+  assert.ok(catLimit?.id);
+  created.categories.push(catLimit.id);
+
+  const { data: budgetLimit, error: bLimitErr } = await clientA
+    .from('budgets')
+    .insert({
+      user_id: userA.id,
+      category_id: catLimit.id,
+      period_type: 'monthly',
+      period_start: '2026-09-01',
+      limit_amount: 1000000,
+      currency: 'IDR',
+    })
+    .select()
+    .single();
+  if (bLimitErr) throw bLimitErr;
+  assert.ok(budgetLimit?.id);
+  created.budgets.push(budgetLimit.id);
+
+  // Add 500,000 expense (50% progress, should NOT trigger notification)
+  const { data: txLimit, error: txLimitErr } = await clientA
+    .from('transactions')
+    .insert({
+      user_id: userA.id,
+      wallet_id: walletA.id,
+      category_id: catLimit.id,
+      type: 'expense',
+      amount: 500000,
+      currency: 'IDR',
+      description: `${tag}-tx-limit-50pct`,
+      occurred_at: '2026-09-10T10:00:00Z',
+      status: 'completed',
+      source: 'web',
+    })
+    .select()
+    .single();
+  if (txLimitErr) throw txLimitErr;
+  assert.ok(txLimit?.id);
+  created.transactions.push(txLimit.id);
+
+  // Check no notification for 50%
+  const { data: notifsPre } = await clientA
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userA.id)
+    .contains('metadata', { budget_id: budgetLimit.id });
+  assert.equal(notifsPre?.length, 0, 'No notification should exist at 50% progress');
+
+  // Now, lower limit from 1,000,000 to 400,000 (spent 500,000 / 400,000 = 125% -> over budget!)
+  const { error: bUpdateErr } = await clientA
+    .from('budgets')
+    .update({ limit_amount: 400000 })
+    .eq('id', budgetLimit.id);
+  if (bUpdateErr) throw bUpdateErr;
+
+  const { data: notifsPost } = await clientA
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userA.id)
+    .contains('metadata', { budget_id: budgetLimit.id });
+  assert.equal(notifsPost?.length, 1, 'Over-limit notification should be generated after lowering limit');
+  assert.equal(notifsPost[0].type, 'budget_over_limit');
+  created.notifications.push(notifsPost[0].id);
+  console.log('✓ Test 12 passed: budget limit decrease correctly generated over-limit notification.');
+
+  // --- Test 13: Unrelated budget edit does not generate duplicate notification ---
+  console.log('\n--- Running Test 13: unrelated budget edit generates no alert ---');
+  await clientA
+    .from('budgets')
+    .update({ notes: 'Updated notes only' })
+    .eq('id', budgetLimit.id);
+
+  const { data: notifsUnrelated } = await clientA
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userA.id)
+    .contains('metadata', { budget_id: budgetLimit.id });
+  assert.equal(notifsUnrelated?.length, 1, 'No additional notification should be created for unrelated edit');
+  console.log('✓ Test 13 passed: unrelated budget edit (notes) generated no alerts.');
+
+  // --- Test 14: Dedupe on repeated limit edit while still over-limit ---
+  console.log('\n--- Running Test 14: repeated limit edit while over-limit does not duplicate ---');
+  await clientA
+    .from('budgets')
+    .update({ limit_amount: 350000 })
+    .eq('id', budgetLimit.id);
+
+  const { data: notifsDedupe } = await clientA
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userA.id)
+    .contains('metadata', { budget_id: budgetLimit.id });
+  assert.equal(notifsDedupe?.length, 1, 'Deduplication must prevent duplicate over-limit alert');
+  console.log('✓ Test 14 passed: repeated limit edit while remaining over-limit did not duplicate.');
+
+  // --- Test 15: Near-limit to over-limit transition allowed ---
+  console.log('\n--- Running Test 15: near-limit to over-limit transition allowed ---');
+  const { data: catTransition, error: catTransErr } = await clientA
+    .from('categories')
+    .insert({
+      user_id: userA.id,
+      name: `${tag}-cat-trans`,
+      type: 'expense',
+      keywords: [],
+    })
+    .select()
+    .single();
+  if (catTransErr) throw catTransErr;
+  assert.ok(catTransition?.id);
+  created.categories.push(catTransition.id);
+
+  const { data: budgetTransition } = await clientA
+    .from('budgets')
+    .insert({
+      user_id: userA.id,
+      category_id: catTransition.id,
+      period_type: 'monthly',
+      period_start: '2026-09-01',
+      limit_amount: 1000000,
+      currency: 'IDR',
+    })
+    .select()
+    .single();
+  assert.ok(budgetTransition?.id);
+  created.budgets.push(budgetTransition.id);
+
+  // Add 850,000 expense (85% -> near limit)
+  const { data: txNear } = await clientA
+    .from('transactions')
+    .insert({
+      user_id: userA.id,
+      wallet_id: walletA.id,
+      category_id: catTransition.id,
+      type: 'expense',
+      amount: 850000,
+      currency: 'IDR',
+      description: `${tag}-tx-near-limit`,
+      occurred_at: '2026-09-12T10:00:00Z',
+      status: 'completed',
+      source: 'web',
+    })
+    .select()
+    .single();
+  assert.ok(txNear?.id);
+  created.transactions.push(txNear.id);
+
+  const { data: notifsNear } = await clientA
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userA.id)
+    .contains('metadata', { budget_id: budgetTransition.id });
+  assert.equal(notifsNear?.length, 1, 'Near-limit notification should exist');
+  assert.equal(notifsNear[0].type, 'budget_near_limit');
+  created.notifications.push(notifsNear[0].id);
+
+  // Now, lower limit from 1,000,000 to 800,000 (spent 850,000 / 800,000 = 106.25% -> over budget!)
+  await clientA
+    .from('budgets')
+    .update({ limit_amount: 800000 })
+    .eq('id', budgetTransition.id);
+
+  const { data: notifsBoth } = await clientA
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userA.id)
+    .contains('metadata', { budget_id: budgetTransition.id })
+    .order('created_at', { ascending: true });
+  assert.equal(notifsBoth?.length, 2, 'Both near-limit and over-limit notifications must exist');
+  assert.equal(notifsBoth[0].type, 'budget_near_limit');
+  assert.equal(notifsBoth[1].type, 'budget_over_limit');
+  created.notifications.push(notifsBoth[1].id);
+  console.log('✓ Test 15 passed: near-limit followed by over-limit transition successfully generated both notifications.');
+
   console.log('\n==================================================');
-  console.log('ALL 11 BACKEND NOTIFICATION TESTS PASSED!');
+  console.log('ALL 15 BACKEND NOTIFICATION TESTS PASSED!');
   console.log('==================================================');
+} catch (err) {
+  console.error('\n❌ Test execution failed with error:', err);
+  process.exitCode = 1;
 } finally {
   console.log('\nCleaning up test artifacts...');
   // Clean up in reverse dependency order
@@ -631,5 +821,5 @@ try {
     await clientA.from('wallets').delete().eq('id', wId);
   }
   console.log('Cleanup complete.');
-  process.exit(0);
+  process.exit(process.exitCode ?? 0);
 }
