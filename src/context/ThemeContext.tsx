@@ -101,6 +101,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       if (!supportsViewTransition) {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!prefersReducedMotion) {
+          document.documentElement.classList.add('theme-fallback-transition');
+          window.setTimeout(() => {
+            document.documentElement.classList.remove('theme-fallback-transition');
+          }, 220);
+        }
         applyThemeToDOM(nextResolved);
         setPreferenceState(newPreference);
         try {
@@ -115,10 +122,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const clickY = event?.clientY;
       const x = clickX ?? window.innerWidth / 2;
       const y = clickY ?? window.innerHeight / 2;
-      const endRadius = Math.hypot(
-        Math.max(x, window.innerWidth - x),
-        Math.max(y, window.innerHeight - y)
-      );
+      const endRadius = Math.ceil(
+        Math.hypot(
+          Math.max(x, window.innerWidth - x),
+          Math.max(y, window.innerHeight - y)
+        )
+      ) + 4;
 
       const doc = document as unknown as {
         startViewTransition: (callback: () => void) => { ready: Promise<void>; finished: Promise<void> };
@@ -147,7 +156,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
                 ],
               },
               {
-                duration: 380,
+                duration: 450,
                 easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
                 fill: 'forwards',
                 pseudoElement: '::view-transition-new(root)',
