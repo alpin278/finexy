@@ -14,7 +14,19 @@ import { DataBackupPanel, PreferenceToggle, SettingsSection } from '../component
 import type { AppearancePreference, SettingsCurrency, SettingsProfile, SettingsState } from '../types/settings';
 import { cn } from '../lib/utils';
 import { loadSettings, saveSettings, settingsErrorMessage } from '../lib/settings';
-import { loadTelegramDiagnostics, sendTelegramTestNotification, disconnectTelegram, generateTelegramLinkCode, loadTelegramBudgetNotificationPreferences, loadTelegramConnection, saveTelegramBudgetNotificationPreferences, type TelegramBudgetNotificationPreferences, type TelegramConnection, type TelegramDiagnostics } from '../lib/telegram';
+import {
+  loadTelegramDiagnostics,
+  sendTelegramTestNotification,
+  disconnectTelegram,
+  generateTelegramLinkCode,
+  loadTelegramBudgetNotificationPreferences,
+  loadTelegramConnection,
+  saveTelegramBudgetNotificationPreferences,
+  buildTelegramDeepLink,
+  type TelegramBudgetNotificationPreferences,
+  type TelegramConnection,
+  type TelegramDiagnostics,
+} from '../lib/telegram';
 import { useDataInvalidation } from '../context/DataRevalidationContext';
 import { loadFxCacheStatus, refreshFxRates } from '../lib/fx';
 import { useTheme } from '../context/useTheme';
@@ -79,6 +91,7 @@ export function SettingsPage() {
   const [testNotificationCooldownEndsAt, setTestNotificationCooldownEndsAt] = useState<number | null>(null);
   const [telegramNotifications, setTelegramNotifications] = useState<TelegramBudgetNotificationPreferences>({ nearLimit: false, overLimit: false, dailySummary: false, weeklySummary: false });
   const [showTelegramDiagnostics, setShowTelegramDiagnostics] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   const [fxStatus, setFxStatus] = useState<{ provider: string; rateDate: string; fetchedAt: string } | null>(null);
   const [refreshingFx, setRefreshingFx] = useState(false);
   useEffect(() => {
@@ -92,6 +105,50 @@ export function SettingsPage() {
       .catch((reason) => setError(settingsErrorMessage(reason)))
       .finally(() => setLoading(false));
   }, []);
+
+  const linkExpiresAt = telegram.status === 'link_code_ready' ? telegram.expiresAt : '';
+
+  // Temporary lightweight polling while waiting for Telegram deep link / code consumption
+  useEffect(() => {
+    if (telegram.status !== 'link_code_ready') return undefined;
+
+    const expiresAtMs = new Date(linkExpiresAt).getTime();
+    if (Number.isFinite(expiresAtMs) && Date.now() >= expiresAtMs) {
+      const timeoutId = window.setTimeout(() => {
+        setTelegram({ status: 'not_connected' });
+        setTelegramError('Link expired. Generate a new Telegram connection.');
+      }, 0);
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    const intervalId = window.setInterval(async () => {
+      if (Number.isFinite(expiresAtMs) && Date.now() >= expiresAtMs) {
+        window.clearInterval(intervalId);
+        setTelegram({ status: 'not_connected' });
+        setTelegramError('Link expired. Generate a new Telegram connection.');
+        return;
+      }
+
+      try {
+        const connection = await loadTelegramConnection();
+        if (connection.status === 'connected') {
+          window.clearInterval(intervalId);
+          setTelegram(connection);
+          setTelegramError('');
+          setSaveMessage('Telegram successfully connected!');
+          setTelegramNotifications(await loadTelegramBudgetNotificationPreferences(true));
+          setTelegramDiagnostics(await loadTelegramDiagnostics());
+        }
+      } catch {
+        // Silently swallow transient poll errors to avoid disrupting user experience
+      }
+    }, 2500);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [telegram.status, linkExpiresAt]);
+
   useEffect(() => { void loadFxCacheStatus().then(setFxStatus).catch(() => setFxStatus(null)); }, []);
   const [activeModal, setActiveModal] = useState<'security' | null>(null);
 
@@ -130,11 +187,37 @@ export function SettingsPage() {
   };
   const enabledInAppNotifications = settings.notifications.filter((notification) => notification.enabled).length;
   const enabledTelegramNotifications = Object.values(telegramNotifications).filter(Boolean).length;
-  const handleGenerateTelegramCode = async () => {
-    setTelegramBusy(true); setError(''); setSaveMessage(''); setTelegramError('');
-    try { setTelegram(await generateTelegramLinkCode()); }
-    catch { setTelegramError('We could not generate a Telegram link code. Confirm that you are signed in and try again.'); }
-    finally { setTelegramBusy(false); }
+  const handleConnectTelegram = async () => {
+    setTelegramBusy(true);
+    setError('');
+    setSaveMessage('');
+    setTelegramError('');
+    try {
+      const existing = await loadTelegramConnection();
+      if (existing.status === 'connected') {
+        setTelegram(existing);
+        setTelegramNotifications(await loadTelegramBudgetNotificationPreferences(true));
+        setTelegramDiagnostics(await loadTelegramDiagnostics());
+        return;
+      }
+      const newConnection = await generateTelegramLinkCode();
+      setTelegram(newConnection);
+    } catch (reason) {
+      const msg = reason instanceof Error ? reason.message : String(reason);
+      if (msg.toLowerCase().includes('already linked')) {
+        const current = await loadTelegramConnection().catch(() => ({ status: 'not_connected' as const }));
+        setTelegram(current);
+        if (current.status === 'connected') {
+          setTelegramNotifications(await loadTelegramBudgetNotificationPreferences(true).catch(() => telegramNotifications));
+        } else {
+          setTelegramError('Telegram is already connected to an account.');
+        }
+      } else {
+        setTelegramError('We could not generate a Telegram link code. Confirm that you are signed in and try again.');
+      }
+    } finally {
+      setTelegramBusy(false);
+    }
   };
   const handleTestTelegram = async () => {
     setTestingTelegram(true);
@@ -246,11 +329,102 @@ export function SettingsPage() {
 
           <SettingsSection id="telegram" icon="wallet2" eyebrow="Connections" title="Telegram" description="Link Telegram to your signed-in Finexy account. This foundation does not expose financial data or accept financial commands.">
             <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-primary"><i className="bi bi-telegram text-lg" aria-hidden="true" /></div><div><p className="text-sm font-semibold text-primary">Telegram</p><p className="mt-1 text-xs text-secondary">{telegram.status === 'connected' ? 'Your Telegram account is linked.' : telegram.status === 'link_code_ready' ? 'Send the code below to the Finexy bot.' : 'Generate a one-time code to link your account.'}</p><div className="mt-2"><StatusBadge status={telegram.status === 'connected' ? 'active' : telegram.status === 'link_code_ready' ? 'in_progress' : 'inactive'} label={telegram.status === 'connected' ? 'Connected' : telegram.status === 'link_code_ready' ? 'Link Code Ready' : 'Not Connected'} /></div></div></div>
-              {telegram.status === 'connected' ? <Button variant="outline" size="sm" disabled={telegramBusy} onClick={handleDisconnectTelegram}>Disconnect Telegram</Button> : <Button variant="accent" size="sm" disabled={telegramBusy} onClick={handleGenerateTelegramCode}>{telegramBusy ? 'Generating...' : 'Generate Link Code'}</Button>}
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-primary">
+                  <i className="bi bi-telegram text-lg" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-primary">Telegram</p>
+                  <p className="mt-1 text-xs text-secondary">
+                    {telegram.status === 'connected'
+                      ? 'Your Telegram account is linked.'
+                      : telegram.status === 'link_code_ready'
+                        ? 'Complete connection in Telegram.'
+                        : 'Link Telegram to your signed-in Finexy account.'}
+                  </p>
+                  <div className="mt-2">
+                    <StatusBadge
+                      status={telegram.status === 'connected' ? 'active' : telegram.status === 'link_code_ready' ? 'in_progress' : 'inactive'}
+                      label={telegram.status === 'connected' ? 'Connected' : telegram.status === 'link_code_ready' ? 'Connecting...' : 'Not Connected'}
+                    />
+                  </div>
+                </div>
+              </div>
+              {telegram.status === 'connected' ? (
+                <Button variant="outline" size="sm" disabled={telegramBusy} onClick={handleDisconnectTelegram}>
+                  Disconnect Telegram
+                </Button>
+              ) : (
+                <Button variant="accent" size="sm" disabled={telegramBusy} onClick={handleConnectTelegram}>
+                  {telegramBusy ? 'Connecting...' : 'Connect Telegram'}
+                </Button>
+              )}
             </div>
-{telegramError && <div role="alert" className="mt-4 rounded-xl border border-danger/25 bg-danger/10 px-3.5 py-3 text-xs font-medium text-danger">{telegramError}</div>}
-            <div className="mt-4 rounded-2xl border border-border bg-surface p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-primary">Telegram health</p><p className="mt-1 text-xs text-secondary">{telegramDiagnostics?.worker === 'healthy' ? 'Healthy' : telegram.status === 'connected' ? 'Needs attention' : 'Disconnected'}</p></div><div className="flex items-center gap-2">{telegram.status === 'connected' && <Button variant="outline" size="sm" disabled={testingTelegram} onClick={handleTestTelegram}>{testingTelegram ? 'Queueing...' : 'Send test notification'}</Button>}<button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-secondary transition-colors hover:bg-card hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30" aria-expanded={showTelegramDiagnostics} onClick={() => setShowTelegramDiagnostics((open) => !open)}><Icon name="info-circle" />Details<Icon name="chevron-down" className={showTelegramDiagnostics ? 'rotate-180 transition-transform' : 'transition-transform'} /></button></div></div>{telegramTestFeedback && <div role="status" className="mt-3 rounded-xl border border-success/25 bg-success/10 px-3.5 py-3 text-xs font-medium text-primary"><p>{telegramTestFeedback}</p>{telegramTestFeedback.startsWith('Test notification was recently sent') && formatCooldownRemaining(testNotificationCooldownEndsAt) && <p className="mt-1 text-secondary">{formatCooldownRemaining(testNotificationCooldownEndsAt)}</p>}</div>}{showTelegramDiagnostics && <div className="mt-3 border-t border-border pt-3"><div className="grid grid-cols-3 gap-2 text-center text-xs">{telegram.status === 'connected' && telegramDiagnostics ? <><div><p className="font-semibold text-primary">{telegramDiagnostics.pending}</p><p className="text-secondary">Pending</p></div><div><p className="font-semibold text-primary">{telegramDiagnostics.retryable}</p><p className="text-secondary">Retrying</p></div><div><p className="font-semibold text-primary">{telegramDiagnostics.failed}</p><p className="text-secondary">Failed</p></div></> : <p className="col-span-3 text-left text-xs text-secondary">Connect Telegram to view delivery diagnostics.</p>}</div><p className="mt-3 text-[11px] text-secondary">Last delivery: {telegramDiagnostics?.last_delivered_at ? new Date(telegramDiagnostics.last_delivered_at).toLocaleString() : 'None yet'}{telegramDiagnostics?.last_failed_at ? ` · Last failure: ${telegramDiagnostics.failure_class ?? 'Needs attention'}` : ''}</p></div>}</div>
+
+            {telegramError && <div role="alert" className="mt-4 rounded-xl border border-danger/25 bg-danger/10 px-3.5 py-3 text-xs font-medium text-danger">{telegramError}</div>}
+
+            {telegram.status === 'link_code_ready' && (() => {
+              const deepLink = buildTelegramDeepLink(telegram.code);
+              return (
+                <div className="mt-4 rounded-xl border border-accent/20 bg-accent/5 p-4 sm:p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-accent">Connect Telegram</p>
+                      <h3 className="mt-0.5 text-base font-bold text-primary">Open Telegram to Finish Linking</h3>
+                      <p className="mt-1 text-xs text-secondary">
+                        Expires at {new Date(telegram.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
+                      </p>
+                    </div>
+                    {deepLink ? (
+                      <a
+                        href={deepLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-accent px-4 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                      >
+                        <i className="bi bi-telegram text-sm" aria-hidden="true" />
+                        Open Telegram
+                      </a>
+                    ) : (
+                      import.meta.env.DEV ? (
+                        <p className="text-xs text-danger font-medium">
+                          VITE_TELEGRAM_BOT_USERNAME is not configured.
+                        </p>
+                      ) : null
+                    )}
+                  </div>
+
+                  <div className="mt-4 border-t border-border/80 pt-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-secondary">
+                        Or send <span className="font-semibold text-primary font-mono">/link {telegram.code}</span> to the Finexy bot.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="rounded-lg bg-surface px-2.5 py-1 font-mono text-sm font-bold tracking-wider text-primary border border-border">
+                        {telegram.code}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(telegram.code);
+                          setCopiedCode(true);
+                          setTimeout(() => setCopiedCode(false), 2000);
+                        }}
+                        aria-label="Copy link code"
+                      >
+                        <Icon name={copiedCode ? "check-lg" : "copy"} className={copiedCode ? "text-success" : ""} />
+                        {copiedCode ? 'Copied' : 'Copy'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="mt-4 rounded-2xl border border-border bg-surface p-4">
+              <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-primary">Telegram health</p><p className="mt-1 text-xs text-secondary">{telegramDiagnostics?.worker === 'healthy' ? 'Healthy' : telegram.status === 'connected' ? 'Needs attention' : 'Disconnected'}</p></div><div className="flex items-center gap-2">{telegram.status === 'connected' && <Button variant="outline" size="sm" disabled={testingTelegram} onClick={handleTestTelegram}>{testingTelegram ? 'Queueing...' : 'Send test notification'}</Button>}<button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-secondary transition-colors hover:bg-card hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30" aria-expanded={showTelegramDiagnostics} onClick={() => setShowTelegramDiagnostics((open) => !open)}><Icon name="info-circle" />Details<Icon name="chevron-down" className={showTelegramDiagnostics ? 'rotate-180 transition-transform' : 'transition-transform'} /></button></div></div>{telegramTestFeedback && <div role="status" className="mt-3 rounded-xl border border-success/25 bg-success/10 px-3.5 py-3 text-xs font-medium text-primary"><p>{telegramTestFeedback}</p>{telegramTestFeedback.startsWith('Test notification was recently sent') && formatCooldownRemaining(testNotificationCooldownEndsAt) && <p className="mt-1 text-secondary">{formatCooldownRemaining(testNotificationCooldownEndsAt)}</p>}</div>}{showTelegramDiagnostics && <div className="mt-3 border-t border-border pt-3"><div className="grid grid-cols-3 gap-2 text-center text-xs">{telegram.status === 'connected' && telegramDiagnostics ? <><div><p className="font-semibold text-primary">{telegramDiagnostics.pending}</p><p className="text-secondary">Pending</p></div><div><p className="font-semibold text-primary">{telegramDiagnostics.retryable}</p><p className="text-secondary">Retrying</p></div><div><p className="font-semibold text-primary">{telegramDiagnostics.failed}</p><p className="text-secondary">Failed</p></div></> : <p className="col-span-3 text-left text-xs text-secondary">Connect Telegram to view delivery diagnostics.</p>}</div><p className="mt-3 text-[11px] text-secondary">Last delivery: {telegramDiagnostics?.last_delivered_at ? new Date(telegramDiagnostics.last_delivered_at).toLocaleString() : 'None yet'}{telegramDiagnostics?.last_failed_at ? ` · Last failure: ${telegramDiagnostics.failure_class ?? 'Needs attention'}` : ''}</p></div>}</div>
             <div className="mt-4 rounded-2xl border border-border bg-surface p-4">
               <div className="flex items-center gap-2"><i className="bi bi-bell text-sm text-primary" aria-hidden="true" /><p className="text-sm font-semibold text-primary">Telegram notifications</p></div>
               {telegram.status === 'connected' ? <div className="mt-3 divide-y divide-border">
@@ -260,7 +434,6 @@ export function SettingsPage() {
                 <PreferenceToggle id="telegram-weekly-summary" title="Ringkasan mingguan" description="Dikirim hari Minggu sekitar pukul 20.00 sesuai timezone Anda." checked={telegramNotifications.weeklySummary} onChange={(weeklySummary) => { setTelegramNotifications((current) => ({ ...current, weeklySummary })); setSaveMessage(''); }} />
               </div> : <p className="mt-2 text-xs text-secondary">Hubungkan Telegram terlebih dahulu untuk mengatur notifikasi Telegram.</p>}
             </div>
-            {telegram.status === 'link_code_ready' && <div className="mt-4 rounded-xl border border-accent/20 bg-accent/10 p-3.5"><p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary">One-time link code</p><p className="mt-1 font-mono text-lg font-bold tracking-[0.16em] text-primary">{telegram.code}</p><p className="mt-1.5 text-xs text-secondary">Send <span className="font-semibold text-primary">/link {telegram.code}</span> to the Finexy bot. Expires {new Date(telegram.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.</p></div>}
           </SettingsSection>
 
           <SettingsSection id="security" icon="shield-check" eyebrow="Account safety" title="Security & 2FA" description="Review the future security surface without storing passwords, secrets, or real authentication state.">

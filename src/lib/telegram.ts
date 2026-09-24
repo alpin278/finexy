@@ -1,4 +1,4 @@
-﻿import { supabase } from './supabase';
+import { supabase } from './supabase';
 
 export type TelegramConnection =
   | { status: 'not_connected' }
@@ -56,3 +56,26 @@ export async function disconnectTelegram() {
 export type TelegramDiagnostics = { connection: 'connected' | 'disconnected'; worker: 'healthy' | 'needs_attention' | 'disconnected'; last_worker_at?: string | null; last_delivered_at?: string | null; last_failed_at?: string | null; failure_class?: string | null; pending: number; retryable: number; failed: number };
 export async function loadTelegramDiagnostics(): Promise<TelegramDiagnostics> { const { data, error } = await (supabase as any).rpc('get_telegram_diagnostics'); if (error) throw error; return data as TelegramDiagnostics; }
 export async function sendTelegramTestNotification() { const { data, error } = await (supabase as any).rpc('queue_telegram_test_notification'); if (error) throw error; return data as 'queued' | 'already_queued'; }
+
+/**
+ * Normalizes the configured public Telegram bot username.
+ * Strips leading '@' or URL prefixes if inadvertently entered in configuration.
+ */
+export function getTelegramBotUsername(): string | null {
+  const raw = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const cleaned = trimmed.replace(/^https?:\/\/t\.me\//i, '').replace(/^@/, '').trim();
+  return cleaned || null;
+}
+
+/**
+ * Builds the Telegram deep linking URL for account connection.
+ * Returns null if the bot username is not configured.
+ */
+export function buildTelegramDeepLink(code: string): string | null {
+  const username = getTelegramBotUsername();
+  if (!username) return null;
+  return `https://t.me/${username}?start=${encodeURIComponent(code)}`;
+}

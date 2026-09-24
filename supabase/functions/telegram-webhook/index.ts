@@ -468,7 +468,7 @@ Deno.serve(async (request) => {
     // It is intentionally non-blocking: a Telegram API failure must not delay the action.
     acknowledgeCallback(botToken, callback?.id, requestStartedAt, isRecurringCallback ? RECURRING_TELEGRAM_TIMEOUT_MS : CALLBACK_ACK_TIMEOUT_MS);
 
-    const linkMatch = /^\/link\s+([A-Fa-f0-9]{12})\s*$/.exec(text);
+    const linkMatch = /^\/(?:start|link)(?:@\w+)?\s+([A-Fa-f0-9]{12})\s*$/i.exec(text);
 
     if (linkMatch) {
       stage = 'link_rpc';
@@ -612,7 +612,11 @@ Deno.serve(async (request) => {
     }
     if (!requested || claim !== 'claimed') {
       logTiming('business_data_ready', requestStartedAt, { flow: 'unrecognized', result: 'ready' });
-      await visibleResponse(botToken, telegramChatId, 'Pesan belum dikenali. Ketik /menu untuk membuka menu Finexy.', undefined, callback, requestStartedAt, 'unrecognized');
+      const isBareStart = /^\/start(?:@\w+)?\s*$/i.test(text);
+      const replyText = (claim !== 'claimed' && isBareStart)
+        ? 'Halo! Untuk menghubungkan Telegram ke Finexy, buka Finexy → Settings → Telegram → Connect Telegram.'
+        : 'Pesan belum dikenali. Ketik /menu untuk membuka menu Finexy.';
+      await visibleResponse(botToken, telegramChatId, replyText, undefined, callback, requestStartedAt, isBareStart ? 'onboarding' : 'unrecognized');
       return finishResponse('ok');
     }
 
