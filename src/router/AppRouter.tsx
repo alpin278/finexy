@@ -1,5 +1,5 @@
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
-import { ProtectedRoute, PublicOnlyRoute } from '../components/auth/AuthRoutes';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { ProtectedRoute, PublicOnlyRoute, RootRoute } from '../components/auth/AuthRoutes';
 import { AppShell } from '../components/layout/AppShell';
 import { LoginPage } from '../pages/LoginPage';
 import { SignupPage } from '../pages/SignupPage';
@@ -14,6 +14,7 @@ import { ProfilePage } from '../pages/ProfilePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { LoadingPreviewPage } from '../pages/LoadingPreviewPage';
 import { LandingPreviewPage } from '../pages/LandingPreviewPage';
+import { LandingPage } from '../pages/LandingPage';
 
 export const router = createBrowserRouter([
   ...(import.meta.env.DEV
@@ -22,11 +23,19 @@ export const router = createBrowserRouter([
           path: 'loading-preview',
           element: <LoadingPreviewPage />,
         },
+        {
+          path: 'landing-preview',
+          element: <LandingPreviewPage />,
+        },
       ]
     : []),
   {
-    path: 'landing-preview',
-    element: <LandingPreviewPage />,
+    path: '/',
+    element: (
+      <RootRoute>
+        <LandingPage />
+      </RootRoute>
+    ),
   },
   {
     element: <PublicOnlyRoute />,
@@ -45,52 +54,47 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       {
-        path: '/',
         element: <AppShell />,
         children: [
-      {
-        index: true,
-        element: <Navigate to="/overview" replace />,
-      },
-      {
-        path: 'overview',
-        element: <OverviewPage />,
-      },
-      {
-        path: 'transactions',
-        element: <TransactionsPage />,
-      },
-      {
-        path: 'wallets',
-        element: <WalletsPage />,
-      },
-      {
-        path: 'budgets',
-        element: <BudgetsPage />,
-      },
-      {
-        path: 'reports',
-        element: <ReportsPage />,
-      },
-      {
-        path: 'categories',
-        element: <CategoriesPage />,
-      },
-      {
-        path: 'profile',
-        element: <ProfilePage />,
-      },
-      {
-        path: 'settings',
-        element: <SettingsPage />,
-      },
-      {
-        path: '*',
-        element: <NotFoundPage />,
-      },
+          {
+            path: 'overview',
+            element: <OverviewPage />,
+          },
+          {
+            path: 'transactions',
+            element: <TransactionsPage />,
+          },
+          {
+            path: 'wallets',
+            element: <WalletsPage />,
+          },
+          {
+            path: 'budgets',
+            element: <BudgetsPage />,
+          },
+          {
+            path: 'reports',
+            element: <ReportsPage />,
+          },
+          {
+            path: 'categories',
+            element: <CategoriesPage />,
+          },
+          {
+            path: 'profile',
+            element: <ProfilePage />,
+          },
+          {
+            path: 'settings',
+            element: <SettingsPage />,
+          },
         ],
       },
     ],
+  },
+  {
+    path: '*',
+    element: <NotFoundPage />,
   },
 ]);
 

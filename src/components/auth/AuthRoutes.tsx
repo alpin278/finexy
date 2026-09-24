@@ -33,3 +33,17 @@ export function PublicOnlyRoute() {
 
   return <Outlet />;
 }
+
+export function RootRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <AuthLoadingPlaceholder />;
+  }
+
+  if (user) {
+    return <Navigate to="/overview" replace />;
+  }
+
+  return <>{children}</>;
+}

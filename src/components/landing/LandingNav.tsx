@@ -22,7 +22,7 @@ export function LandingNav() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <Link
-          to="/landing-preview"
+          to="/"
           className="group flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded-lg p-1"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-white shadow-sm transition-transform duration-200 group-hover:scale-105">
