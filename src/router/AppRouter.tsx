@@ -13,6 +13,7 @@ import { SettingsPage } from '../pages/SettingsPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { LoadingPreviewPage } from '../pages/LoadingPreviewPage';
+import { LandingPreviewPage } from '../pages/LandingPreviewPage';
 
 export const router = createBrowserRouter([
   ...(import.meta.env.DEV
@@ -23,6 +24,10 @@ export const router = createBrowserRouter([
         },
       ]
     : []),
+  {
+    path: 'landing-preview',
+    element: <LandingPreviewPage />,
+  },
   {
     element: <PublicOnlyRoute />,
     children: [
