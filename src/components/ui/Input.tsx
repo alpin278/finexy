@@ -20,10 +20,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           disabled={disabled}
           className={cn(
-            'w-full h-10 px-3.5 bg-white border border-border rounded-[12px] text-sm text-primary',
-            'placeholder:text-secondary/70 transition-[border-color,background-color,box-shadow] duration-150',
-            'focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15',
-            'disabled:bg-surface disabled:cursor-not-allowed disabled:text-secondary',
+            'w-full h-10 px-3.5 bg-card dark:bg-[#1A1A17] border border-border dark:border-[#32322A] rounded-[12px] text-sm text-primary dark:text-[#F2F2EE]',
+            'placeholder:text-secondary/70 dark:placeholder:text-[#787870] transition-[border-color,background-color,box-shadow] duration-150',
+            'focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 dark:focus:border-accent dark:focus:ring-accent/25',
+            'disabled:bg-surface dark:disabled:bg-[#151512] disabled:cursor-not-allowed disabled:text-secondary',
             leftIcon && 'pl-10',
             rightIcon && 'pr-10',
             error && 'border-danger focus:border-danger focus:ring-2 focus:ring-danger/15',

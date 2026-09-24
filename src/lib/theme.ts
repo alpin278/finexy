@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Finexy Design System Tokens
  * Source of truth: Figma (https://www.figma.com/slides/UgqDYZWAmBj1dpOkTYz0s0) & Project Specs
  */
@@ -36,16 +36,16 @@ export const shadows = {
 } as const;
 
 export const typography = {
-  pageHeading: 'text-2xl sm:text-[28px] lg:text-[32px] font-bold text-[#171714] tracking-tight leading-tight',
-  sectionHeading: 'text-lg sm:text-xl font-semibold text-[#171714] tracking-tight',
-  cardHeading: 'text-sm sm:text-base font-semibold text-[#171714]',
-  largeFinancialValue: 'text-3xl sm:text-4xl lg:text-[40px] font-bold text-[#171714] tracking-tight',
+  pageHeading: 'text-2xl sm:text-[28px] lg:text-[32px] font-bold text-primary tracking-tight leading-tight',
+  sectionHeading: 'text-lg sm:text-xl font-semibold text-primary tracking-tight',
+  cardHeading: 'text-sm sm:text-base font-semibold text-primary',
+  largeFinancialValue: 'text-3xl sm:text-4xl lg:text-[40px] font-bold text-primary tracking-tight',
   metricValue: 'text-2xl sm:text-[26px] font-bold tracking-tight',
-  tableHeader: 'text-xs font-medium text-[#777771] tracking-wider uppercase',
-  tableCell: 'text-sm font-medium text-[#171714]',
-  label: 'text-xs font-medium text-[#777771]',
-  metadata: 'text-xs text-[#777771]',
-  helper: 'text-[11px] text-[#777771]',
+  tableHeader: 'text-xs font-medium text-secondary tracking-wider uppercase',
+  tableCell: 'text-sm font-medium text-primary',
+  label: 'text-xs font-medium text-secondary',
+  metadata: 'text-xs text-secondary',
+  helper: 'text-[11px] text-secondary',
 } as const;
 
 export const transitions = {

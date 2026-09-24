@@ -10,6 +10,8 @@ import { Icon } from '../ui/Icon';
 import { usePrivacy } from '../../context/usePrivacy';
 import { CommandPalette, type PaletteCommand } from './CommandPalette';
 
+import { useTheme } from '../../context/useTheme';
+
 export interface AppShellProps {
   currentTab?: NavigationTab;
   onNavigate?: (tab: NavigationTab) => void;
@@ -20,7 +22,7 @@ export interface AppShellProps {
 export function AppShell({ currentTab, onNavigate, children, className }: AppShellProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileMenuMounted, setIsMobileMenuMounted] = useState(false);
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const { user, profile } = useAuth();
   const { privacyMode, togglePrivacyMode } = usePrivacy();
@@ -126,8 +128,8 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
           <Sidebar
             currentTab={activeTab || undefined}
             onNavigate={onNavigate}
-            isDarkTheme={isDarkTheme}
-            onToggleTheme={() => setIsDarkTheme(!isDarkTheme)}
+            isDarkTheme={theme === 'dark'}
+            onToggleTheme={toggleTheme}
             className="hidden sm:flex"
           />
 
@@ -149,7 +151,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
             />
 
             {/* Drawer Panel */}
-            <div className={cn('mobile-drawer-panel fixed inset-y-0 left-0 z-10 flex w-4/5 max-w-xs flex-col bg-white p-6 shadow-xl', isMobileMenuOpen && 'mobile-drawer-panel-open')}>
+            <div className={cn('mobile-drawer-panel fixed inset-y-0 left-0 z-10 flex w-4/5 max-w-xs flex-col bg-card p-6 shadow-xl', isMobileMenuOpen && 'mobile-drawer-panel-open')}>
               <div className="flex items-center justify-between pb-4 border-b border-border">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
@@ -183,7 +185,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                         'flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-[background-color,color,border-color,box-shadow] duration-150 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
                         isActive
                           ? 'border-dark/10 bg-dark text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)]'
-                          : 'border-transparent text-secondary hover:text-primary hover:bg-white hover:shadow-sm'
+                          : 'border-transparent text-secondary hover:text-primary hover:bg-card hover:shadow-sm'
                       )}
                     >
                       <Icon name={tab.icon} className="text-base" />
@@ -209,7 +211,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                         'flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-[background-color,color,border-color,box-shadow] duration-150 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
                         isActive
                           ? 'border-dark/10 bg-dark text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)]'
-                          : 'border-transparent text-secondary hover:text-primary hover:bg-white hover:shadow-sm'
+                          : 'border-transparent text-secondary hover:text-primary hover:bg-card hover:shadow-sm'
                         )}
                       >
                         <Icon name={tab.icon} className="text-base" />
@@ -217,6 +219,23 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                       </Link>
                     );
                   })}
+                  <div className="flex items-center justify-between px-4 py-2.5 mt-1 rounded-xl text-sm font-medium text-secondary">
+                    <span className="flex items-center gap-3">
+                      <Icon name={theme === 'dark' ? 'sun' : 'moon'} className="text-base" />
+                      <span>{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={toggleTheme}
+                      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                      className={cn(
+                        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                        theme === 'dark' ? 'bg-accent' : 'bg-border'
+                      )}
+                    >
+                      <span className={cn('pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out', theme === 'dark' ? 'translate-x-5' : 'translate-x-0')} />
+                    </button>
+                  </div>
                 </div>
               </div>
 

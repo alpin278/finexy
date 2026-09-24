@@ -42,20 +42,20 @@ export function ProfitLossChart({ data, currency, className }: ProfitLossChartPr
       <div className="h-[248px] w-full pt-4 sm:h-[272px]">
         <ResponsiveContainer width="100%" height="100%" minWidth={200}>
           <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barCategoryGap="24%" barGap={3}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ECECE8" />
-            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#777771', fontSize: 11, fontWeight: 500 }} dy={8} />
-            <YAxis domain={domain} allowDataOverflow={false} axisLine={false} tickLine={false} tick={{ fill: '#777771', fontSize: 10 }} tickFormatter={(value) => axisFormatter(Number(value))} width={62} tickCount={5} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid, #ECECE8)" />
+            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'var(--chart-text, #777771)', fontSize: 11, fontWeight: 500 }} dy={8} />
+            <YAxis domain={domain} allowDataOverflow={false} axisLine={false} tickLine={false} tick={{ fill: 'var(--chart-text, #777771)', fontSize: 10 }} tickFormatter={(value) => axisFormatter(Number(value))} width={62} tickCount={5} />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
                 const income = Number(payload.find((item) => item.dataKey === 'income')?.value ?? 0);
                 const expenses = Number(payload.find((item) => item.dataKey === 'expenses')?.value ?? 0);
-                return <div className="rounded-2xl border border-border bg-white p-3 text-xs shadow-dropdown"><p className="mb-1.5 font-bold text-primary">{label} cash flow</p><p className="text-secondary">Income <span className="money-value font-semibold text-primary">{formatWalletAmount(income, currency)}</span></p><p className="text-secondary">Expenses <span className="money-value font-semibold text-primary">{formatWalletAmount(expenses, currency)}</span></p><p className="mt-1 border-t border-border pt-1 font-semibold text-primary">Net <span className="money-value">{formatWalletAmount(income - expenses, currency)}</span></p></div>;
+                return <div className="rounded-2xl border border-border bg-card p-3 text-xs shadow-dropdown"><p className="mb-1.5 font-bold text-primary">{label} cash flow</p><p className="text-secondary">Income <span className="money-value font-semibold text-primary">{formatWalletAmount(income, currency)}</span></p><p className="text-secondary">Expenses <span className="money-value font-semibold text-primary">{formatWalletAmount(expenses, currency)}</span></p><p className="mt-1 border-t border-border pt-1 font-semibold text-primary">Net <span className="money-value">{formatWalletAmount(income - expenses, currency)}</span></p></div>;
               }}
-              cursor={{ fill: 'rgba(236,236,232,0.45)' }}
+              cursor={{ fill: 'var(--chart-cursor, rgba(236,236,232,0.45))' }}
             />
             <Bar dataKey="income" name="Income" fill="#FF5A36" radius={[5, 5, 0, 0]} maxBarSize={28} isAnimationActive={false} />
-            <Bar dataKey="expenses" name="Expenses" fill="#22221C" radius={[5, 5, 0, 0]} maxBarSize={28} isAnimationActive={false} />
+            <Bar dataKey="expenses" name="Expenses" fill="var(--chart-dark, #22221C)" radius={[5, 5, 0, 0]} maxBarSize={28} isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>

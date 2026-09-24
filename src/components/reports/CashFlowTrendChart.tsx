@@ -27,15 +27,15 @@ export function CashFlowTrendChart({ data, stats, currency }: { data: ReportTren
           <div className="h-[250px] pt-4 sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="#ECECE8" strokeDasharray="3 4" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: '#777771', fontSize: 10 }} axisLine={false} tickLine={false} dy={8} />
-                <YAxis domain={domain} tickFormatter={(value) => formatCompactMoney(Number(value), currency)} tick={{ fill: '#777771', fontSize: 10 }} axisLine={false} tickLine={false} width={62} tickCount={5} />
+                <CartesianGrid stroke="var(--chart-grid, #ECECE8)" strokeDasharray="3 4" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: 'var(--chart-text, #777771)', fontSize: 10 }} axisLine={false} tickLine={false} dy={8} />
+                <YAxis domain={domain} tickFormatter={(value) => formatCompactMoney(Number(value), currency)} tick={{ fill: 'var(--chart-text, #777771)', fontSize: 10 }} axisLine={false} tickLine={false} width={62} tickCount={5} />
                 <Tooltip
                   formatter={(value, name) => [formatMoney(Number(value), currency), String(name)]}
-                  contentStyle={{ border: '1px solid #ECECE8', borderRadius: 14, background: '#FFFFFF', fontSize: 11, boxShadow: '0 14px 32px rgba(23,23,20,.12)', padding: '10px 12px' }}
-                  labelStyle={{ color: '#171714', fontWeight: 700, marginBottom: 4 }}
+                  contentStyle={{ border: '1px solid var(--color-border)', borderRadius: 14, background: 'var(--color-card)', color: 'var(--color-primary)', fontSize: 11, boxShadow: 'var(--shadow-dropdown)', padding: '10px 12px' }}
+                  labelStyle={{ color: 'var(--color-primary)', fontWeight: 700, marginBottom: 4 }}
                 />
-                <Line type="linear" dataKey="income" name="Inflow" stroke="#22221C" strokeWidth={2.5} dot={{ r: 2.5, fill: '#22221C', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                <Line type="linear" dataKey="income" name="Inflow" stroke="var(--chart-dark, #22221C)" strokeWidth={2.5} dot={{ r: 2.5, fill: 'var(--chart-dark, #22221C)', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
                 <Line type="linear" dataKey="expenses" name="Outflow" stroke="#FF5A36" strokeWidth={2.5} dot={{ r: 2.5, fill: '#FF5A36', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
                 <Line type="linear" dataKey="net" name="Net" stroke="#55B88B" strokeWidth={2.5} strokeDasharray="5 4" dot={{ r: 2, fill: '#55B88B', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
               </LineChart>

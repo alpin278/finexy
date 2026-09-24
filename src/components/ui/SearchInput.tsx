@@ -23,9 +23,9 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           onChange={onChange}
           placeholder={placeholder}
           className={cn(
-            'w-full h-9 pl-9 pr-8 bg-surface hover:bg-white border border-border rounded-full text-xs text-primary',
+            'w-full h-9 pl-9 pr-8 bg-surface hover:bg-card border border-border rounded-full text-xs text-primary',
             'placeholder:text-secondary transition-all duration-150',
-            'focus:outline-none focus:bg-white focus:border-accent focus:ring-2 focus:ring-accent/15'
+            'focus:outline-none focus:bg-card focus:border-accent focus:ring-2 focus:ring-accent/15'
           )}
           {...props}
         />

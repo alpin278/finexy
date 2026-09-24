@@ -18,7 +18,7 @@ export function CategoryTabs({ active, onChange, counts }: { active: CategoryTab
           role="tab"
           aria-selected={active === tab.value}
           onClick={() => onChange(tab.value)}
-          className={active === tab.value ? 'shrink-0 cursor-pointer rounded-full border border-dark/10 bg-dark px-3.5 py-2 text-xs font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)] transition-[background-color,color,box-shadow] duration-200' : 'shrink-0 cursor-pointer rounded-full border border-transparent px-3.5 py-2 text-xs font-semibold text-secondary transition-[background-color,color,box-shadow] duration-200 hover:bg-white hover:text-primary'}
+          className={active === tab.value ? 'shrink-0 cursor-pointer rounded-full border border-dark/10 bg-dark px-3.5 py-2 text-xs font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)] transition-[background-color,color,box-shadow] duration-200' : 'shrink-0 cursor-pointer rounded-full border border-transparent px-3.5 py-2 text-xs font-semibold text-secondary transition-[background-color,color,box-shadow] duration-200 hover:bg-card hover:text-primary'}
         >
           {tab.label} <span className={active === tab.value ? 'ml-1 text-white/70' : 'ml-1 text-secondary/70'}>({counts[tab.countKey]})</span>
         </button>

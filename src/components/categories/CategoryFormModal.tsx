@@ -54,8 +54,23 @@ export function CategoryFormModal({ isOpen, category, categories, onClose, onSub
 
         <fieldset>
           <legend className="mb-2 text-xs font-semibold text-primary">Type</legend>
-          <div className="isolate grid grid-cols-2 gap-1 overflow-hidden rounded-[14px] border border-border bg-surface p-1">
-            {(['expense', 'income'] as CategoryType[]).map((type) => <button key={type} type="button" aria-pressed={values.type === type} disabled={Boolean(category)} onClick={() => update('type', type)} className={values.type === type ? 'h-10 cursor-pointer rounded-[10px] border border-dark/10 bg-dark text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)] transition-[background-color,color,box-shadow] duration-200 disabled:cursor-not-allowed' : 'h-10 cursor-pointer rounded-[10px] border border-transparent bg-transparent text-sm font-medium text-secondary transition-[background-color,color,box-shadow] duration-200 hover:bg-white hover:text-primary disabled:cursor-not-allowed'}>{type === 'expense' ? 'Expense' : 'Income'}</button>)}
+          <div className="isolate grid grid-cols-2 gap-1 overflow-hidden rounded-[14px] border border-border dark:border-[#2C2C26] bg-surface dark:bg-[#181815] p-1">
+            {(['expense', 'income'] as CategoryType[]).map((type) => (
+              <button
+                key={type}
+                type="button"
+                aria-pressed={values.type === type}
+                disabled={Boolean(category)}
+                onClick={() => update('type', type)}
+                className={
+                  values.type === type
+                    ? 'h-10 cursor-pointer rounded-[10px] border border-dark/10 dark:border-[#3E3E34] bg-dark dark:bg-[#2C2C26] text-sm font-semibold text-white dark:text-[#F2F2EE] shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_6px_rgba(0,0,0,0.3)] transition-[background-color,color,box-shadow] duration-200 disabled:cursor-not-allowed'
+                    : 'h-10 cursor-pointer rounded-[10px] border border-transparent bg-transparent text-sm font-medium text-secondary dark:text-[#8E8E86] transition-[background-color,color,box-shadow] duration-200 hover:bg-card dark:hover:bg-[#22221E] hover:text-primary dark:hover:text-[#D4D4CE] disabled:cursor-not-allowed'
+                }
+              >
+                {type === 'expense' ? 'Expense' : 'Income'}
+              </button>
+            ))}
           </div>
           {category && <p className="mt-1.5 text-[11px] text-secondary">Type stays fixed during edits to protect budget semantics.</p>}
           {errors.type && <p className="mt-1 text-xs text-danger">{errors.type}</p>}
@@ -65,14 +80,14 @@ export function CategoryFormModal({ isOpen, category, categories, onClose, onSub
           <div>
             <label htmlFor="category-icon" className="mb-1.5 block text-xs font-semibold text-primary">Icon</label>
             <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-surface"><CategoryIcon name={values.icon} className="h-4 w-4 text-primary" /></div>
-              <Select id="category-icon" value={values.icon} onChange={(event) => update('icon', event.target.value as CategoryIconName)} options={iconOptions} className="h-10 w-full rounded-[12px] bg-white px-3 pr-8" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border dark:border-[#32322A] bg-surface dark:bg-[#1A1A17]"><CategoryIcon name={values.icon} className="h-4 w-4 text-primary dark:text-[#F2F2EE]" /></div>
+              <Select id="category-icon" value={values.icon} onChange={(event) => update('icon', event.target.value as CategoryIconName)} options={iconOptions} className="h-10 w-full rounded-[12px] bg-card dark:bg-[#1A1A17] px-3 pr-8" />
             </div>
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-primary">Accent</label>
-            <div className="flex h-10 items-center gap-2 rounded-xl border border-border bg-white px-3">
-              {accentOptions.map((accent) => <button key={accent.value} type="button" aria-label={`${accent.label} accent`} aria-pressed={values.accent === accent.value} onClick={() => update('accent', accent.value)} className={`h-5 w-5 cursor-pointer rounded-full ${accent.className} ${values.accent === accent.value ? 'ring-2 ring-primary ring-offset-2' : 'opacity-60 hover:opacity-100'}`} />)}
+            <div className="flex h-10 items-center gap-2 rounded-xl border border-border dark:border-[#32322A] bg-card dark:bg-[#1A1A17] px-3">
+              {accentOptions.map((accent) => <button key={accent.value} type="button" aria-label={`${accent.label} accent`} aria-pressed={values.accent === accent.value} onClick={() => update('accent', accent.value)} className={`h-5 w-5 cursor-pointer rounded-full ${accent.className} ${values.accent === accent.value ? 'ring-2 ring-primary dark:ring-[#F2F2EE] ring-offset-2 ring-offset-card dark:ring-offset-[#1A1A17]' : 'opacity-60 hover:opacity-100'}`} />)}
             </div>
           </div>
         </div>
@@ -85,7 +100,7 @@ export function CategoryFormModal({ isOpen, category, categories, onClose, onSub
 
         <div>
           <label htmlFor="category-status" className="mb-1.5 block text-xs font-semibold text-primary">Status</label>
-          <Select id="category-status" value={values.status} onChange={(event) => update('status', event.target.value as CategoryStatus)} options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} className="h-10 w-full rounded-[12px] bg-white px-3 pr-8" />
+          <Select id="category-status" value={values.status} onChange={(event) => update('status', event.target.value as CategoryStatus)} options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} className="h-10 w-full rounded-[12px] bg-card dark:bg-[#1A1A17] px-3 pr-8" />
         </div>
       </form>
     </Modal>

@@ -5,24 +5,35 @@ import { Icon } from '../ui/Icon';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
 import { useAuth } from '../../context/useAuth';
 
+import { useTheme } from '../../context/useTheme';
+
 export interface SidebarProps {
   currentTab?: NavigationTab;
   onNavigate?: (tab: NavigationTab) => void;
   className?: string;
   isDarkTheme?: boolean;
-  onToggleTheme?: () => void;
+  onToggleTheme?: (event?: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 export function Sidebar({
   currentTab,
   onNavigate,
   className,
-  isDarkTheme = false,
+  isDarkTheme: isDarkThemeProp,
   onToggleTheme,
 }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const themeContext = useTheme();
+  const isDarkTheme = isDarkThemeProp !== undefined ? isDarkThemeProp : themeContext.theme === 'dark';
+  const handleToggle = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (onToggleTheme) {
+      onToggleTheme(e);
+    } else {
+      themeContext.toggleTheme(e);
+    }
+  };
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
 
   const mainNavItems: {
@@ -49,11 +60,18 @@ export function Sidebar({
         <Tooltip content={isDarkTheme ? 'Switch to Light Mode' : 'Switch to Dark Mode'} position="right">
           <button
             type="button"
-            onClick={onToggleTheme}
-            aria-label="Toggle theme"
-            className="w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface hover:shadow-sm transition-[background-color,color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+            onClick={handleToggle}
+            aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="group w-10 h-10 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface hover:shadow-sm transition-[background-color,color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
           >
-            <Icon name={isDarkTheme ? 'sun' : 'moon'} className="text-base" />
+            <span
+              className={cn(
+                'inline-flex transition-transform duration-200 ease-out group-hover:scale-105',
+                isDarkTheme ? 'rotate-[30deg] scale-100 text-warning' : 'rotate-0 scale-100 text-secondary'
+              )}
+            >
+              <Icon name={isDarkTheme ? 'sun' : 'moon'} className="text-base" />
+            </span>
           </button>
         </Tooltip>
 

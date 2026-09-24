@@ -28,7 +28,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer active:translate-y-px active:scale-[0.99]';
+      'inline-flex items-center justify-center font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer active:translate-y-px active:scale-[0.99]';
 
     const variants = {
       primary:
@@ -36,7 +36,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       accent:
         'bg-accent text-white shadow-sm hover:bg-accent-hover hover:-translate-y-px hover:shadow-card',
       secondary:
-        'bg-surface text-primary border border-border hover:border-border-hover hover:bg-white hover:-translate-y-px hover:shadow-sm',
+        'bg-surface text-primary border border-border hover:border-border-hover hover:bg-card hover:-translate-y-px hover:shadow-sm',
       outline:
         'border border-border bg-transparent text-primary hover:border-border-hover hover:bg-surface hover:-translate-y-px hover:shadow-sm',
       ghost:

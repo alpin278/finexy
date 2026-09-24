@@ -151,8 +151,8 @@ export function TopNavigation({
 
       {/* Right: Search, Notifications, Info, Profile */}
       <div className="flex items-center gap-1.5 sm:gap-2 xl:gap-3">
-        <button type="button" onClick={onOpenCommandPalette} aria-label="Open command palette" className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-secondary transition-[background-color,border-color,color,transform] duration-150 hover:bg-white hover:text-primary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 sm:w-40 sm:justify-start sm:gap-2 sm:px-3 xl:w-48">
-          <Icon name="search" className="text-sm" /><span className="hidden flex-1 text-left text-xs sm:block">Search commands</span><kbd className="hidden rounded border border-border bg-white px-1 text-[9px] font-semibold text-secondary xl:inline">⌘K</kbd>
+        <button type="button" onClick={onOpenCommandPalette} aria-label="Open command palette" className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-secondary transition-[background-color,border-color,color,transform] duration-150 hover:bg-card hover:text-primary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 sm:w-40 sm:justify-start sm:gap-2 sm:px-3 xl:w-48">
+          <Icon name="search" className="text-sm" /><span className="hidden flex-1 text-left text-xs sm:block">Search commands</span><kbd className="hidden rounded border border-border bg-card px-1 text-[9px] font-semibold text-secondary xl:inline">⌘K</kbd>
         </button>
 
         {onTogglePrivacy && <button type="button" aria-label={`Privacy mode ${privacyMode ? 'on' : 'off'}`} aria-pressed={privacyMode} title="Privacy mode (Shift+P)" onClick={onTogglePrivacy} className={cn('flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25', privacyMode ? 'bg-dark text-white shadow-sm' : 'text-secondary hover:bg-surface hover:text-primary')}>
@@ -171,7 +171,7 @@ export function TopNavigation({
           >
             <Icon name="bell" className="text-sm" />
           </button>
-          {isNotificationsOpen && <div ref={notificationsPanelRef} tabIndex={-1} role="dialog" aria-label="Notifications" className="menu-enter absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-border bg-white shadow-dropdown focus:outline-none">
+          {isNotificationsOpen && <div ref={notificationsPanelRef} tabIndex={-1} role="dialog" aria-label="Notifications" className="menu-enter absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-border bg-card shadow-dropdown focus:outline-none">
             <div className="flex items-center justify-between border-b border-border/60 px-4 py-3"><div><p className="text-sm font-semibold text-primary">Notifications</p><p className="mt-0.5 text-[11px] text-secondary">Current alerts and updates</p></div><span className="rounded-full bg-surface px-2 py-1 text-[10px] font-semibold text-secondary">All clear</span></div>
             <div className="px-5 py-7 text-center"><span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-surface text-secondary"><Icon name="bell-slash" /></span><p className="mt-3 text-sm font-semibold text-primary">No new notifications</p><p className="mx-auto mt-1 max-w-[230px] text-xs leading-relaxed text-secondary">Finexy has no unread or actionable in-app alerts for your account.</p></div>
             <div className="border-t border-border/60 p-2"><Link to="/settings#notifications" onClick={() => { onNavigate?.('settings'); setIsNotificationsOpen(false); }} className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"><span>Notification settings</span><Icon name="chevron-right" className="text-[10px] text-secondary" /></Link></div>
@@ -194,7 +194,7 @@ export function TopNavigation({
             onClick={() => { setIsProfileOpen((open) => !open); setIsNotificationsOpen(false); }}
             aria-expanded={isProfileOpen}
             aria-haspopup="true"
-            className="flex items-center gap-2.5 pl-1.5 pr-2.5 py-1 rounded-full border border-border bg-surface hover:bg-white transition-all cursor-pointer select-none"
+            className="flex items-center gap-2.5 pl-1.5 pr-2.5 py-1 rounded-full border border-border bg-surface hover:bg-card transition-all cursor-pointer select-none"
           >
             <Avatar
               name={profileName}
@@ -216,7 +216,7 @@ export function TopNavigation({
           {/* Profile Dropdown Menu */}
           {isProfileOpen && (
             <div
-              className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-border bg-white py-2 shadow-dropdown menu-enter"
+              className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-border bg-card py-2 shadow-dropdown menu-enter"
             >
               <div className="px-4 py-2.5 border-b border-border/60">
                 <p className="text-xs font-semibold text-primary">{profileName}</p>

@@ -146,7 +146,7 @@ export function TransactionFormModal({
       <form id="transaction-form" onSubmit={handleSubmit} className="space-y-4">
         <fieldset>
           <legend className="text-xs font-semibold text-primary mb-2">Transaction Type</legend>
-          <div className="isolate grid grid-cols-2 gap-1 overflow-hidden rounded-[14px] border border-border bg-surface p-1">
+          <div className="isolate grid grid-cols-2 gap-1 overflow-hidden rounded-[14px] border border-border dark:border-[#2C2C26] bg-surface dark:bg-[#181815] p-1">
             {(['income', 'expense'] as TransactionType[]).map((type) => (
               <button
                 key={type}
@@ -155,8 +155,8 @@ export function TransactionFormModal({
                 onClick={() => updateValue('type', type)}
                 className={
                   values.type === type
-                    ? 'h-10 rounded-[10px] border border-dark/10 bg-dark text-white text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)] transition-[background-color,color,box-shadow] duration-200 cursor-pointer'
-                    : 'h-10 rounded-[10px] border border-transparent bg-transparent text-secondary text-sm font-medium transition-[background-color,color,box-shadow] duration-200 hover:bg-white hover:text-primary cursor-pointer'
+                    ? 'h-10 rounded-[10px] border border-dark/10 dark:border-[#3E3E34] bg-dark dark:bg-[#2C2C26] text-white dark:text-[#F2F2EE] text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_2px_6px_rgba(0,0,0,0.3)] transition-[background-color,color,box-shadow] duration-200 cursor-pointer'
+                    : 'h-10 rounded-[10px] border border-transparent bg-transparent text-secondary dark:text-[#8E8E86] text-sm font-medium transition-[background-color,color,box-shadow] duration-200 hover:bg-card dark:hover:bg-[#22221E] hover:text-primary dark:hover:text-[#D4D4CE] cursor-pointer'
                 }
               >
                 {type === 'income' ? 'Income' : 'Expense'}
@@ -206,7 +206,7 @@ export function TransactionFormModal({
               value={values.category}
               onChange={(event) => updateValue('category', event.target.value)}
               options={categoryOptions}
-              className="w-full h-10 rounded-[12px] bg-white px-3 pr-8"
+              className="w-full h-10 rounded-[12px] bg-card dark:bg-[#1A1A17] px-3 pr-8"
               aria-invalid={Boolean(errors.category)}
             />
             {errors.category && <p className="mt-1 text-xs text-danger">{errors.category}</p>}
@@ -220,7 +220,7 @@ export function TransactionFormModal({
               value={values.wallet}
               onChange={(event) => updateValue('wallet', event.target.value)}
               options={walletOptions}
-              className="w-full h-10 rounded-[12px] bg-white px-3 pr-8"
+              className="w-full h-10 rounded-[12px] bg-card dark:bg-[#1A1A17] px-3 pr-8"
               aria-invalid={Boolean(errors.wallet)}
             />
             {errors.wallet && <p className="mt-1 text-xs text-danger">{errors.wallet}</p>}
@@ -240,7 +240,61 @@ export function TransactionFormModal({
           />
         </div>
 
-        <section className="rounded-2xl border border-border bg-surface p-3.5" aria-label="Split transaction allocations"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold text-primary">Split transaction</p><p className="mt-0.5 text-[11px] text-secondary">Allocate this one wallet transaction across categories.</p></div><button type="button" onClick={() => updateValue('splits', values.splits.length ? [] : [{ category: values.category, amount: '' }, { category: '', amount: '' }])} className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-semibold text-primary hover:border-accent/40">{values.splits.length ? 'Use one category' : 'Split transaction'}</button></div>{values.splits.length ? <div className="mt-3 space-y-2.5">{values.splits.map((split, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-2"><Select aria-label={`Split category ${index + 1}`} value={split.category} onChange={(event) => updateValue('splits', values.splits.map((item, itemIndex) => itemIndex === index ? { ...item, category: event.target.value } : item))} options={categoryOptions} className="h-10 min-w-0 bg-white"/><AmountInput id={`split-amount-${index}`} aria-label={`Split amount ${index + 1}`} value={split.amount} onValueChange={(amount) => updateValue('splits', values.splits.map((item, itemIndex) => itemIndex === index ? { ...item, amount } : item))} locale={locale} numberFormat={numberFormat} maximumFractionDigits={4}/><button type="button" aria-label={`Remove split ${index + 1}`} onClick={() => updateValue('splits', values.splits.filter((_, itemIndex) => itemIndex !== index))} className="h-10 w-10 rounded-xl border border-border bg-white text-secondary hover:text-danger">×</button></div>)}<button type="button" onClick={() => updateValue('splits', [...values.splits, { category: '', amount: '' }])} className="text-xs font-semibold text-accent hover:text-accent-hover">+ Add allocation</button>{errors.splits && <p className="text-xs text-danger">{errors.splits}</p>}</div> : null}</section>
+        <section className="rounded-2xl border border-border dark:border-[#2E2E28] bg-surface dark:bg-[#1A1A17] p-3.5" aria-label="Split transaction allocations">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-primary dark:text-[#F2F2EE]">Split transaction</p>
+              <p className="mt-0.5 text-[11px] text-secondary dark:text-[#8E8E86]">Allocate this one wallet transaction across categories.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => updateValue('splits', values.splits.length ? [] : [{ category: values.category, amount: '' }, { category: '', amount: '' }])}
+              className="rounded-full border border-border dark:border-[#383830] bg-card dark:bg-[#262622] px-3 py-1.5 text-xs font-semibold text-primary dark:text-[#D4D4CE] hover:border-accent/40 cursor-pointer"
+            >
+              {values.splits.length ? 'Use one category' : 'Split transaction'}
+            </button>
+          </div>
+          {values.splits.length ? (
+            <div className="mt-3 space-y-2.5">
+              {values.splits.map((split, index) => (
+                <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-2">
+                  <Select
+                    aria-label={`Split category ${index + 1}`}
+                    value={split.category}
+                    onChange={(event) => updateValue('splits', values.splits.map((item, itemIndex) => itemIndex === index ? { ...item, category: event.target.value } : item))}
+                    options={categoryOptions}
+                    className="h-10 min-w-0 bg-card dark:bg-[#1A1A17]"
+                  />
+                  <AmountInput
+                    id={`split-amount-${index}`}
+                    aria-label={`Split amount ${index + 1}`}
+                    value={split.amount}
+                    onValueChange={(amount) => updateValue('splits', values.splits.map((item, itemIndex) => itemIndex === index ? { ...item, amount } : item))}
+                    locale={locale}
+                    numberFormat={numberFormat}
+                    maximumFractionDigits={4}
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Remove split ${index + 1}`}
+                    onClick={() => updateValue('splits', values.splits.filter((_, itemIndex) => itemIndex !== index))}
+                    className="h-10 w-10 rounded-xl border border-border dark:border-[#32322A] bg-card dark:bg-[#1A1A17] text-secondary dark:text-[#9C9C94] hover:text-danger dark:hover:text-danger cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => updateValue('splits', [...values.splits, { category: '', amount: '' }])}
+                className="text-xs font-semibold text-accent hover:text-accent-hover cursor-pointer"
+              >
+                + Add allocation
+              </button>
+              {errors.splits && <p className="text-xs text-danger">{errors.splits}</p>}
+            </div>
+          ) : null}
+        </section>
 
         <div>
           <label htmlFor="transaction-note" className="block text-xs font-semibold text-primary mb-1.5">
@@ -252,7 +306,7 @@ export function TransactionFormModal({
             placeholder="Add a reference, invoice ID, or note"
             value={values.referenceNote}
             onChange={(event) => updateValue('referenceNote', event.target.value)}
-            className="w-full resize-y rounded-[12px] border border-border bg-white px-3.5 py-2.5 text-sm text-primary placeholder:text-secondary/70 transition-[border-color,box-shadow] duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15"
+            className="w-full resize-y rounded-[12px] border border-border dark:border-[#32322A] bg-card dark:bg-[#1A1A17] px-3.5 py-2.5 text-sm text-primary dark:text-[#F2F2EE] placeholder:text-secondary/70 dark:placeholder:text-[#787870] transition-[border-color,box-shadow] duration-150 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15 dark:focus:ring-accent/25"
           />
         </div>
 
@@ -265,7 +319,7 @@ export function TransactionFormModal({
             value={values.status}
             onChange={(event) => updateValue('status', event.target.value as TransactionStatus)}
             options={transactionStatuses}
-            className="w-full h-10 rounded-[12px] bg-white px-3 pr-8"
+            className="w-full h-10 rounded-[12px] bg-card dark:bg-[#1A1A17] px-3 pr-8"
           />
         </div>
       </form>

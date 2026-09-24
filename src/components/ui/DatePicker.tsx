@@ -162,15 +162,15 @@ export function DatePicker({
         style={position?.triggerStyle}
         onClick={() => (open ? close(false) : openCalendar())}
         className={cn(
-          'relative flex h-10 w-full items-center rounded-[12px] border border-border bg-white px-3.5 pr-10 text-left text-sm text-primary',
-          'transition-[border-color,background-color,box-shadow] duration-150 hover:border-border-hover focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15 cursor-pointer',
-          'disabled:cursor-not-allowed disabled:bg-surface disabled:text-secondary',
+          'relative flex h-10 w-full items-center rounded-[12px] border border-border dark:border-[#32322A] bg-card dark:bg-[#1A1A17] px-3.5 pr-10 text-left text-sm text-primary dark:text-[#F2F2EE]',
+          'transition-[border-color,background-color,box-shadow] duration-150 hover:border-border-hover dark:hover:border-[#424238] focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15 dark:focus:ring-accent/25 cursor-pointer',
+          'disabled:cursor-not-allowed disabled:bg-surface dark:disabled:bg-[#151512] disabled:text-secondary',
           error && 'border-danger focus:border-danger focus:ring-danger/15',
           className,
         )}
       >
-        <span className={cn('min-w-0 flex-1 truncate', !selectedDate && 'text-secondary/70')}>{selectedDate ? fieldDateFormatter.format(selectedDate) : placeholder}</span>
-        <Icon name="calendar3" className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-secondary" />
+        <span className={cn('min-w-0 flex-1 truncate', !selectedDate && 'text-secondary/70 dark:text-[#787870]')}>{selectedDate ? fieldDateFormatter.format(selectedDate) : placeholder}</span>
+        <Icon name="calendar3" className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-secondary dark:text-[#9C9C94]" />
       </button>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
 
@@ -186,7 +186,7 @@ export function DatePicker({
               role="dialog"
               aria-label="Choose date"
               onWheel={(e) => e.stopPropagation()}
-              className="pointer-events-auto w-[320px] max-w-[calc(100vw-2rem)] rounded-[14px] border border-border bg-white p-3 shadow-dropdown transition-opacity duration-100 ease-out"
+              className="pointer-events-auto w-[320px] max-w-[calc(100vw-2rem)] rounded-[14px] border border-border dark:border-[#32322A] bg-card dark:bg-[#22221E] p-3 shadow-dropdown transition-opacity duration-100 ease-out"
             >
               {/* Header: < Month Year > */}
               <div className="mb-1.5 flex items-center justify-between gap-1 px-0.5">
@@ -194,18 +194,18 @@ export function DatePicker({
                   type="button"
                   aria-label="Previous month"
                   onClick={() => setDisplayMonth((month) => addMonths(month, -1))}
-                  className="flex h-6.5 w-6.5 items-center justify-center rounded-[6px] text-secondary hover:bg-surface hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors cursor-pointer"
+                  className="flex h-6.5 w-6.5 items-center justify-center rounded-[6px] text-secondary dark:text-[#9C9C94] hover:bg-surface dark:hover:bg-[#2C2C26] hover:text-primary dark:hover:text-[#F2F2EE] focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors cursor-pointer"
                 >
                   <Icon name="chevron-left" className="text-[11px]" />
                 </button>
-                <p className="text-xs font-bold text-primary tracking-tight" aria-live="polite">
+                <p className="text-xs font-bold text-primary dark:text-[#F2F2EE] tracking-tight" aria-live="polite">
                   {monthFormatter.format(displayMonth)}
                 </p>
                 <button
                   type="button"
                   aria-label="Next month"
                   onClick={() => setDisplayMonth((month) => addMonths(month, 1))}
-                  className="flex h-6.5 w-6.5 items-center justify-center rounded-[6px] text-secondary hover:bg-surface hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors cursor-pointer"
+                  className="flex h-6.5 w-6.5 items-center justify-center rounded-[6px] text-secondary dark:text-[#9C9C94] hover:bg-surface dark:hover:bg-[#2C2C26] hover:text-primary dark:hover:text-[#F2F2EE] focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors cursor-pointer"
                 >
                   <Icon name="chevron-right" className="text-[11px]" />
                 </button>
@@ -214,7 +214,7 @@ export function DatePicker({
               {/* Weekday Row */}
               <div className="grid grid-cols-7 gap-1 text-center mb-1" role="grid" aria-label={monthFormatter.format(displayMonth)}>
                 {weekdayLabels.map((label) => (
-                  <span key={label} className="flex h-4.5 items-center justify-center text-[10px] font-semibold uppercase tracking-wider text-secondary/65" aria-hidden="true">
+                  <span key={label} className="flex h-4.5 items-center justify-center text-[10px] font-semibold uppercase tracking-wider text-secondary/65 dark:text-[#8E8E86]" aria-hidden="true">
                     {label}
                   </span>
                 ))}
@@ -244,10 +244,10 @@ export function DatePicker({
                         selected
                           ? 'bg-accent text-white font-semibold shadow-sm hover:bg-accent-hover'
                           : today
-                            ? 'border-accent/50 bg-accent/5 text-accent font-semibold hover:bg-accent/10'
+                            ? 'border-accent/50 bg-accent/5 dark:bg-accent/10 text-accent font-semibold hover:bg-accent/10 dark:hover:bg-accent/15'
                             : inMonth
-                              ? 'text-primary hover:bg-surface active:scale-95'
-                              : 'text-secondary/35 hover:bg-surface/50',
+                              ? 'text-primary dark:text-[#F2F2EE] hover:bg-surface dark:hover:bg-[#2C2C26] active:scale-95'
+                              : 'text-secondary/35 dark:text-[#5A5A52] hover:bg-surface/50 dark:hover:bg-[#282822]',
                       )}
                     >
                       {date.getDate()}
@@ -257,7 +257,7 @@ export function DatePicker({
               </div>
 
               {/* Bottom Action Row: Today only (no redundant Close button) */}
-              <div className="mt-1.5 flex items-center justify-between border-t border-border/60 pt-1.5 px-0.5">
+              <div className="mt-1.5 flex items-center justify-between border-t border-border/60 dark:border-[#2E2E28] pt-1.5 px-0.5">
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
@@ -277,7 +277,7 @@ export function DatePicker({
                         onChange('');
                         close();
                       }}
-                      className="h-6.5 px-2 rounded-[6px] text-xs font-semibold text-secondary hover:bg-surface hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors cursor-pointer"
+                      className="h-6.5 px-2 rounded-[6px] text-xs font-semibold text-secondary dark:text-[#9C9C94] hover:bg-surface dark:hover:bg-[#2C2C26] hover:text-primary dark:hover:text-[#F2F2EE] focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors cursor-pointer"
                     >
                       Clear
                     </button>

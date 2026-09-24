@@ -84,7 +84,7 @@ export function TransactionRow({
             <Icon name="three-dots" />
           </IconButton>
           {isActionMenuOpen && (
-            <div className="menu-enter absolute right-0 top-9 z-20 w-32 rounded-xl border border-border bg-white py-1 shadow-dropdown">
+            <div className="menu-enter absolute right-0 top-9 z-20 w-32 rounded-xl border border-border bg-card py-1 shadow-dropdown">
               <button type="button" onClick={onView} className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface">View Details</button>
               {!isTransfer && <button type="button" onClick={onEdit} className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface">Edit</button>}
               {!isTransfer && <button type="button" onClick={onDelete} className="w-full px-3 py-2 text-left text-xs font-medium text-danger hover:bg-danger/10">Delete</button>}

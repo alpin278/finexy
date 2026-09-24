@@ -11,7 +11,7 @@ export interface CategoryFilterValues {
 
 export function CategoryFilters({ values, onChange }: { values: CategoryFilterValues; onChange: (next: Partial<CategoryFilterValues>) => void }) {
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-[20px] border border-border bg-white p-3 sm:flex-row sm:flex-wrap sm:items-center">
+    <div className="flex min-w-0 flex-col gap-3 rounded-[20px] border border-border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-center">
       <div className="min-w-0 flex-1 sm:min-w-[220px]">
         <Input aria-label="Search categories and keywords" value={values.search} onChange={(event) => onChange({ search: event.target.value })} placeholder="Search categories & keywords..." leftIcon={<Icon name="search" />} />
       </div>

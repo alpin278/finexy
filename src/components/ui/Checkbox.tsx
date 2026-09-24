@@ -32,7 +32,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           />
           <div
             className={cn(
-              'w-4 h-4 rounded-[5px] border border-border bg-white transition-all duration-150',
+              'w-4 h-4 rounded-[5px] border border-border bg-card transition-all duration-150',
               'peer-checked:bg-dark peer-checked:border-dark',
               'peer-focus-visible:ring-2 peer-focus-visible:ring-accent/25 peer-focus-visible:ring-offset-2',
               'hover:border-secondary'

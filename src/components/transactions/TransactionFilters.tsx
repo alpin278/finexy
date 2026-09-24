@@ -63,7 +63,7 @@ export function TransactionFilters({
   ];
 
   return (
-    <div className="min-w-0 rounded-[18px] border border-border bg-white p-3 sm:p-4">
+    <div className="min-w-0 rounded-[18px] border border-border bg-card p-3 sm:p-4">
       <div className="min-w-0 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
         {/* 5 filter selectors: strictly one row on desktop (xl:flex-nowrap), deliberate grid on tablet/mobile */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:flex xl:items-center xl:flex-nowrap gap-3 shrink-0">

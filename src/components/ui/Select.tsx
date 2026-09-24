@@ -229,9 +229,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           onClick={() => isVisible ? closeMenu() : openMenu()}
           onKeyDown={handleKeyDown}
           className={cn(
-            'relative flex h-10 min-w-0 cursor-pointer items-center rounded-[12px] border border-border bg-white pl-3.5 pr-10 text-left text-xs font-semibold text-primary shadow-[0_1px_2px_rgba(23,23,20,0.04)]',
-            'transition-[border-color,box-shadow] duration-150 hover:border-border-hover focus:outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15',
-            'disabled:cursor-not-allowed disabled:bg-canvas disabled:text-secondary disabled:opacity-70',
+            'relative flex h-10 min-w-0 cursor-pointer items-center rounded-[12px] border border-border dark:border-[#32322A] bg-card dark:bg-[#1A1A17] pl-3.5 pr-10 text-left text-xs font-semibold text-primary dark:text-[#F2F2EE] shadow-[0_1px_2px_rgba(23,23,20,0.04)] dark:shadow-none',
+            'transition-[border-color,background-color,box-shadow] duration-150 hover:border-border-hover dark:hover:border-[#424238] focus:outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 dark:focus:ring-accent/25',
+            'disabled:cursor-not-allowed disabled:bg-canvas dark:disabled:bg-[#151512] disabled:text-secondary disabled:opacity-70',
             'aria-[invalid=true]:border-danger aria-[invalid=true]:focus:border-danger aria-[invalid=true]:focus:ring-danger/15',
             icon && 'pl-8',
             className,
@@ -239,7 +239,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         >
           {icon && <span className="pointer-events-none absolute left-3 top-1/2 flex -translate-y-1/2 items-center">{icon}</span>}
           <span className="min-w-0 flex-1 truncate">{selectedOption?.label ?? 'Select an option'}</span>
-          <Icon name="chevron-down" className={cn('pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-secondary transition-transform duration-150', isVisible && 'rotate-180 text-accent')} />
+          <Icon name="chevron-down" className={cn('pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-secondary dark:text-[#9C9C94] transition-transform duration-150', isVisible && 'rotate-180 text-accent')} />
         </button>
 
         {isMounted && (() => {
@@ -256,7 +256,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 aria-labelledby={ariaLabel ? undefined : ariaLabelledby ?? triggerId}
                 aria-hidden={!isVisible}
                 className={cn(
-                  'w-full min-w-[140px] max-h-[280px] overflow-y-auto overscroll-contain rounded-[14px] border border-border bg-white p-1.5 shadow-dropdown [scrollbar-width:thin]',
+                  'w-full min-w-[140px] max-h-[280px] overflow-y-auto overscroll-contain rounded-[14px] border border-border dark:border-[#32322A] bg-card dark:bg-[#22221E] p-1.5 shadow-dropdown [scrollbar-width:thin]',
                   'transition-opacity duration-100 ease-out',
                   isVisible && (!position || !position.hidden) ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
                 )}
@@ -277,8 +277,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                       onPointerDown={(event) => event.preventDefault()}
                       onClick={() => chooseOption(option.value)}
                       className={cn(
-                        'flex cursor-pointer select-none items-center gap-2 rounded-[10px] px-3 py-2.5 text-xs text-primary outline-none transition-colors',
-                        selected ? 'bg-accent/10 font-semibold text-primary' : active ? 'bg-surface font-medium' : 'hover:bg-surface',
+                        'flex cursor-pointer select-none items-center gap-2 rounded-[10px] px-3 py-2.5 text-xs text-primary dark:text-[#F2F2EE] outline-none transition-colors',
+                        selected ? 'bg-accent/10 dark:bg-accent/15 font-semibold text-primary dark:text-[#F2F2EE]' : active ? 'bg-surface dark:bg-[#2C2C26] font-medium' : 'hover:bg-surface dark:hover:bg-[#2C2C26]',
                       )}
                     >
                       {option.icon && <span className="flex shrink-0 items-center text-secondary">{option.icon}</span>}

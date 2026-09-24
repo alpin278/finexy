@@ -43,7 +43,7 @@ export function CategoryCard({ category, matchingRuleCount, menuOpen, onToggleMe
             <Icon name="three-dots" />
           </IconButton>
           {menuOpen && (
-            <div className="menu-enter absolute right-0 top-9 z-20 w-36 rounded-xl border border-border bg-white py-1 shadow-dropdown">
+            <div className="menu-enter absolute right-0 top-9 z-20 w-36 rounded-xl border border-border bg-card py-1 shadow-dropdown">
               <button type="button" onClick={onView} className="w-full cursor-pointer px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface">View Details</button>
               <button type="button" onClick={onEdit} className="w-full cursor-pointer px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface">Edit Category</button>
               <button type="button" onClick={onDelete} className="w-full cursor-pointer px-3 py-2 text-left text-xs font-medium text-danger hover:bg-danger/10">Delete Category</button>

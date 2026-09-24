@@ -33,7 +33,7 @@ export function MetricCard({ metric, currency, className }: MetricCardProps) {
     <Card
       className={cn(
         'grid min-h-[148px] min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-4 transition-[border-color,box-shadow,transform] duration-200 sm:p-5',
-        highlighted ? 'border-accent/25 bg-accent/[0.06] shadow-card' : 'border-border bg-white',
+        highlighted ? 'border-accent/25 bg-accent/[0.06] shadow-card' : 'border-border bg-card',
         className
       )}
     >

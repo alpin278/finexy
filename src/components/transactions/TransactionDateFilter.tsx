@@ -213,7 +213,7 @@ export function TransactionDateFilter({
         style={position?.triggerStyle}
         onClick={() => (open ? handleClose() : handleOpen())}
         className={cn(
-          'relative flex h-10 min-w-0 cursor-pointer items-center justify-between gap-1.5 rounded-[12px] border bg-white pl-3.5 pr-8 text-left text-xs font-semibold shadow-[0_1px_2px_rgba(23,23,20,0.04)]',
+          'relative flex h-10 min-w-0 cursor-pointer items-center justify-between gap-1.5 rounded-[12px] border bg-card pl-3.5 pr-8 text-left text-xs font-semibold shadow-[0_1px_2px_rgba(23,23,20,0.04)]',
           'transition-[border-color,box-shadow,background-color] duration-150 hover:border-border-hover focus:outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15',
           isFiltered
             ? 'border-accent/40 bg-accent/[0.03] text-primary'
@@ -245,7 +245,7 @@ export function TransactionDateFilter({
               role="dialog"
               aria-label="Filter transactions by date"
               onWheel={(e) => e.stopPropagation()}
-              className="pointer-events-auto w-[320px] sm:w-[340px] rounded-[16px] border border-border bg-white p-3.5 shadow-dropdown transition-opacity duration-100 ease-out"
+              className="pointer-events-auto w-[320px] sm:w-[340px] rounded-[16px] border border-border bg-card p-3.5 shadow-dropdown transition-opacity duration-100 ease-out"
             >
               {/* Quick Presets */}
               <div className="grid grid-cols-2 gap-1.5 pb-2.5 border-b border-border/70">
@@ -311,7 +311,7 @@ export function TransactionDateFilter({
                 className={cn(
                   'flex-1 py-1 px-1.5 rounded-[8px] text-[11px] font-semibold transition-all text-center cursor-pointer',
                   subMode === 'month'
-                    ? 'bg-white text-primary shadow-sm'
+                    ? 'bg-card text-primary shadow-sm'
                     : 'text-secondary hover:text-primary',
                 )}
               >
@@ -323,7 +323,7 @@ export function TransactionDateFilter({
                 className={cn(
                   'flex-1 py-1 px-1.5 rounded-[8px] text-[11px] font-semibold transition-all text-center cursor-pointer',
                   subMode === 'date'
-                    ? 'bg-white text-primary shadow-sm'
+                    ? 'bg-card text-primary shadow-sm'
                     : 'text-secondary hover:text-primary',
                 )}
               >
@@ -338,7 +338,7 @@ export function TransactionDateFilter({
                 className={cn(
                   'flex-1 py-1 px-1.5 rounded-[8px] text-[11px] font-semibold transition-all text-center cursor-pointer',
                   subMode === 'range'
-                    ? 'bg-white text-primary shadow-sm'
+                    ? 'bg-card text-primary shadow-sm'
                     : 'text-secondary hover:text-primary',
                 )}
               >

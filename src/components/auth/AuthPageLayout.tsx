@@ -9,7 +9,7 @@ export function AuthPageLayout({ children }: { children: ReactNode }) {
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-white shadow-xs">F</span>
           <span className="text-xl font-bold tracking-tight">Finexy</span>
         </Link>
-        <section className="rounded-[28px] border border-border bg-white p-5 shadow-[0_16px_50px_-20px_rgba(0,0,0,0.16)] sm:p-8">
+        <section className="rounded-[28px] border border-border bg-card p-5 shadow-[0_16px_50px_-20px_rgba(0,0,0,0.16)] sm:p-8">
           {children}
         </section>
         <p className="mt-5 text-center text-[11px] text-secondary">Personal finance, kept simple and private.</p>

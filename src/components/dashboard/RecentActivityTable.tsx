@@ -31,7 +31,7 @@ export function RecentActivityTable({ activities, className }: RecentActivityTab
           <label className="relative min-w-0 flex-1 sm:flex-none">
             <span className="sr-only">Search transactions</span>
             <i className="bi bi-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-secondary" aria-hidden="true" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search transactions..." className="h-9 w-full rounded-full border border-border bg-surface pl-8 pr-3 text-xs text-primary outline-none transition-[background-color,border-color,box-shadow] duration-150 focus:bg-white focus:border-accent focus:ring-2 focus:ring-accent/15 sm:w-52" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search transactions..." className="h-9 w-full rounded-full border border-border bg-surface pl-8 pr-3 text-xs text-primary outline-none transition-[background-color,border-color,box-shadow] duration-150 focus:bg-card focus:border-accent focus:ring-2 focus:ring-accent/15 sm:w-52" />
           </label>
           <Select
             value={filter}

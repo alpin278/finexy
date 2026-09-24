@@ -33,7 +33,7 @@ export function Tabs({ tabs, activeTab, onChange, className, size = 'md' }: Tabs
             className={cn(
               'relative inline-flex shrink-0 items-center gap-1.5 overflow-hidden rounded-full border font-medium transition-[background-color,border-color,color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30',
               size === 'sm' ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-xs sm:text-sm',
-              isActive ? 'border-dark/10 bg-dark text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)]' : 'border-transparent text-secondary hover:bg-white hover:text-primary'
+              isActive ? 'border-dark/10 bg-dark text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)]' : 'border-transparent text-secondary hover:bg-card hover:text-primary'
             )}
           >
             <span className="inline-flex items-center gap-1.5">

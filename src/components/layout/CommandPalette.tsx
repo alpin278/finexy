@@ -51,7 +51,7 @@ export function CommandPalette({ open, commands, onClose, onExecute }: { open: b
         {filtered.map((command, index) => <button id={`finexy-command-${command.id}`} key={command.id} type="button" role="option" aria-selected={index === activeIndex} onMouseEnter={() => setActiveIndex(index)} onClick={() => execute(command)} className={cn('flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-[background-color,border-color,color] duration-150', index === activeIndex ? 'border-accent/20 bg-accent/[0.07]' : 'border-transparent hover:bg-surface')}>
           <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', index === activeIndex ? 'bg-accent text-white' : 'bg-surface text-secondary')}><Icon name={command.icon} /></span>
           <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-primary">{command.label}</span><span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-secondary">{command.group}</span></span>
-          {command.shortcut && <kbd className="rounded-md border border-border bg-white px-1.5 py-0.5 text-[10px] font-semibold text-secondary">{command.shortcut}</kbd>}
+          {command.shortcut && <kbd className="rounded-md border border-border bg-card px-1.5 py-0.5 text-[10px] font-semibold text-secondary">{command.shortcut}</kbd>}
         </button>)}
         {!filtered.length && <div className="rounded-xl border border-dashed border-border px-4 py-8 text-center"><Icon name="search" className="text-secondary" /><p className="mt-2 text-sm font-semibold text-primary">No matching commands</p><p className="mt-1 text-xs text-secondary">Try a page name or financial action.</p></div>}
       </div>

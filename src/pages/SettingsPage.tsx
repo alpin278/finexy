@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon } from '../components/ui/Icon';
 import {
@@ -17,6 +17,7 @@ import { loadSettings, saveSettings, settingsErrorMessage } from '../lib/setting
 import { loadTelegramDiagnostics, sendTelegramTestNotification, disconnectTelegram, generateTelegramLinkCode, loadTelegramBudgetNotificationPreferences, loadTelegramConnection, saveTelegramBudgetNotificationPreferences, type TelegramBudgetNotificationPreferences, type TelegramConnection, type TelegramDiagnostics } from '../lib/telegram';
 import { useDataInvalidation } from '../context/DataRevalidationContext';
 import { loadFxCacheStatus, refreshFxRates } from '../lib/fx';
+import { useTheme } from '../context/useTheme';
 
 const appearanceIcons: Record<AppearancePreference, string> = {
   light: 'sun',
@@ -32,7 +33,7 @@ const currencySymbols: Record<SettingsCurrency, string> = {
 };
 
 const fieldLabelClass = 'mb-1.5 block text-xs font-semibold text-primary';
-const fieldClass = 'h-10 w-full rounded-[12px] bg-white';
+const fieldClass = 'h-10 w-full rounded-[12px] bg-card';
 const testNotificationCooldownMs = 5 * 60 * 1000;
 const settingsSections = [
   ['regional', 'Regional & Currency'],
@@ -63,6 +64,7 @@ function createInitialSettings(): SettingsState {
 export function SettingsPage() {
   const location = useLocation();
   const invalidate = useDataInvalidation();
+  const { preference, setPreference } = useTheme();
   const [settings, setSettings] = useState<SettingsState>(createInitialSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,7 +81,17 @@ export function SettingsPage() {
   const [showTelegramDiagnostics, setShowTelegramDiagnostics] = useState(false);
   const [fxStatus, setFxStatus] = useState<{ provider: string; rateDate: string; fetchedAt: string } | null>(null);
   const [refreshingFx, setRefreshingFx] = useState(false);
-  useEffect(() => { void Promise.all([loadSettings(), loadTelegramConnection()]).then(async ([loadedSettings, connection]) => { setSettings(loadedSettings); setTelegram(connection); setTelegramNotifications(await loadTelegramBudgetNotificationPreferences(connection.status === 'connected')); setTelegramDiagnostics(await loadTelegramDiagnostics()); }).catch((reason) => setError(settingsErrorMessage(reason))).finally(() => setLoading(false)); }, []);
+  useEffect(() => {
+    void Promise.all([loadSettings(), loadTelegramConnection()])
+      .then(async ([loadedSettings, connection]) => {
+        setSettings(loadedSettings);
+        setTelegram(connection);
+        setTelegramNotifications(await loadTelegramBudgetNotificationPreferences(connection.status === 'connected'));
+        setTelegramDiagnostics(await loadTelegramDiagnostics());
+      })
+      .catch((reason) => setError(settingsErrorMessage(reason)))
+      .finally(() => setLoading(false));
+  }, []);
   useEffect(() => { void loadFxCacheStatus().then(setFxStatus).catch(() => setFxStatus(null)); }, []);
   const [activeModal, setActiveModal] = useState<'security' | null>(null);
 
@@ -101,7 +113,21 @@ export function SettingsPage() {
     setSaveMessage('');
   };
 
-  const handleSave = async () => { setSaving(true); setError(''); setSaveMessage(''); try { await saveSettings(settings); if (telegram.status === 'connected') await saveTelegramBudgetNotificationPreferences(telegramNotifications); await invalidate(['settings', 'overview', 'transactions', 'reports', 'wallets', 'budgets']); setSaveMessage('Settings saved.'); } catch (reason) { setError(settingsErrorMessage(reason)); } finally { setSaving(false); } };
+  const handleSave = async () => {
+    setSaving(true);
+    setError('');
+    setSaveMessage('');
+    try {
+      await saveSettings({ ...settings, appearance: preference });
+      if (telegram.status === 'connected') await saveTelegramBudgetNotificationPreferences(telegramNotifications);
+      await invalidate(['settings', 'overview', 'transactions', 'reports', 'wallets', 'budgets']);
+      setSaveMessage('Settings saved.');
+    } catch (reason) {
+      setError(settingsErrorMessage(reason));
+    } finally {
+      setSaving(false);
+    }
+  };
   const enabledInAppNotifications = settings.notifications.filter((notification) => notification.enabled).length;
   const enabledTelegramNotifications = Object.values(telegramNotifications).filter(Boolean).length;
   const handleGenerateTelegramCode = async () => {
@@ -172,11 +198,38 @@ export function SettingsPage() {
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3.5 py-3"><div><p className="text-xs font-semibold text-primary">FX reference rates</p><p className="mt-1 text-[11px] text-secondary">{fxStatus ? `${fxStatus.provider} · rate date ${fxStatus.rateDate}` : 'No cached rates yet. Native balances remain unchanged.'}</p></div><Button variant="outline" size="sm" loading={refreshingFx} onClick={() => void handleRefreshFx}>{refreshingFx ? 'Refreshing...' : 'Refresh rates'}</Button></div>
           </SettingsSection>
 
-          <SettingsSection id="appearance" icon="palette" eyebrow="Visual comfort" title="Theme & Appearance" description="Choose how Finexy should feel. Theme preference is saved; visual theme switching remains deferred.">
+          <SettingsSection id="appearance" icon="palette" eyebrow="Visual comfort" title="Theme & Appearance" description="Choose how Finexy should feel. Switch between light, dark, or automatically sync with your system.">
             <div className="grid gap-3 sm:grid-cols-3">
-              {appearanceOptions.map((option) => { const iconName = appearanceIcons[option.value]; const selected = settings.appearance === option.value; return <button key={option.value} type="button" aria-pressed={selected} onClick={() => { setSettings((current) => ({ ...current, appearance: option.value })); setSaveMessage(''); }} className={cn('rounded-2xl border p-4 text-left transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20', selected ? 'border-dark bg-surface ring-2 ring-accent/15' : 'border-border bg-white hover:border-secondary/40 hover:bg-surface')}><div className="flex items-center justify-between gap-3"><span className={cn('flex h-9 w-9 items-center justify-center rounded-xl', selected ? 'bg-dark text-white' : 'bg-surface text-secondary')}><Icon name={iconName} className="text-base" /></span>{selected && <Icon name="check-lg" className="text-accent" />}</div><p className="mt-4 text-sm font-semibold text-primary">{option.label}</p><p className="mt-1 text-xs text-secondary">{option.description}</p></button>; })}
+              {appearanceOptions.map((option) => {
+                const iconName = appearanceIcons[option.value];
+                const selected = preference === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={(e) => {
+                      setPreference(option.value, e);
+                      setSaveMessage('');
+                    }}
+                    className={cn(
+                      'rounded-2xl border p-4 text-left transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 cursor-pointer',
+                      selected ? 'border-dark bg-surface ring-2 ring-accent/15' : 'border-border bg-card hover:border-secondary/40 hover:bg-surface'
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className={cn('flex h-9 w-9 items-center justify-center rounded-xl', selected ? 'bg-dark text-white' : 'bg-surface text-secondary')}>
+                        <Icon name={iconName} className="text-base" />
+                      </span>
+                      {selected && <Icon name="check-lg" className="text-accent" />}
+                    </div>
+                    <p className="mt-4 text-sm font-semibold text-primary">{option.label}</p>
+                    <p className="mt-1 text-xs text-secondary">{option.description}</p>
+                  </button>
+                );
+              })}
             </div>
-            <div className="mt-4 flex items-start gap-2 rounded-xl bg-surface px-3.5 py-3 text-xs text-secondary"><Icon name="laptop" className="mt-0.5 shrink-0" /><span>Dark and System are preference previews for now. The app stays on the current light design system until a global theme foundation is introduced.</span></div>
+            <div className="mt-4 flex items-start gap-2 rounded-xl bg-surface px-3.5 py-3 text-xs text-secondary"><Icon name="laptop" className="mt-0.5 shrink-0" /><span>Appearance changes apply immediately and persist with your account settings.</span></div>
           </SettingsSection>
 
           <SettingsSection id="preferences" icon="receipt" eyebrow="Money habits" title="Transaction Preferences" description="Set a few defaults that keep everyday personal finance tracking quick and consistent.">
@@ -193,11 +246,11 @@ export function SettingsPage() {
 
           <SettingsSection id="telegram" icon="wallet2" eyebrow="Connections" title="Telegram" description="Link Telegram to your signed-in Finexy account. This foundation does not expose financial data or accept financial commands.">
             <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary"><i className="bi bi-telegram text-lg" aria-hidden="true" /></div><div><p className="text-sm font-semibold text-primary">Telegram</p><p className="mt-1 text-xs text-secondary">{telegram.status === 'connected' ? 'Your Telegram account is linked.' : telegram.status === 'link_code_ready' ? 'Send the code below to the Finexy bot.' : 'Generate a one-time code to link your account.'}</p><div className="mt-2"><StatusBadge status={telegram.status === 'connected' ? 'active' : telegram.status === 'link_code_ready' ? 'in_progress' : 'inactive'} label={telegram.status === 'connected' ? 'Connected' : telegram.status === 'link_code_ready' ? 'Link Code Ready' : 'Not Connected'} /></div></div></div>
+              <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-primary"><i className="bi bi-telegram text-lg" aria-hidden="true" /></div><div><p className="text-sm font-semibold text-primary">Telegram</p><p className="mt-1 text-xs text-secondary">{telegram.status === 'connected' ? 'Your Telegram account is linked.' : telegram.status === 'link_code_ready' ? 'Send the code below to the Finexy bot.' : 'Generate a one-time code to link your account.'}</p><div className="mt-2"><StatusBadge status={telegram.status === 'connected' ? 'active' : telegram.status === 'link_code_ready' ? 'in_progress' : 'inactive'} label={telegram.status === 'connected' ? 'Connected' : telegram.status === 'link_code_ready' ? 'Link Code Ready' : 'Not Connected'} /></div></div></div>
               {telegram.status === 'connected' ? <Button variant="outline" size="sm" disabled={telegramBusy} onClick={handleDisconnectTelegram}>Disconnect Telegram</Button> : <Button variant="accent" size="sm" disabled={telegramBusy} onClick={handleGenerateTelegramCode}>{telegramBusy ? 'Generating...' : 'Generate Link Code'}</Button>}
             </div>
 {telegramError && <div role="alert" className="mt-4 rounded-xl border border-danger/25 bg-danger/10 px-3.5 py-3 text-xs font-medium text-danger">{telegramError}</div>}
-            <div className="mt-4 rounded-2xl border border-border bg-surface p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-primary">Telegram health</p><p className="mt-1 text-xs text-secondary">{telegramDiagnostics?.worker === 'healthy' ? 'Healthy' : telegram.status === 'connected' ? 'Needs attention' : 'Disconnected'}</p></div><div className="flex items-center gap-2">{telegram.status === 'connected' && <Button variant="outline" size="sm" disabled={testingTelegram} onClick={handleTestTelegram}>{testingTelegram ? 'Queueing...' : 'Send test notification'}</Button>}<button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-secondary transition-colors hover:bg-white hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30" aria-expanded={showTelegramDiagnostics} onClick={() => setShowTelegramDiagnostics((open) => !open)}><Icon name="info-circle" />Details<Icon name="chevron-down" className={showTelegramDiagnostics ? 'rotate-180 transition-transform' : 'transition-transform'} /></button></div></div>{telegramTestFeedback && <div role="status" className="mt-3 rounded-xl border border-success/25 bg-success/10 px-3.5 py-3 text-xs font-medium text-primary"><p>{telegramTestFeedback}</p>{telegramTestFeedback.startsWith('Test notification was recently sent') && formatCooldownRemaining(testNotificationCooldownEndsAt) && <p className="mt-1 text-secondary">{formatCooldownRemaining(testNotificationCooldownEndsAt)}</p>}</div>}{showTelegramDiagnostics && <div className="mt-3 border-t border-border pt-3"><div className="grid grid-cols-3 gap-2 text-center text-xs">{telegram.status === 'connected' && telegramDiagnostics ? <><div><p className="font-semibold text-primary">{telegramDiagnostics.pending}</p><p className="text-secondary">Pending</p></div><div><p className="font-semibold text-primary">{telegramDiagnostics.retryable}</p><p className="text-secondary">Retrying</p></div><div><p className="font-semibold text-primary">{telegramDiagnostics.failed}</p><p className="text-secondary">Failed</p></div></> : <p className="col-span-3 text-left text-xs text-secondary">Connect Telegram to view delivery diagnostics.</p>}</div><p className="mt-3 text-[11px] text-secondary">Last delivery: {telegramDiagnostics?.last_delivered_at ? new Date(telegramDiagnostics.last_delivered_at).toLocaleString() : 'None yet'}{telegramDiagnostics?.last_failed_at ? ` · Last failure: ${telegramDiagnostics.failure_class ?? 'Needs attention'}` : ''}</p></div>}</div>
+            <div className="mt-4 rounded-2xl border border-border bg-surface p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold text-primary">Telegram health</p><p className="mt-1 text-xs text-secondary">{telegramDiagnostics?.worker === 'healthy' ? 'Healthy' : telegram.status === 'connected' ? 'Needs attention' : 'Disconnected'}</p></div><div className="flex items-center gap-2">{telegram.status === 'connected' && <Button variant="outline" size="sm" disabled={testingTelegram} onClick={handleTestTelegram}>{testingTelegram ? 'Queueing...' : 'Send test notification'}</Button>}<button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-secondary transition-colors hover:bg-card hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30" aria-expanded={showTelegramDiagnostics} onClick={() => setShowTelegramDiagnostics((open) => !open)}><Icon name="info-circle" />Details<Icon name="chevron-down" className={showTelegramDiagnostics ? 'rotate-180 transition-transform' : 'transition-transform'} /></button></div></div>{telegramTestFeedback && <div role="status" className="mt-3 rounded-xl border border-success/25 bg-success/10 px-3.5 py-3 text-xs font-medium text-primary"><p>{telegramTestFeedback}</p>{telegramTestFeedback.startsWith('Test notification was recently sent') && formatCooldownRemaining(testNotificationCooldownEndsAt) && <p className="mt-1 text-secondary">{formatCooldownRemaining(testNotificationCooldownEndsAt)}</p>}</div>}{showTelegramDiagnostics && <div className="mt-3 border-t border-border pt-3"><div className="grid grid-cols-3 gap-2 text-center text-xs">{telegram.status === 'connected' && telegramDiagnostics ? <><div><p className="font-semibold text-primary">{telegramDiagnostics.pending}</p><p className="text-secondary">Pending</p></div><div><p className="font-semibold text-primary">{telegramDiagnostics.retryable}</p><p className="text-secondary">Retrying</p></div><div><p className="font-semibold text-primary">{telegramDiagnostics.failed}</p><p className="text-secondary">Failed</p></div></> : <p className="col-span-3 text-left text-xs text-secondary">Connect Telegram to view delivery diagnostics.</p>}</div><p className="mt-3 text-[11px] text-secondary">Last delivery: {telegramDiagnostics?.last_delivered_at ? new Date(telegramDiagnostics.last_delivered_at).toLocaleString() : 'None yet'}{telegramDiagnostics?.last_failed_at ? ` · Last failure: ${telegramDiagnostics.failure_class ?? 'Needs attention'}` : ''}</p></div>}</div>
             <div className="mt-4 rounded-2xl border border-border bg-surface p-4">
               <div className="flex items-center gap-2"><i className="bi bi-bell text-sm text-primary" aria-hidden="true" /><p className="text-sm font-semibold text-primary">Telegram notifications</p></div>
               {telegram.status === 'connected' ? <div className="mt-3 divide-y divide-border">
@@ -211,7 +264,7 @@ export function SettingsPage() {
           </SettingsSection>
 
           <SettingsSection id="security" icon="shield-check" eyebrow="Account safety" title="Security & 2FA" description="Review the future security surface without storing passwords, secrets, or real authentication state.">
-            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-primary"><Icon name="lock" className="text-lg" /></div><div><p className="text-sm font-semibold text-primary">Two-factor authentication</p><p className="mt-1 text-xs text-secondary">{settings.demoTwoFactorEnabled ? 'Demo preference enabled for this session' : 'Not configured in the frontend prototype'}</p><div className="mt-2"><StatusBadge status={settings.demoTwoFactorEnabled ? 'active' : 'inactive'} label={settings.demoTwoFactorEnabled ? 'Demo enabled' : 'Demo only'} /></div></div></div><Button variant="outline" size="sm" leftIcon={<Icon name="key" />} onClick={() => setActiveModal('security')}>Review 2FA</Button></div>
+            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-primary"><Icon name="lock" className="text-lg" /></div><div><p className="text-sm font-semibold text-primary">Two-factor authentication</p><p className="mt-1 text-xs text-secondary">{settings.demoTwoFactorEnabled ? 'Demo preference enabled for this session' : 'Not configured in the frontend prototype'}</p><div className="mt-2"><StatusBadge status={settings.demoTwoFactorEnabled ? 'active' : 'inactive'} label={settings.demoTwoFactorEnabled ? 'Demo enabled' : 'Demo only'} /></div></div></div><Button variant="outline" size="sm" leftIcon={<Icon name="key" />} onClick={() => setActiveModal('security')}>Review 2FA</Button></div>
             <p className="mt-4 text-[11px] leading-relaxed text-secondary">Security controls will be connected only when authentication is introduced. This screen does not accept or retain passwords.</p>
           </SettingsSection>
 
@@ -228,7 +281,7 @@ export function SettingsPage() {
               {settingsSections.map(([id, label]) => <a key={id} href={`#${id}`} className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-secondary transition-colors hover:bg-surface hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"><span>{label}</span><Icon name="chevron-right" className="text-[10px]" /></a>)}
             </nav>
           </Card>
-          <Card padding="lg" className="border-accent/15"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent/10 text-accent"><Icon name="sliders" className="text-lg" /></div><div><h2 className="text-sm font-semibold text-primary">At a glance</h2><p className="mt-0.5 text-xs text-secondary">Current defaults from your settings</p></div></div><dl className="mt-5 space-y-4"><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Currency</dt><dd className="text-xs font-semibold text-primary">{settings.currency} {currencySymbols[settings.currency]}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Region</dt><dd className="max-w-[150px] truncate text-right text-xs font-semibold text-primary">{settings.region}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Appearance</dt><dd className="text-xs font-semibold capitalize text-primary">{settings.appearance}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">In-app alerts</dt><dd className="text-xs font-semibold text-primary">{enabledInAppNotifications} enabled</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Telegram alerts</dt><dd className="text-xs font-semibold text-primary">{telegram.status === 'connected' ? `${enabledTelegramNotifications} enabled` : 'Not connected'}</dd></div></dl><p className="mt-5 border-t border-border pt-4 text-[11px] leading-relaxed text-secondary">Use the sections on the left to change these defaults.</p></Card>
+          <Card padding="lg" className="border-accent/15"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent/10 text-accent"><Icon name="sliders" className="text-lg" /></div><div><h2 className="text-sm font-semibold text-primary">At a glance</h2><p className="mt-0.5 text-xs text-secondary">Current defaults from your settings</p></div></div><dl className="mt-5 space-y-4"><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Currency</dt><dd className="text-xs font-semibold text-primary">{settings.currency} {currencySymbols[settings.currency]}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Region</dt><dd className="max-w-[150px] truncate text-right text-xs font-semibold text-primary">{settings.region}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Appearance</dt><dd className="text-xs font-semibold capitalize text-primary">{preference}</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">In-app alerts</dt><dd className="text-xs font-semibold text-primary">{enabledInAppNotifications} enabled</dd></div><div className="flex items-center justify-between gap-4"><dt className="text-xs text-secondary">Telegram alerts</dt><dd className="text-xs font-semibold text-primary">{telegram.status === 'connected' ? `${enabledTelegramNotifications} enabled` : 'Not connected'}</dd></div></dl><p className="mt-5 border-t border-border pt-4 text-[11px] leading-relaxed text-secondary">Use the sections on the left to change these defaults.</p></Card>
           <Card padding="lg" className="border-dark bg-dark text-white"><div className="flex items-center gap-2 text-accent"><Icon name="file-earmark-text" className="text-sm" /><span className="text-[10px] font-semibold uppercase tracking-[0.16em]">Persistence notes</span></div><p className="mt-3 text-sm font-semibold">What stays with your account</p><p className="mt-2 text-xs leading-relaxed text-white/65">Regional, transaction, and notification preferences are saved to your Finexy account. Identity details are managed on your Profile page.</p><div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-4 text-xs"><span className="text-white/60">Data &amp; Backup</span><span className="font-semibold text-white">Available</span></div><div className="mt-2 flex items-center justify-between gap-3 text-xs"><span className="text-white/60">2FA</span><span className="font-semibold text-white">Demo control</span></div></Card>
         </aside>
       </div>

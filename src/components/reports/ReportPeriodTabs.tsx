@@ -9,7 +9,7 @@ interface ReportPeriodTabsProps {
 
 export function ReportPeriodTabs({ activePeriod, onChange }: ReportPeriodTabsProps) {
   return (
-    <div className="isolate flex w-full max-w-full flex-wrap items-center gap-1 overflow-hidden rounded-[14px] border border-border bg-white p-1 sm:w-auto" role="tablist" aria-label="Report period">
+    <div className="isolate flex w-full max-w-full flex-wrap items-center gap-1 overflow-hidden rounded-[14px] border border-border bg-card p-1 sm:w-auto" role="tablist" aria-label="Report period">
       {reportPeriodOptions.map((option) => {
         const isActive = activePeriod === option.id;
         return (

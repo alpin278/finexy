@@ -49,7 +49,7 @@ export function OverviewPage() {
       </div>
     </header>
     {loading ? <PageSkeleton variant="dashboard" /> : null}
-    {!loading && error ? <div className="rounded-2xl border border-danger/30 bg-white p-8 text-center"><p className="text-sm text-danger">{error}</p><Button variant="ghost" size="sm" onClick={() => void invalidate(['overview'])} className="mt-3 text-accent">Try again</Button></div> : null}
+    {!loading && error ? <div className="rounded-2xl border border-danger/30 bg-card p-8 text-center"><p className="text-sm text-danger">{error}</p><Button variant="ghost" size="sm" onClick={() => void invalidate(['overview'])} className="mt-3 text-accent">Try again</Button></div> : null}
     {!loading && !error && data ? <>
       <section aria-label="Financial summary" className="space-y-4 sm:space-y-5">
         <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(260px,1.35fr)_repeat(4,minmax(0,1fr))]"><BalanceCard amount={data.totalBalance} currency={data.reportingCurrency} period={periodLabel(data.period)} estimated={data.totalBalanceEstimated} valuationDisclosure={data.valuationDisclosure} className="min-h-[156px]" />{data.metrics.map((metric) => <MetricCard key={metric.id} metric={metric} currency={data.reportingCurrency} className="min-h-[156px]" />)}</div>
