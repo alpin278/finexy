@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { cn } from '../../lib/utils';
 import { Icon } from './Icon';
-import { calculateAnchoredPopoverPosition, useAnchoredPopoverPosition, type AnchoredPopoverPosition } from './popoverPosition';
+import { useAnchoredPopoverPosition } from './popoverPosition';
 
 export interface DatePickerProps {
   id?: string;
@@ -22,7 +22,6 @@ const weekdayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const fullDateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'full' });
 const fieldDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
-type ModalLayerPosition = AnchoredPopoverPosition & { scrollTop: number };
 
 function parseLocalDate(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -69,20 +68,24 @@ export function DatePicker({
   const selectedDate = parseLocalDate(value);
   const [open, setOpen] = useState(false);
   const [displayMonth, setDisplayMonth] = useState(() => firstOfMonth(selectedDate ?? new Date()));
-  const [modalLayerPosition, setModalLayerPosition] = useState<ModalLayerPosition | null>(null);
-  const [modalScrollRoot, setModalScrollRoot] = useState<HTMLElement | null>(null);
-  const [modalPopoverLayer, setModalPopoverLayer] = useState<HTMLElement | null>(null);
-  const positioning = useMemo(() => ({ contentHeight: 356, minWidth: 304, preferredMaxHeight: 380 }), []);
-  const isModalLayer = Boolean(modalPopoverLayer);
-  const position = useAnchoredPopoverPosition(open && !isModalLayer, triggerRef, positioning);
 
   const close = useCallback((restoreFocus = true) => {
     setOpen(false);
-    setModalLayerPosition(null);
-    setModalScrollRoot(null);
-    setModalPopoverLayer(null);
     if (restoreFocus) window.requestAnimationFrame(() => triggerRef.current?.focus());
   }, []);
+
+  const positioning = useMemo(
+    () => ({
+      contentHeight: 295,
+      minWidth: 320,
+      preferredMaxHeight: 310,
+      flip: true,
+      align: 'auto' as const,
+      onClose: close,
+    }),
+    [close],
+  );
+  const position = useAnchoredPopoverPosition(open, triggerRef, positioning, popoverRef, close);
 
   const focusDate = useCallback((date: Date) => {
     const key = localDateValue(date);
@@ -91,15 +94,6 @@ export function DatePicker({
 
   const openCalendar = () => {
     if (disabled) return;
-    const scrollRoot = triggerRef.current?.closest<HTMLElement>('[data-popover-scroll-root]');
-    const layer = scrollRoot?.parentElement?.querySelector<HTMLElement>('[data-modal-popover-layer]') ?? null;
-    setModalScrollRoot(scrollRoot ?? null);
-    setModalPopoverLayer(layer);
-    if (layer && triggerRef.current) {
-      const next = calculateAnchoredPopoverPosition(triggerRef.current.getBoundingClientRect(), positioning);
-      const layerRect = layer.getBoundingClientRect();
-      setModalLayerPosition({ ...next, top: next.top - layerRect.top, left: next.left - layerRect.left, scrollTop: scrollRoot?.scrollTop ?? 0 });
-    } else setModalLayerPosition(null);
     setDisplayMonth(firstOfMonth(selectedDate ?? new Date()));
     setOpen(true);
     window.requestAnimationFrame(() => focusDate(selectedDate ?? new Date()));
@@ -124,28 +118,6 @@ export function DatePicker({
       document.removeEventListener('keydown', onKeyDown, true);
     };
   }, [close, open]);
-
-  useEffect(() => {
-    if (!open || !modalScrollRoot || !modalPopoverLayer || !triggerRef.current) return undefined;
-    const updateOnResize = () => {
-      const next = calculateAnchoredPopoverPosition(triggerRef.current!.getBoundingClientRect(), positioning);
-      const layerRect = modalPopoverLayer.getBoundingClientRect();
-      if (popoverRef.current) popoverRef.current.style.transform = '';
-      setModalLayerPosition({ ...next, top: next.top - layerRect.top, left: next.left - layerRect.left, scrollTop: modalScrollRoot.scrollTop });
-    };
-    window.addEventListener('resize', updateOnResize);
-    return () => window.removeEventListener('resize', updateOnResize);
-  }, [modalPopoverLayer, modalScrollRoot, open, positioning]);
-
-  useEffect(() => {
-    if (!open || !modalScrollRoot || !modalLayerPosition) return undefined;
-    const initialScrollTop = modalLayerPosition.scrollTop;
-    const onScroll = () => {
-      if (popoverRef.current) popoverRef.current.style.transform = `translateY(${initialScrollTop - modalScrollRoot.scrollTop}px)`;
-    };
-    modalScrollRoot.addEventListener('scroll', onScroll, { passive: true });
-    return () => modalScrollRoot.removeEventListener('scroll', onScroll);
-  }, [modalLayerPosition, modalScrollRoot, open]);
 
   const monthStart = firstOfMonth(displayMonth);
   const gridStart = addDays(monthStart, -monthStart.getDay());
@@ -187,10 +159,11 @@ export function DatePicker({
         aria-controls={dialogId}
         aria-haspopup="dialog"
         disabled={disabled}
-        onClick={() => open ? close(false) : openCalendar()}
+        style={position?.triggerStyle}
+        onClick={() => (open ? close(false) : openCalendar())}
         className={cn(
           'relative flex h-10 w-full items-center rounded-[12px] border border-border bg-white px-3.5 pr-10 text-left text-sm text-primary',
-          'transition-[border-color,background-color,box-shadow] duration-150 hover:border-border-hover focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15',
+          'transition-[border-color,background-color,box-shadow] duration-150 hover:border-border-hover focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15 cursor-pointer',
           'disabled:cursor-not-allowed disabled:bg-surface disabled:text-secondary',
           error && 'border-danger focus:border-danger focus:ring-danger/15',
           className,
@@ -201,57 +174,126 @@ export function DatePicker({
       </button>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
 
-      {open && createPortal(
-        <div
-          ref={popoverRef}
-          id={dialogId}
-          role="dialog"
-          aria-label="Choose date"
-          className={cn(isModalLayer ? 'pointer-events-auto absolute z-40 w-[min(304px,calc(100vw-1rem))] rounded-[16px] border border-border bg-white p-3 shadow-dropdown' : 'fixed z-[80] w-[min(304px,calc(100vw-1rem))] rounded-[16px] border border-border bg-white p-3 shadow-dropdown')}
-          style={isModalLayer
-            ? modalLayerPosition ? { top: modalLayerPosition.top, left: modalLayerPosition.left, width: modalLayerPosition.width, maxHeight: modalLayerPosition.maxHeight } : { visibility: 'hidden' }
-            : position ? { top: position.top, left: position.left, width: position.width, maxHeight: position.maxHeight } : { visibility: 'hidden' }}
-        >
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <button type="button" aria-label="Previous month" onClick={() => setDisplayMonth((month) => addMonths(month, -1))} className="flex h-8 w-8 items-center justify-center rounded-[10px] text-secondary hover:bg-surface hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent/20"><Icon name="chevron-left" /></button>
-            <p className="text-sm font-semibold text-primary" aria-live="polite">{monthFormatter.format(displayMonth)}</p>
-            <button type="button" aria-label="Next month" onClick={() => setDisplayMonth((month) => addMonths(month, 1))} className="flex h-8 w-8 items-center justify-center rounded-[10px] text-secondary hover:bg-surface hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent/20"><Icon name="chevron-right" /></button>
-          </div>
-          <div className="grid grid-cols-7 gap-1 text-center" role="grid" aria-label={monthFormatter.format(displayMonth)}>
-            {weekdayLabels.map((label) => <span key={label} className="pb-1 text-[10px] font-semibold uppercase tracking-wide text-secondary" aria-hidden="true">{label}</span>)}
-            {days.map((date) => {
-              const dateValue = localDateValue(date);
-              const inMonth = date.getMonth() === displayMonth.getMonth();
-              const selected = dateValue === value;
-              const today = dateValue === todayValue;
-              return <button
-                key={dateValue}
-                ref={(node) => { if (node) dayRefs.current.set(dateValue, node); else dayRefs.current.delete(dateValue); }}
-                type="button"
-                role="gridcell"
-                aria-label={fullDateFormatter.format(date)}
-                aria-selected={selected}
-                tabIndex={selected || (!selectedDate && today) ? 0 : -1}
-                onKeyDown={(event) => handleDayKeyDown(event, date)}
-                onClick={() => choose(date)}
-                className={cn(
-                  'flex h-9 items-center justify-center rounded-[10px] text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-accent/30',
-                  selected ? 'bg-accent text-white hover:bg-accent-hover' : today ? 'bg-accent/10 text-accent hover:bg-accent/15' : 'text-primary hover:bg-surface',
-                  !inMonth && !selected && 'text-secondary/45',
-                )}
-              >{date.getDate()}</button>;
-            })}
-          </div>
-          <div className="mt-2 flex justify-between border-t border-border/70 pt-2">
-            <div className="flex items-center gap-1">
-              <button type="button" onClick={() => { const today = new Date(); setDisplayMonth(firstOfMonth(today)); choose(today); }} className="rounded-lg px-2 py-1 text-xs font-semibold text-accent hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-accent/20">Today</button>
-              {clearable && value && <button type="button" onClick={() => { onChange(''); close(); }} className="rounded-lg px-2 py-1 text-xs font-semibold text-secondary hover:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/20">Clear</button>}
+      {open && (() => {
+        const popoverNode = (
+          <div
+            style={position?.popoverStyle}
+            className="pointer-events-none"
+          >
+            <div
+              ref={popoverRef}
+              id={dialogId}
+              role="dialog"
+              aria-label="Choose date"
+              onWheel={(e) => e.stopPropagation()}
+              className="pointer-events-auto w-[320px] max-w-[calc(100vw-2rem)] rounded-[14px] border border-border bg-white p-3 shadow-dropdown transition-opacity duration-100 ease-out"
+            >
+              {/* Header: < Month Year > */}
+              <div className="mb-1.5 flex items-center justify-between gap-1 px-0.5">
+                <button
+                  type="button"
+                  aria-label="Previous month"
+                  onClick={() => setDisplayMonth((month) => addMonths(month, -1))}
+                  className="flex h-6.5 w-6.5 items-center justify-center rounded-[6px] text-secondary hover:bg-surface hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors cursor-pointer"
+                >
+                  <Icon name="chevron-left" className="text-[11px]" />
+                </button>
+                <p className="text-xs font-bold text-primary tracking-tight" aria-live="polite">
+                  {monthFormatter.format(displayMonth)}
+                </p>
+                <button
+                  type="button"
+                  aria-label="Next month"
+                  onClick={() => setDisplayMonth((month) => addMonths(month, 1))}
+                  className="flex h-6.5 w-6.5 items-center justify-center rounded-[6px] text-secondary hover:bg-surface hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors cursor-pointer"
+                >
+                  <Icon name="chevron-right" className="text-[11px]" />
+                </button>
+              </div>
+
+              {/* Weekday Row */}
+              <div className="grid grid-cols-7 gap-1 text-center mb-1" role="grid" aria-label={monthFormatter.format(displayMonth)}>
+                {weekdayLabels.map((label) => (
+                  <span key={label} className="flex h-4.5 items-center justify-center text-[10px] font-semibold uppercase tracking-wider text-secondary/65" aria-hidden="true">
+                    {label}
+                  </span>
+                ))}
+              </div>
+
+              {/* Day Cells Grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {days.map((date) => {
+                  const dateValue = localDateValue(date);
+                  const inMonth = date.getMonth() === displayMonth.getMonth();
+                  const selected = dateValue === value;
+                  const today = dateValue === todayValue;
+
+                  return (
+                    <button
+                      key={dateValue}
+                      ref={(node) => { if (node) dayRefs.current.set(dateValue, node); else dayRefs.current.delete(dateValue); }}
+                      type="button"
+                      role="gridcell"
+                      aria-label={fullDateFormatter.format(date)}
+                      aria-selected={selected}
+                      tabIndex={selected || (!selectedDate && today) ? 0 : -1}
+                      onKeyDown={(event) => handleDayKeyDown(event, date)}
+                      onClick={() => choose(date)}
+                      className={cn(
+                        'flex h-8 items-center justify-center rounded-[8px] text-xs font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent/25 border border-transparent',
+                        selected
+                          ? 'bg-accent text-white font-semibold shadow-sm hover:bg-accent-hover'
+                          : today
+                            ? 'border-accent/50 bg-accent/5 text-accent font-semibold hover:bg-accent/10'
+                            : inMonth
+                              ? 'text-primary hover:bg-surface active:scale-95'
+                              : 'text-secondary/35 hover:bg-surface/50',
+                      )}
+                    >
+                      {date.getDate()}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Action Row: Today only (no redundant Close button) */}
+              <div className="mt-1.5 flex items-center justify-between border-t border-border/60 pt-1.5 px-0.5">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const today = new Date();
+                      setDisplayMonth(firstOfMonth(today));
+                      choose(today);
+                    }}
+                    className="h-6.5 px-2 rounded-[6px] text-xs font-semibold text-accent hover:bg-accent/10 focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors cursor-pointer"
+                  >
+                    Today
+                  </button>
+                  {clearable && value && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange('');
+                        close();
+                      }}
+                      className="h-6.5 px-2 rounded-[6px] text-xs font-semibold text-secondary hover:bg-surface hover:text-primary focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-            <button type="button" onClick={() => close()} className="rounded-lg px-2 py-1 text-xs font-semibold text-secondary hover:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/20">Close</button>
           </div>
-        </div>,
-        isModalLayer ? modalPopoverLayer ?? document.body : document.body,
-      )}
+        );
+
+        return position?.popoverHost
+          ? createPortal(popoverNode, position.popoverHost)
+          : popoverNode;
+      })()}
     </div>
   );
 }
+
+export default DatePicker;

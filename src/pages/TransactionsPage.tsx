@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCallback } from 'react';
 import { BankStatementImportModal, DeleteTransactionDialog, TransactionDetailModal, TransactionExportModal, TransactionFilters, TransactionFormModal, TransactionSummary, TransactionTable, TransactionTabs, RecurringTransactions, type TransactionCategoryOption, type TransactionFormValues, type TransactionTab } from '../components/transactions';
 import { archiveTransaction, createTransaction, loadTransactionsPage, transactionErrorMessage, updateTransaction, type TransactionPageData } from '../lib/transactions';
@@ -12,6 +12,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { isFinexyActionState } from '../lib/interaction-actions';
 import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
 import { occurredAtForTransactionDate } from '../lib/transaction-timestamp';
+import { getExportDateRangeForPeriod, getTransactionDateFilterBounds, matchesTransactionDatePeriod } from '../lib/transaction-date-filter';
 
 const emptyData: TransactionPageData = { transactions: [], categories: [], wallets: [], summary: { count: 0, income: {}, expenses: {}, net: {} }, reportingCurrency: 'USD', numberLocale: 'en-US', numberFormat: '1,234.56' };
 
@@ -27,7 +28,7 @@ export function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedWallet, setSelectedWallet] = useState('all');
-  const [selectedDatePeriod, setSelectedDatePeriod] = useState('year-to-date');
+  const [selectedDatePeriod, setSelectedDatePeriod] = useState('all-dates');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -108,16 +109,7 @@ export function TransactionsPage() {
     catch (error) { setActionError(transactionErrorMessage(error)); }
   };
   const exportDateDefaults = (): Pick<TransactionExportFilters, 'dateFrom' | 'dateTo'> => {
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    if (selectedDatePeriod === 'this-month') return { dateFrom: `${today.slice(0, 7)}-01`, dateTo: today };
-    if (selectedDatePeriod === 'last-month') {
-      const lastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-      const month = lastMonth.toISOString().slice(0, 7);
-      const lastDay = new Date(Date.UTC(lastMonth.getUTCFullYear(), lastMonth.getUTCMonth() + 1, 0)).toISOString().slice(0, 10);
-      return { dateFrom: `${month}-01`, dateTo: lastDay };
-    }
-    return { dateFrom: `${now.getUTCFullYear()}-01-01`, dateTo: today };
+    return getExportDateRangeForPeriod(selectedDatePeriod);
   };
   const handleExport = (filters: TransactionExportFilters) => {
     if (filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo) { setActionError('The export start date must be on or before the end date.'); return; }
@@ -137,19 +129,16 @@ export function TransactionsPage() {
 
   const filteredTransactions = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
+    const dateBounds = getTransactionDateFilterBounds();
     return pageData.transactions.filter((transaction) => {
-      const matchesType = activeTab === 'all' || transaction.type === activeTab;
+      const matchesTab = activeTab === 'all' || transaction.type === activeTab;
       const matchesSearch = !normalizedQuery || [transaction.description, transaction.payee, transaction.reference, transaction.secondaryReference, transaction.category, transaction.wallet, transaction.method].some((field) => field.toLowerCase().includes(normalizedQuery));
       const matchesCategory = selectedCategory === 'all' || transaction.category === selectedCategory;
       const matchesWallet = selectedWallet === 'all' || transaction.wallet === selectedWallet || transaction.transferSourceWallet === selectedWallet || transaction.transferDestinationWallet === selectedWallet;
       const matchesStatus = selectedStatus === 'all' || transaction.status === selectedStatus;
       const matchesCurrency = activeActivityCurrency === 'all' || transaction.currency === activeActivityCurrency;
-      const now = new Date();
-      const currentMonth = now.toISOString().slice(0, 7);
-      const lastMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-      const lastMonth = lastMonthDate.toISOString().slice(0, 7);
-      const matchesDatePeriod = selectedDatePeriod === 'year-to-date' ? transaction.date.startsWith(String(now.getUTCFullYear())) : selectedDatePeriod === 'this-month' ? transaction.date.startsWith(currentMonth) : transaction.date.startsWith(lastMonth);
-      return matchesType && matchesSearch && matchesCategory && matchesWallet && matchesStatus && matchesCurrency && matchesDatePeriod;
+      const matchesDate = matchesTransactionDatePeriod(transaction.date, selectedDatePeriod, dateBounds);
+      return matchesTab && matchesSearch && matchesCategory && matchesWallet && matchesStatus && matchesCurrency && matchesDate;
     });
   }, [activeActivityCurrency, activeTab, pageData.transactions, searchQuery, selectedCategory, selectedWallet, selectedStatus, selectedDatePeriod]);
 

@@ -1,8 +1,9 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { IconButton } from './IconButton';
 import { Icon } from './Icon';
+import { ModalContext } from './ModalContext';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export function Modal({
   footer,
   maxWidth = 'md',
 }: ModalProps) {
+  const [popoverLayer, setPopoverLayer] = useState<HTMLElement | null>(null);
   const titleId = useId();
   const descriptionId = useId();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -89,7 +91,7 @@ export function Modal({
       {/* Dialog box */}
       <div
         className={cn(
-          'relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-visible rounded-[24px] border border-white/80 bg-white ring-1 ring-primary/5 sm:max-h-[min(88dvh,760px)]',
+          'relative z-10 flex isolate max-h-[calc(100dvh-1.5rem)] w-full flex-col overflow-visible rounded-[24px] border border-white/80 bg-white ring-1 ring-primary/5 sm:max-h-[min(88dvh,760px)]',
           'shadow-[0_28px_80px_rgba(23,23,20,0.2),0_10px_28px_rgba(23,23,20,0.1)]',
           'modal-panel-enter transition-[opacity,transform] duration-200',
           maxWidths[maxWidth]
@@ -100,33 +102,37 @@ export function Modal({
         aria-labelledby={title ? titleId : undefined}
         aria-describedby={description ? descriptionId : undefined}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-border/70 bg-surface/65 px-5 py-5 sm:px-6 sm:py-6">
-          <div className="min-w-0 pr-1">
-            {title && <h3 id={titleId} className="text-lg font-semibold text-primary">{title}</h3>}
-            {description && <p id={descriptionId} className="text-xs text-secondary mt-0.5">{description}</p>}
-          </div>
-          <IconButton
-            ref={closeButtonRef}
-            aria-label="Close modal"
-            size="sm"
-            onClick={onClose}
-            className="shrink-0 text-secondary hover:text-primary"
-          >
-            <Icon name="x-lg" className="text-sm" />
-          </IconButton>
-        </div>
+        <ModalContext.Provider value={{ popoverLayer }}>
+          {/* The opaque surface is clipped; the transparent popover layer remains free to escape it. */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[23px] bg-white">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-border/70 bg-surface/65 px-5 py-5 sm:px-6 sm:py-6">
+              <div className="min-w-0 pr-1">
+                {title && <h3 id={titleId} className="text-lg font-semibold text-primary">{title}</h3>}
+                {description && <p id={descriptionId} className="text-xs text-secondary mt-0.5">{description}</p>}
+              </div>
+              <IconButton
+                ref={closeButtonRef}
+                aria-label="Close modal"
+                size="sm"
+                onClick={onClose}
+                className="shrink-0 text-secondary hover:text-primary"
+              >
+                <Icon name="x-lg" className="text-sm" />
+              </IconButton>
+            </div>
+            {/* Content */}
+            <div data-popover-scroll-root className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">{children}</div>
 
-        {/* Content */}
-        <div data-popover-scroll-root className="min-h-0 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">{children}</div>
-
-        {/* Footer */}
-        {footer && (
-          <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-border/70 bg-surface/75 px-5 py-4 sm:px-6">
-            {footer}
+            {/* Footer */}
+            {footer && (
+              <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-border/70 bg-surface/75 px-5 py-4 sm:px-6">
+                {footer}
+              </div>
+            )}
           </div>
-        )}
-        <div data-modal-popover-layer className="pointer-events-none absolute inset-0 z-30" />
+          <div ref={setPopoverLayer} data-modal-popover-layer className="pointer-events-none" style={{ display: 'contents' }} />
+        </ModalContext.Provider>
       </div>
     </div>,
     document.body

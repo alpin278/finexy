@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { SearchInput } from '../ui/SearchInput';
 import { Select, type SelectOption } from '../ui/Select';
-import { Icon } from '../ui/Icon';
-import { cn } from '../../lib/utils';
 import { transactionStatuses } from '../../data/transactions';
 import type { CurrencyCode, WalletCurrencyCode } from '../../types/finance';
+import { TransactionDateFilter } from './TransactionDateFilter';
 
 export interface TransactionFiltersProps {
   searchQuery: string;
@@ -25,12 +23,6 @@ export interface TransactionFiltersProps {
   reportingCurrency: WalletCurrencyCode;
 }
 
-const dateOptions: SelectOption[] = [
-  { value: 'this-month', label: 'This Month' },
-  { value: 'last-month', label: 'Last Month' },
-  { value: 'year-to-date', label: 'Year to Date' },
-];
-
 export function TransactionFilters({
   searchQuery,
   onSearchChange,
@@ -49,8 +41,6 @@ export function TransactionFilters({
   currencies,
   reportingCurrency,
 }: TransactionFiltersProps) {
-  const [showStatusFilter, setShowStatusFilter] = useState(false);
-
   const categoryOptions: SelectOption[] = [
     { value: 'all', label: 'All Categories' },
     ...categories.map((option) => ({ value: option, label: option })),
@@ -65,86 +55,68 @@ export function TransactionFilters({
     { value: 'all', label: 'All Statuses' },
     ...transactionStatuses,
   ];
+
   const currencyOptions: SelectOption[] = [
-    { value: reportingCurrency, label: `Reporting currency · ${reportingCurrency}` },
-    { value: 'all', label: 'All currencies' },
+    { value: reportingCurrency, label: `Reporting · ${reportingCurrency}` },
+    { value: 'all', label: 'All Currencies' },
     ...currencies.filter((item) => item !== reportingCurrency).map((item) => ({ value: item, label: item })),
   ];
 
-  const hasActiveFilter = category !== 'all' || wallet !== 'all' || status !== 'all';
-
   return (
     <div className="min-w-0 rounded-[18px] border border-border bg-white p-3 sm:p-4">
-      <div className="flex flex-col xl:flex-row xl:items-center gap-3">
-        <div className="flex flex-wrap items-center gap-2.5 flex-1">
+      <div className="min-w-0 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+        {/* 5 filter selectors: strictly one row on desktop (xl:flex-nowrap), deliberate grid on tablet/mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:flex xl:items-center xl:flex-nowrap gap-3 shrink-0">
           <Select
             aria-label="Activity currency"
             value={currency}
             onChange={(event) => onCurrencyChange(event.target.value as 'all' | CurrencyCode)}
             options={currencyOptions}
-            className="max-w-[210px]"
+            className="w-full xl:w-[148px]"
           />
-          <div className="flex items-center gap-2 text-xs font-semibold text-primary mr-1">
-            <Icon name="calendar3" className="text-secondary" />
-            <Select
-              aria-label="Date period"
-              value={datePeriod}
-              onChange={(event) => onDatePeriodChange(event.target.value)}
-              options={dateOptions}
-              className="max-w-[180px]"
-            />
-          </div>
 
-          <button
-            type="button"
-            onClick={() => setShowStatusFilter((open) => !open)}
-            aria-expanded={showStatusFilter}
-            className={cn(
-              'h-8 px-3 rounded-full border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer',
-              hasActiveFilter
-                ? 'border-accent/40 bg-accent/5 text-accent'
-                : 'border-border bg-surface text-secondary hover:text-primary hover:bg-canvas'
-            )}
-          >
-            <Icon name="sliders" />
-            <span>Filter</span>
-            {hasActiveFilter && <span className="w-1.5 h-1.5 rounded-full bg-accent" />}
-          </button>
+          <TransactionDateFilter
+            value={datePeriod}
+            onChange={onDatePeriodChange}
+            className="w-full xl:w-[168px]"
+          />
 
           <Select
             aria-label="Category"
             value={category}
             onChange={(event) => onCategoryChange(event.target.value)}
             options={categoryOptions}
-            className="max-w-[160px]"
+            className="w-full xl:w-[158px]"
           />
+
           <Select
             aria-label="Wallet"
             value={wallet}
             onChange={(event) => onWalletChange(event.target.value)}
             options={walletOptions}
-            className="max-w-[175px]"
+            className="w-full xl:w-[148px]"
           />
 
-          {showStatusFilter && (
-            <Select
-              aria-label="Status"
-              value={status}
-              onChange={(event) => onStatusChange(event.target.value)}
-              options={statusOptions}
-              className="max-w-[145px]"
-            />
-          )}
+          <Select
+            aria-label="Status"
+            value={status}
+            onChange={(event) => onStatusChange(event.target.value)}
+            options={statusOptions}
+            className="w-full xl:w-[130px]"
+          />
         </div>
 
-        <SearchInput
-          value={searchQuery}
-          onChange={(event) => onSearchChange(event.target.value)}
-          onClear={() => onSearchChange('')}
-          placeholder="Search description, payee, or reference ID..."
-          aria-label="Search transactions"
-          className="w-full xl:w-[330px] max-w-none"
-        />
+        {/* Search input: bounded on desktop, perfectly inside card padding without clipping */}
+        <div className="min-w-0 w-full xl:w-auto xl:flex-1 xl:min-w-0 xl:max-w-[320px] xl:ml-auto">
+          <SearchInput
+            value={searchQuery}
+            onChange={(event) => onSearchChange(event.target.value)}
+            onClear={() => onSearchChange('')}
+            placeholder="Search description, payee, or reference ID..."
+            aria-label="Search transactions"
+            className="w-full max-w-none"
+          />
+        </div>
       </div>
     </div>
   );

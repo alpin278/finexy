@@ -67,8 +67,8 @@ async function listTransactionRows(userId: string) {
     .select('*, wallet:wallets(id, name, currency), category:categories(id, name, type)')
     .eq('user_id', userId)
     .is('deleted_at', null)
-    .order('occurred_at', { ascending: false })
     .order('created_at', { ascending: false })
+    .order('occurred_at', { ascending: false })
     .order('id', { ascending: false });
   if (error) throw error;
   const rows = data as unknown as JoinedTransactionRow[];
@@ -117,6 +117,7 @@ function mapTransaction(row: JoinedTransactionRow, transfer?: TransferRow, walle
     method: isTransfer ? 'Wallet transfer' : mapSource(row.source),
     date: row.occurred_at.slice(0, 10),
     time: formatTime(row.occurred_at),
+    createdAt: row.created_at,
     amount: Number(row.amount),
     currency: row.currency,
     status: mapStatus(transfer?.status ?? row.status),

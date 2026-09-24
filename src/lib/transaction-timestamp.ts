@@ -4,5 +4,8 @@
  * recorded, so same-day activity has a meaningful chronological order.
  */
 export function occurredAtForTransactionDate(date: string, now = new Date()) {
-  return `${date}T${now.toISOString().slice(11)}`;
+  const [year, month, day] = date.split('-').map(Number);
+  if (!year || !month || !day) return now.toISOString();
+  const target = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+  return target.toISOString();
 }

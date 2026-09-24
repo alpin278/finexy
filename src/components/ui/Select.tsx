@@ -15,7 +15,7 @@ import {
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { Icon } from './Icon';
-import { calculateModalPopoverPosition, useAnchoredPopoverPosition, type ModalPopoverPosition } from './popoverPosition';
+import { useAnchoredPopoverPosition } from './popoverPosition';
 import { moveSelectIndex } from './selectPosition';
 
 export interface SelectOption {
@@ -67,13 +67,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const [activeIndex, setActiveIndex] = useState(selectedIndex >= 0 ? selectedIndex : 0);
     const [isMounted, setIsMounted] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
-    const [localPosition, setLocalPosition] = useState<ModalPopoverPosition | null>(null);
-    const [modalScrollRoot, setModalScrollRoot] = useState<HTMLElement | null>(null);
-    const [popoverContainer, setPopoverContainer] = useState<HTMLElement | null>(null);
-    const fullWidth = className?.split(/\s+/).includes('w-full');
-    const positioning = useMemo(() => ({ contentHeight: Math.max(14, options.length * 37 + 14) }), [options.length]);
-    const isModalLocal = Boolean(modalScrollRoot);
-    const position = useAnchoredPopoverPosition(isMounted && !isModalLocal, triggerRef, positioning);
+
+    const isMountedRef = useRef(isMounted);
+    const isKeyboardNavRef = useRef(false);
+
+    useEffect(() => {
+      isMountedRef.current = isMounted;
+    }, [isMounted]);
 
     useImperativeHandle(forwardedRef, () => nativeSelectRef.current as HTMLSelectElement, []);
 
@@ -92,39 +92,27 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         performance.mark('select_open_start');
       }
       clearScheduledClose();
-      const scrollRoot = triggerRef.current?.closest<HTMLElement>('[data-popover-scroll-root]');
-      setModalScrollRoot(scrollRoot ?? null);
-      setPopoverContainer(scrollRoot ? triggerRef.current?.parentElement ?? null : null);
-      setLocalPosition(scrollRoot && triggerRef.current
-        ? calculateModalPopoverPosition(triggerRef.current.getBoundingClientRect(), scrollRoot.getBoundingClientRect(), positioning)
-        : null);
       if (import.meta.env.DEV) performance.mark('select_position_ready');
+      isKeyboardNavRef.current = true;
       setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
       setIsMounted(true);
       if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = window.requestAnimationFrame(() => setIsVisible(true));
-    }, [clearScheduledClose, disabled, options.length, positioning, selectedIndex]);
+    }, [clearScheduledClose, disabled, options.length, selectedIndex]);
 
     const closeMenu = useCallback(() => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
       setIsVisible(false);
       clearScheduledClose();
       closeTimerRef.current = window.setTimeout(() => {
         setIsMounted(false);
-        setLocalPosition(null);
-        setModalScrollRoot(null);
-        setPopoverContainer(null);
         closeTimerRef.current = null;
       }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 120);
-    }, [clearScheduledClose, isMounted]);
+    }, [clearScheduledClose]);
 
-    useEffect(() => {
-      if (!isMounted || !modalScrollRoot || !triggerRef.current) return undefined;
-      const updateLocalPosition = () => setLocalPosition(calculateModalPopoverPosition(triggerRef.current!.getBoundingClientRect(), modalScrollRoot.getBoundingClientRect(), positioning));
-      window.addEventListener('resize', updateLocalPosition);
-      return () => window.removeEventListener('resize', updateLocalPosition);
-    }, [isMounted, modalScrollRoot, positioning]);
+    const positioning = useMemo(() => ({ contentHeight: Math.max(14, options.length * 37 + 14), preferredMaxHeight: 280, flip: false, onClose: closeMenu }), [closeMenu, options.length]);
+    const position = useAnchoredPopoverPosition(isMounted, triggerRef, positioning, menuRef, closeMenu);
 
     useLayoutEffect(() => {
       if (!isVisible || !import.meta.env.DEV) return;
@@ -144,7 +132,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
     useEffect(() => {
       if (!isVisible || activeIndex < 0) return;
-      menuRef.current?.querySelector<HTMLElement>(`#${CSS.escape(`${listboxId}-option-${activeIndex}`)}`)?.scrollIntoView({ block: 'nearest' });
+      if (isKeyboardNavRef.current) {
+        isKeyboardNavRef.current = false;
+        menuRef.current?.querySelector<HTMLElement>(`#${CSS.escape(`${listboxId}-option-${activeIndex}`)}`)?.scrollIntoView({ block: 'nearest' });
+      }
     }, [activeIndex, isVisible, listboxId]);
 
     useEffect(() => () => {
@@ -166,17 +157,20 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
         event.preventDefault();
+        isKeyboardNavRef.current = true;
         if (!isVisible) openMenu();
         else setActiveIndex((current) => moveSelectIndex(current, options.length, event.key === 'ArrowDown' ? 1 : -1));
         return;
       }
       if (event.key === 'Home' && isVisible) {
         event.preventDefault();
+        isKeyboardNavRef.current = true;
         setActiveIndex(0);
         return;
       }
       if (event.key === 'End' && isVisible) {
         event.preventDefault();
+        isKeyboardNavRef.current = true;
         setActiveIndex(options.length - 1);
         return;
       }
@@ -194,6 +188,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       }
       if (event.key === 'Tab') closeMenu();
     };
+
+    const fullWidth = className?.split(/\s+/).includes('w-full');
 
     return (
       <div className={cn('group relative items-center', fullWidth ? 'flex w-full' : 'inline-flex')}>
@@ -229,7 +225,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           aria-activedescendant={isVisible && options[activeIndex] ? `${listboxId}-option-${activeIndex}` : undefined}
           disabled={disabled}
           title={title}
-          style={style}
+          style={{ ...position?.triggerStyle, ...style }}
           onClick={() => isVisible ? closeMenu() : openMenu()}
           onKeyDown={handleKeyDown}
           className={cn(
@@ -246,59 +242,59 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           <Icon name="chevron-down" className={cn('pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-secondary transition-transform duration-150', isVisible && 'rotate-180 text-accent')} />
         </button>
 
-        {isMounted && createPortal(
-          <div
-            ref={menuRef}
-            id={listboxId}
-            role="listbox"
-            aria-label={ariaLabel}
-            aria-labelledby={ariaLabel ? undefined : ariaLabelledby ?? triggerId}
-            aria-hidden={!isVisible}
-            className={cn(
-              isModalLocal ? 'absolute z-40 overflow-y-auto rounded-[14px] border border-border bg-white p-1.5 shadow-dropdown' : 'fixed z-[80] overflow-y-auto rounded-[14px] border border-border bg-white p-1.5 shadow-dropdown',
-              'transition-[opacity,transform] ease-out',
-              isVisible ? 'pointer-events-auto translate-y-0 scale-100 opacity-100 duration-[160ms]' : 'pointer-events-none -translate-y-1 scale-[0.98] opacity-0 duration-[120ms]',
-            )}
-            style={isModalLocal
-              ? localPosition ? {
-                [localPosition.placement === 'top' ? 'bottom' : 'top']: 'calc(100% + 6px)',
-                [localPosition.alignment]: 0,
-                width: localPosition.width,
-                maxHeight: localPosition.maxHeight,
-                transformOrigin: localPosition.placement === 'top' ? 'bottom center' : 'top center',
-              } : { visibility: 'hidden' }
-              : position ? {
-                top: position.top,
-                left: position.left,
-                width: position.width,
-                maxHeight: position.maxHeight,
-                transformOrigin: position.placement === 'top' ? 'bottom center' : 'top center',
-              } : { visibility: 'hidden' }}
-          >
-            {options.map((option, index) => {
-              const selected = option.value === selectedValue;
-              const active = index === activeIndex;
-              return <div
-                key={option.value}
-                id={`${listboxId}-option-${index}`}
-                role="option"
-                aria-selected={selected}
-                onPointerMove={() => setActiveIndex(index)}
-                onPointerDown={(event) => event.preventDefault()}
-                onClick={() => chooseOption(option.value)}
+        {isMounted && (() => {
+          const popoverNode = (
+            <div
+              style={position?.popoverStyle}
+              className="pointer-events-none"
+            >
+              <div
+                ref={menuRef}
+                id={listboxId}
+                role="listbox"
+                aria-label={ariaLabel}
+                aria-labelledby={ariaLabel ? undefined : ariaLabelledby ?? triggerId}
+                aria-hidden={!isVisible}
                 className={cn(
-                  'flex cursor-pointer select-none items-center gap-2 rounded-[10px] px-3 py-2.5 text-xs text-primary outline-none transition-colors duration-100',
-                  selected ? 'bg-accent/10 font-semibold text-primary' : active ? 'bg-surface font-medium' : 'hover:bg-surface',
+                  'w-full min-w-[140px] max-h-[280px] overflow-y-auto overscroll-contain rounded-[14px] border border-border bg-white p-1.5 shadow-dropdown [scrollbar-width:thin]',
+                  'transition-opacity duration-100 ease-out',
+                  isVisible && (!position || !position.hidden) ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
                 )}
               >
-                {option.icon && <span className="flex shrink-0 items-center text-secondary">{option.icon}</span>}
-                <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                {selected && <Icon name="check-lg" className="shrink-0 text-accent" />}
-              </div>;
-            })}
-          </div>,
-          isModalLocal ? popoverContainer ?? document.body : document.body,
-        )}
+                {options.map((option, index) => {
+                  const selected = option.value === selectedValue;
+                  const active = index === activeIndex;
+                  return (
+                    <div
+                      key={option.value}
+                      id={`${listboxId}-option-${index}`}
+                      role="option"
+                      aria-selected={selected}
+                      onPointerEnter={() => {
+                        isKeyboardNavRef.current = false;
+                        setActiveIndex((current) => (current === index ? current : index));
+                      }}
+                      onPointerDown={(event) => event.preventDefault()}
+                      onClick={() => chooseOption(option.value)}
+                      className={cn(
+                        'flex cursor-pointer select-none items-center gap-2 rounded-[10px] px-3 py-2.5 text-xs text-primary outline-none transition-colors',
+                        selected ? 'bg-accent/10 font-semibold text-primary' : active ? 'bg-surface font-medium' : 'hover:bg-surface',
+                      )}
+                    >
+                      {option.icon && <span className="flex shrink-0 items-center text-secondary">{option.icon}</span>}
+                      <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                      {selected && <Icon name="check-lg" className="shrink-0 text-accent" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+
+          return position?.popoverHost
+            ? createPortal(popoverNode, position.popoverHost)
+            : popoverNode;
+        })()}
       </div>
     );
   },

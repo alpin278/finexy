@@ -11,4 +11,5 @@ export * from './TransactionExportModal';
 export * from './BankStatementImportModal';
 
 export { RecurringTransactions } from './RecurringTransactions';
+export * from './TransactionDateFilter';
 

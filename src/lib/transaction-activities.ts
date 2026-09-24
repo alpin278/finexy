@@ -4,6 +4,7 @@ export interface TransferActivityItem {
   type: 'income' | 'expense' | 'transfer';
   transferId?: string;
   transferLeg?: 'outbound' | 'inbound';
+  createdAt?: string;
 }
 
 /** Groups only persisted transfer legs; transfer_id is the sole grouping key. */

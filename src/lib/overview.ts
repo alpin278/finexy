@@ -38,6 +38,8 @@ export interface OverviewRecentTransaction {
   type: 'income' | 'expense' | 'transfer';
   status: 'completed' | 'pending' | 'canceled';
   occurredAt: string;
+  /** ISO timestamp of when this transaction was recorded in Finexy. */
+  createdAt: string;
   sourceWallet?: string;
   destinationWallet?: string;
   transferId?: string;
@@ -140,6 +142,7 @@ function mapRecentTransaction(row: OverviewTransactionRow, transferRows: Overvie
     type: row.type,
     status: row.status,
     occurredAt: formatRecentDate(row.occurred_at),
+    createdAt: row.created_at,
     ...(sourceWallet ? { sourceWallet } : {}),
     ...(destinationWallet ? { destinationWallet } : {}),
     ...(isTransfer && row.transfer_id ? { transferId: row.transfer_id } : {}),
@@ -162,8 +165,8 @@ async function loadOverviewTransactionRows(userId: string) {
     .select('*, wallet:wallets(id, name, currency), category:categories(id, name, type)')
     .eq('user_id', userId)
     .is('deleted_at', null)
-    .order('occurred_at', { ascending: false })
     .order('created_at', { ascending: false })
+    .order('occurred_at', { ascending: false })
     .order('id', { ascending: false });
   if (error) throw error;
   const rows = data as unknown as OverviewTransactionRow[];
