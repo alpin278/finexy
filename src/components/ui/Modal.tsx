@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { Icon } from './Icon';
 import { ModalContext } from './ModalContext';
+import { lockBodyScroll } from '../../lib/scroll-lock';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -37,8 +38,7 @@ export function Modal({
     if (!isOpen) return undefined;
 
     previousActiveElement.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlockScroll = lockBodyScroll();
     const focusTimer = window.requestAnimationFrame(() => closeButtonRef.current?.focus({ preventScroll: true }));
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -64,7 +64,7 @@ export function Modal({
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       window.cancelAnimationFrame(focusTimer);
-      document.body.style.overflow = previousOverflow;
+      unlockScroll();
       document.removeEventListener('keydown', handleKeyDown);
       previousActiveElement.current?.focus();
     };

@@ -32,7 +32,7 @@ export function ProfitLossChart({ data, currency, className }: ProfitLossChartPr
           <span className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-primary">{currency}</span>
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-secondary">
-          <p>Completed ledger activity over the last six months.</p>
+          <p>Completed ledger activity across the selected year.</p>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-accent" />Income</span>
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-dark" />Expenses</span>
@@ -41,9 +41,9 @@ export function ProfitLossChart({ data, currency, className }: ProfitLossChartPr
       </div>
       <div className="h-[248px] w-full pt-4 sm:h-[272px]">
         <ResponsiveContainer width="100%" height="100%" minWidth={200}>
-          <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barCategoryGap="24%" barGap={3}>
+          <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barCategoryGap="18%" barGap={2}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid, #ECECE8)" />
-            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'var(--chart-text, #777771)', fontSize: 11, fontWeight: 500 }} dy={8} />
+            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'var(--chart-text, #777771)', fontSize: 10, fontWeight: 500 }} dy={8} interval={0} />
             <YAxis domain={domain} allowDataOverflow={false} axisLine={false} tickLine={false} tick={{ fill: 'var(--chart-text, #777771)', fontSize: 10 }} tickFormatter={(value) => axisFormatter(Number(value))} width={62} tickCount={5} />
             <Tooltip
               content={({ active, payload, label }) => {

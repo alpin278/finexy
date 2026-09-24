@@ -83,12 +83,6 @@ export interface OverviewPageData {
   budgetProgress: OverviewBudgetProgress;
 }
 
-function addMonths(period: BudgetPeriod, offset: number): BudgetPeriod {
-  const [year, month] = period.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1 + offset, 1));
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
 function rowPeriod(row: TransactionRow) {
   return row.occurred_at.slice(0, 7) as BudgetPeriod;
 }
@@ -116,11 +110,19 @@ export function aggregateCategorySpending(rows: OverviewTransactionRow[], period
     .slice(0, 4);
 }
 
-export function buildCashFlowTrend(rows: TransactionRow[], selectedPeriod: BudgetPeriod, currency: Currency, monthCount = 6): CashFlowPoint[] {
-  return Array.from({ length: monthCount }, (_, index) => {
-    const period = addMonths(selectedPeriod, index - monthCount + 1);
+export function buildCashFlowTrend(rows: TransactionRow[], selectedPeriod: BudgetPeriod, currency: Currency): CashFlowPoint[] {
+  const [yearStr] = selectedPeriod.split('-');
+  const year = Number(yearStr);
+  return Array.from({ length: 12 }, (_, index) => {
+    const monthNumber = String(index + 1).padStart(2, '0');
+    const period: BudgetPeriod = `${year}-${monthNumber}`;
     const totals = calculatePeriodFinancials(rows, period, currency);
-    return { month: new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' }).format(new Date(`${period}-01T00:00:00.000Z`)), income: totals.income, expenses: totals.expenses, net: totals.net };
+    return {
+      month: new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' }).format(new Date(`${period}-01T00:00:00.000Z`)),
+      income: totals.income,
+      expenses: totals.expenses,
+      net: totals.net,
+    };
   });
 }
 

@@ -7,6 +7,7 @@ import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation
 import { useAuth } from '../../context/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 import { formatNotificationTime, type InAppNotification } from '../../lib/notifications';
+import { lockBodyScroll } from '../../lib/scroll-lock';
 
 export interface TopNavigationProps {
   currentTab?: NavigationTab;
@@ -73,6 +74,12 @@ export function TopNavigation({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isNotificationsOpen, isProfileOpen]);
+
+  useEffect(() => {
+    if (!isNotificationsOpen) return undefined;
+    const unlock = lockBodyScroll();
+    return unlock;
+  }, [isNotificationsOpen]);
 
   useEffect(() => {
     if (isNotificationsOpen) notificationsPanelRef.current?.focus();
@@ -200,7 +207,7 @@ export function TopNavigation({
               tabIndex={-1}
               role="dialog"
               aria-label="Notifications"
-              className="menu-enter fixed inset-x-3 top-[4.5rem] z-50 flex max-h-[calc(100dvh-5.5rem)] flex-col rounded-2xl border border-border bg-card shadow-dropdown focus:outline-none sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-h-[calc(100vh-8rem)]"
+              className="menu-enter fixed inset-x-3 top-[4.5rem] z-50 flex max-h-[calc(100dvh-5.5rem)] flex-col overscroll-contain rounded-2xl border border-border bg-card shadow-dropdown focus:outline-none sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-h-[calc(100vh-8rem)]"
             >
               <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-2.5 sm:py-3">
                 <div>
@@ -227,7 +234,7 @@ export function TopNavigation({
                 )}
               </div>
               {notifications.length === 0 ? (
-                <div className="flex-1 overflow-y-auto px-4 py-6 text-center sm:px-5 sm:py-7">
+                <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-6 text-center sm:px-5 sm:py-7">
                   <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-surface text-secondary sm:h-10 sm:w-10">
                     <Icon name="bell-slash" />
                   </span>
@@ -339,7 +346,7 @@ export function TopNavigation({
           {/* Profile Dropdown Menu */}
           {isProfileOpen && (
             <div
-              className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-border bg-card py-2 shadow-dropdown menu-enter"
+              className="menu-enter absolute right-0 z-50 mt-2 w-56 overscroll-contain rounded-2xl border border-border bg-card py-2 shadow-dropdown"
             >
               <div className="px-4 py-2.5 border-b border-border/60">
                 <p className="text-xs font-semibold text-primary">{profileName}</p>

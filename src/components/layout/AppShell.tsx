@@ -9,6 +9,7 @@ import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation
 import { Icon } from '../ui/Icon';
 import { usePrivacy } from '../../context/usePrivacy';
 import { CommandPalette, type PaletteCommand } from './CommandPalette';
+import { lockBodyScroll } from '../../lib/scroll-lock';
 
 import { useTheme } from '../../context/useTheme';
 
@@ -76,6 +77,12 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
     setIsMobileMenuOpen(false);
     window.setTimeout(() => setIsMobileMenuMounted(false), 180);
   };
+
+  useEffect(() => {
+    if (!isMobileMenuMounted) return undefined;
+    const unlock = lockBodyScroll();
+    return unlock;
+  }, [isMobileMenuMounted]);
 
   const primaryNavTabs: {
     id: NavigationTab;
@@ -151,7 +158,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
             />
 
             {/* Drawer Panel */}
-            <div className={cn('mobile-drawer-panel fixed inset-y-0 left-0 z-10 flex w-4/5 max-w-xs flex-col bg-card p-6 shadow-xl', isMobileMenuOpen && 'mobile-drawer-panel-open')}>
+            <div className={cn('mobile-drawer-panel fixed inset-y-0 left-0 z-10 flex w-4/5 max-w-xs flex-col overflow-y-auto overscroll-contain bg-card p-6 shadow-xl', isMobileMenuOpen && 'mobile-drawer-panel-open')}>
               <div className="flex items-center justify-between pb-4 border-b border-border">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
