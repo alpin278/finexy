@@ -5,6 +5,8 @@ import { Avatar } from '../ui/Avatar';
 import { Icon } from '../ui/Icon';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
 import { useAuth } from '../../context/useAuth';
+import { useNotifications } from '../../hooks/useNotifications';
+import { formatNotificationTime, type InAppNotification } from '../../lib/notifications';
 
 export interface TopNavigationProps {
   currentTab?: NavigationTab;
@@ -38,6 +40,19 @@ export function TopNavigation({
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
   const profileName = profile?.display_name?.trim() || user?.email || 'Finexy user';
   const profileEmail = user?.email || profile?.email || '';
+
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+
+  const handleNotificationClick = async (notification: InAppNotification) => {
+    if (!notification.readAt) {
+      await markAsRead(notification.id);
+    }
+    setIsNotificationsOpen(false);
+    if (notification.type.startsWith('budget_')) {
+      onNavigate?.('budgets');
+      navigate('/budgets');
+    }
+  };
 
   useEffect(() => {
     if (!isNotificationsOpen && !isProfileOpen) return undefined;
@@ -163,19 +178,127 @@ export function TopNavigation({
         <div className="relative" ref={notificationsRef}>
           <button
             type="button"
-            aria-label="Notifications"
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
             aria-expanded={isNotificationsOpen}
             aria-haspopup="dialog"
             onClick={() => { setIsNotificationsOpen((open) => !open); setIsProfileOpen(false); }}
             className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-secondary transition-[background-color,color,box-shadow,transform] duration-150 hover:bg-surface hover:text-primary hover:shadow-sm active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
           >
             <Icon name="bell" className="text-sm" />
+            {unreadCount > 0 && (
+              <span
+                aria-hidden="true"
+                className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[9px] font-bold text-white shadow-xs pointer-events-none"
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </button>
-          {isNotificationsOpen && <div ref={notificationsPanelRef} tabIndex={-1} role="dialog" aria-label="Notifications" className="menu-enter absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-border bg-card shadow-dropdown focus:outline-none">
-            <div className="flex items-center justify-between border-b border-border/60 px-4 py-3"><div><p className="text-sm font-semibold text-primary">Notifications</p><p className="mt-0.5 text-[11px] text-secondary">Current alerts and updates</p></div><span className="rounded-full bg-surface px-2 py-1 text-[10px] font-semibold text-secondary">All clear</span></div>
-            <div className="px-5 py-7 text-center"><span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-surface text-secondary"><Icon name="bell-slash" /></span><p className="mt-3 text-sm font-semibold text-primary">No new notifications</p><p className="mx-auto mt-1 max-w-[230px] text-xs leading-relaxed text-secondary">Finexy has no unread or actionable in-app alerts for your account.</p></div>
-            <div className="border-t border-border/60 p-2"><Link to="/settings#notifications" onClick={() => { onNavigate?.('settings'); setIsNotificationsOpen(false); }} className="flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"><span>Notification settings</span><Icon name="chevron-right" className="text-[10px] text-secondary" /></Link></div>
-          </div>}
+          {isNotificationsOpen && (
+            <div
+              ref={notificationsPanelRef}
+              tabIndex={-1}
+              role="dialog"
+              aria-label="Notifications"
+              className="menu-enter fixed inset-x-3 top-[4.5rem] z-50 flex max-h-[calc(100dvh-5.5rem)] flex-col rounded-2xl border border-border bg-card shadow-dropdown focus:outline-none sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-h-[calc(100vh-8rem)]"
+            >
+              <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-2.5 sm:py-3">
+                <div>
+                  <p className="text-sm font-semibold text-primary">Notifications</p>
+                  <p className="mt-0.5 text-[11px] text-secondary">Current alerts and updates</p>
+                </div>
+                {unreadCount > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
+                      {unreadCount} unread
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void markAllAsRead()}
+                      className="text-[11px] font-medium text-secondary hover:text-primary hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 rounded cursor-pointer"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+                ) : (
+                  <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold text-secondary">
+                    All clear
+                  </span>
+                )}
+              </div>
+              {notifications.length === 0 ? (
+                <div className="flex-1 overflow-y-auto px-4 py-6 text-center sm:px-5 sm:py-7">
+                  <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-surface text-secondary sm:h-10 sm:w-10">
+                    <Icon name="bell-slash" />
+                  </span>
+                  <p className="mt-2.5 text-sm font-semibold text-primary">No new notifications</p>
+                  <p className="mx-auto mt-1 max-w-[240px] text-xs leading-relaxed text-secondary">
+                    Finexy has no unread or actionable in-app alerts for your account.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-y-auto divide-y divide-border/50 max-h-[380px] overscroll-contain">
+                  {notifications.map((notification) => {
+                    const isUnread = !notification.readAt;
+                    const isOverLimit = notification.type === 'budget_over_limit';
+                    return (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() => void handleNotificationClick(notification)}
+                        className={cn(
+                          'w-full text-left p-3.5 sm:px-4 sm:py-3 flex items-start gap-3 transition-colors hover:bg-surface/80 focus-visible:outline-none focus-visible:bg-surface/80 cursor-pointer',
+                          isUnread ? 'bg-accent/[0.04]' : 'opacity-80 hover:opacity-100'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm mt-0.5',
+                            isOverLimit ? 'bg-danger/10 text-danger' : 'bg-accent/10 text-accent'
+                          )}
+                        >
+                          <Icon name={isOverLimit ? 'exclamation-octagon' : 'exclamation-triangle'} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <p className={cn('text-xs font-semibold truncate', isUnread ? 'text-primary' : 'text-secondary')}>
+                              {notification.title}
+                            </p>
+                            <span className="text-[10px] text-secondary shrink-0">
+                              {formatNotificationTime(notification.createdAt)}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-secondary leading-snug line-clamp-2">
+                            {notification.message}
+                          </p>
+                        </div>
+                        {isUnread && (
+                          <span
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-accent"
+                            title="Unread notification"
+                            aria-label="Unread"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="shrink-0 border-t border-border/60 p-1.5 sm:p-2">
+                <Link
+                  to="/settings#notifications"
+                  onClick={() => {
+                    onNavigate?.('settings');
+                    setIsNotificationsOpen(false);
+                  }}
+                  className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 sm:py-2.5"
+                >
+                  <span>Notification settings</span>
+                  <Icon name="chevron-right" className="text-[10px] text-secondary" />
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Info/Help alert */}

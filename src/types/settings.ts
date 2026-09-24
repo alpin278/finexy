@@ -12,7 +12,14 @@ export interface SettingsProfile {
 }
 
 export interface NotificationPreference {
-  id: 'budget-alerts' | 'transaction-notifications' | 'spending-alerts' | 'report-summaries';
+  id:
+    | 'budget_near_limit'
+    | 'budget_over_limit'
+    | 'budget-alerts'
+    | 'transaction-notifications'
+    | 'spending-alerts'
+    | 'report-summaries'
+    | (string & {});
   title: string;
   description: string;
   enabled: boolean;

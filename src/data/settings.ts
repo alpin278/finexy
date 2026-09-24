@@ -45,7 +45,8 @@ export const defaultSettingsState: SettingsState = {
   merchantSuggestions: true,
   confirmBeforeDeleting: true,
   notifications: [
-    { id: 'budget-alerts', title: 'Budget alerts', description: 'Get a reminder when a budget is getting close to its limit.', enabled: true },
+    { id: 'budget_near_limit', title: 'Budget near limit', description: 'Get a reminder when a budget reaches 80% of its monthly limit.', enabled: true },
+    { id: 'budget_over_limit', title: 'Budget over limit', description: 'Get a reminder when a budget reaches or exceeds its monthly limit.', enabled: true },
     { id: 'transaction-notifications', title: 'Transaction notifications', description: 'Show a local confirmation when a transaction is added.', enabled: true },
     { id: 'spending-alerts', title: 'Spending alerts', description: 'Highlight unusual or higher-than-usual spending patterns.', enabled: false },
     { id: 'report-summaries', title: 'Monthly report summaries', description: 'Receive a monthly summary of your inflow, outflow, and savings.', enabled: true },
