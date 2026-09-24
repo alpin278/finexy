@@ -86,6 +86,15 @@ async function defaultWalletId(userId: string, seed: (typeof defaultWalletSeeds)
 
 async function bootstrapDefaults(userId: string, walletRows: WalletRow[]) {
   if (walletRows.length > 0) return walletRows;
+
+  const { data: historicalWallets, error: historicalError } = await supabase
+    .from('wallets')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1);
+  if (historicalError) throw historicalError;
+  if (historicalWallets && historicalWallets.length > 0) return walletRows;
+
   for (const seed of defaultWalletSeeds) {
     const payload: TablesInsert<'wallets'> = {
       id: await defaultWalletId(userId, seed),

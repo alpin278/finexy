@@ -10,10 +10,18 @@ import { Select } from '../ui/Select';
 
 export interface WalletFormValues { name: string; type: WalletType; currency: WalletCurrencyCode; openingBalance: string; monthlyLimit: string; accountMask: string; status: WalletStatus; }
 const walletTypes: { value: WalletType; label: string }[] = [{ value: 'bank', label: 'Bank Account' }, { value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'savings', label: 'Savings' }, { value: 'travel', label: 'Travel' }];
-const initial = (wallet?: Wallet | null): WalletFormValues => ({ name: wallet?.name ?? '', type: wallet?.type ?? 'bank', currency: wallet?.currency ?? 'USD', openingBalance: wallet ? String(wallet.balance) : '', monthlyLimit: wallet?.monthlyLimit === null ? '' : String(wallet?.monthlyLimit ?? ''), accountMask: wallet?.accountMask ?? '', status: wallet?.status ?? 'Active' });
+const initial = (wallet?: Wallet | null, template?: Partial<WalletFormValues>): WalletFormValues => ({
+  name: wallet?.name ?? template?.name ?? '',
+  type: wallet?.type ?? template?.type ?? 'bank',
+  currency: wallet?.currency ?? template?.currency ?? 'USD',
+  openingBalance: wallet ? String(wallet.balance) : (template?.openingBalance ?? ''),
+  monthlyLimit: wallet?.monthlyLimit === null ? '' : String(wallet?.monthlyLimit ?? template?.monthlyLimit ?? ''),
+  accountMask: wallet?.accountMask ?? template?.accountMask ?? '',
+  status: wallet?.status ?? template?.status ?? 'Active',
+});
 
-export function WalletFormModal({ wallet, locale, numberFormat, onClose, onSubmit }: { wallet?: Wallet | null; locale: string; numberFormat: string; onClose: () => void; onSubmit: (values: WalletFormValues) => void }) {
-  const [values, setValues] = useState(() => initial(wallet));
+export function WalletFormModal({ wallet, initialTemplateValues, locale, numberFormat, onClose, onSubmit }: { wallet?: Wallet | null; initialTemplateValues?: Partial<WalletFormValues>; locale: string; numberFormat: string; onClose: () => void; onSubmit: (values: WalletFormValues) => void }) {
+  const [values, setValues] = useState(() => initial(wallet, initialTemplateValues));
   const [errors, setErrors] = useState<Partial<Record<keyof WalletFormValues, string>>>({});
   const update = <K extends keyof WalletFormValues>(key: K, value: WalletFormValues[K]) => { setValues((current) => ({ ...current, [key]: value })); setErrors((current) => ({ ...current, [key]: undefined })); };
   const save = () => {

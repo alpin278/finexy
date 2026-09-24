@@ -15,16 +15,17 @@ export interface BudgetFormValues {
   notes: string;
 }
 
-const initialValues = (budget: Budget | null | undefined, defaultPeriod: BudgetPeriod): BudgetFormValues => ({
-  categoryId: budget?.categoryId ?? '',
-  monthlyLimit: budget ? String(budget.monthlyLimit) : '',
-  period: budget?.period ?? defaultPeriod,
-  currency: budget?.currency ?? 'USD',
-  notes: budget?.notes ?? '',
+const initialValues = (budget: Budget | null | undefined, defaultPeriod: BudgetPeriod, template?: Partial<BudgetFormValues>): BudgetFormValues => ({
+  categoryId: budget?.categoryId ?? template?.categoryId ?? '',
+  monthlyLimit: budget ? String(budget.monthlyLimit) : (template?.monthlyLimit ?? ''),
+  period: budget?.period ?? template?.period ?? defaultPeriod,
+  currency: budget?.currency ?? template?.currency ?? 'USD',
+  notes: budget?.notes ?? template?.notes ?? '',
 });
 
-export function BudgetFormModal({ budget, categories, periods, defaultPeriod, duplicateError, locale, numberFormat, onClose, onSubmit }: {
+export function BudgetFormModal({ budget, initialTemplateValues, categories, periods, defaultPeriod, duplicateError, locale, numberFormat, onClose, onSubmit }: {
   budget?: Budget | null;
+  initialTemplateValues?: Partial<BudgetFormValues>;
   categories: BudgetCategoryOption[];
   periods: BudgetPeriod[];
   defaultPeriod: BudgetPeriod;
@@ -34,7 +35,7 @@ export function BudgetFormModal({ budget, categories, periods, defaultPeriod, du
   onClose: () => void;
   onSubmit: (values: BudgetFormValues) => void;
 }) {
-  const [values, setValues] = useState(() => initialValues(budget, defaultPeriod));
+  const [values, setValues] = useState(() => initialValues(budget, defaultPeriod, initialTemplateValues));
   const [errors, setErrors] = useState<Partial<Record<keyof BudgetFormValues, string>>>({});
   const update = <K extends keyof BudgetFormValues>(key: K, value: BudgetFormValues[K]) => {
     setValues((current) => ({ ...current, [key]: value }));

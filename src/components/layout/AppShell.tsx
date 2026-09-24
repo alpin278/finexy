@@ -102,13 +102,13 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
 
   return (
     // Outer page container with canvas background and responsive framing
-    <div className={cn('min-h-screen bg-canvas p-0 sm:p-3 md:p-4 lg:p-6 flex items-center justify-center font-sans antialiased text-primary', privacyMode && 'privacy-mode')}>
+    <div className={cn('min-h-screen bg-surface sm:bg-canvas p-0 sm:p-3 md:p-4 lg:p-6 flex flex-col sm:items-center sm:justify-center font-sans antialiased text-primary', privacyMode && 'privacy-mode')}>
       {/* Centered Application Shell Container (Figma rounded app container) */}
       <div
         className={cn(
-          'w-full max-w-[1600px] h-screen sm:h-[calc(100vh-24px)] md:h-[calc(100vh-32px)] lg:h-[calc(100vh-48px)]',
-          'bg-surface sm:rounded-[28px] border border-border',
-          'shadow-[0_12px_48px_-12px_rgba(23,23,20,0.08)] overflow-hidden flex flex-col',
+          'w-full max-w-[1600px] min-h-screen sm:min-h-0 sm:h-[calc(100vh-24px)] md:h-[calc(100vh-32px)] lg:h-[calc(100vh-48px)]',
+          'bg-surface sm:rounded-[28px] border-0 sm:border sm:border-border',
+          'sm:shadow-[0_12px_48px_-12px_rgba(23,23,20,0.08)] sm:overflow-hidden flex flex-col',
           className
         )}
       >
@@ -123,7 +123,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
         />
 
         {/* Middle Body: Sidebar + Main Content */}
-        <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex flex-col sm:flex-row sm:overflow-hidden relative">
           {/* Left narrow utility sidebar (Visible on tablet & desktop) */}
           <Sidebar
             currentTab={activeTab || undefined}
@@ -135,7 +135,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
 
           {/* Main content scrollable viewport */}
           <MainContent>
-            <div key={location.pathname} className="route-enter min-h-full">
+            <div key={location.pathname} className="route-enter sm:min-h-full">
               {children || <Outlet />}
             </div>
           </MainContent>
@@ -159,14 +159,24 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                   </div>
                   <span className="text-lg font-bold text-primary">Finexy</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={closeMobileMenu}
-                  aria-label="Close menu"
-                  className="p-1.5 rounded-full text-secondary hover:text-primary hover:bg-border/60 cursor-pointer"
-                >
-                  <Icon name="x-lg" className="text-base" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={(e) => toggleTheme(e)}
+                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-secondary hover:text-primary hover:bg-surface border border-transparent hover:border-border transition-colors cursor-pointer"
+                  >
+                    <Icon name={theme === 'dark' ? 'sun' : 'moon'} className="text-lg" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeMobileMenu}
+                    aria-label="Close menu"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-secondary hover:text-primary hover:bg-surface border border-transparent hover:border-border transition-colors cursor-pointer"
+                  >
+                    <Icon name="x-lg" className="text-base" />
+                  </button>
+                </div>
               </div>
 
               {/* Mobile Navigation Links */}
@@ -219,23 +229,6 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
                       </Link>
                     );
                   })}
-                  <div className="flex items-center justify-between px-4 py-2.5 mt-1 rounded-xl text-sm font-medium text-secondary">
-                    <span className="flex items-center gap-3">
-                      <Icon name={theme === 'dark' ? 'sun' : 'moon'} className="text-base" />
-                      <span>{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={toggleTheme}
-                      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                      className={cn(
-                        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                        theme === 'dark' ? 'bg-accent' : 'bg-border'
-                      )}
-                    >
-                      <span className={cn('pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out', theme === 'dark' ? 'translate-x-5' : 'translate-x-0')} />
-                    </button>
-                  </div>
                 </div>
               </div>
 

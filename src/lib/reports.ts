@@ -83,6 +83,14 @@ function aggregateCategories(rows: ReportTransactionRow[], range: ReportPeriodRa
 
 function buildTrend(rows: ReportTransactionRow[], range: ReportPeriodRange, currency: Currency): ReportTrendPoint[] {
   const points = new Map<string, ReportTrendPoint>();
+  if (range.key === 'year') {
+    const year = new Date(range.start).getUTCFullYear();
+    for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
+      const monthDate = new Date(Date.UTC(year, monthIdx, 1));
+      const bucket = reportBucketForOccurredAt(monthDate.toISOString(), range);
+      points.set(bucket.key, { label: bucket.label, income: 0, expenses: 0, net: 0 });
+    }
+  }
   for (const row of rows) {
     if (!isSettledFinancialTransaction(row, range, currency)) continue;
     const bucket = reportBucketForOccurredAt(row.occurred_at, range); const point = points.get(bucket.key) ?? { label: bucket.label, income: 0, expenses: 0, net: 0 };

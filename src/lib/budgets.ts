@@ -196,6 +196,14 @@ async function deterministicBudgetId(userId: string, categorySeedId: string) {
 async function bootstrapDefaultBudgets(userId: string, categoryRows: Tables<'categories'>[], rows: JoinedBudgetRow[]) {
   if (rows.some((row) => row.period_start.slice(0, 7) === demoBudgetPeriod)) return rows;
 
+  const { data: historicalBudgets, error: historicalError } = await supabase
+    .from('budgets')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1);
+  if (historicalError) throw historicalError;
+  if (historicalBudgets && historicalBudgets.length > 0) return rows;
+
   const categoryBySeed = new Map(categoryRows.flatMap((row) => {
     const seed = defaultCategorySeeds.find((item) => item.name.toLowerCase() === row.name.toLowerCase() && item.type === 'expense');
     return seed ? [[seed.seedId, row] as const] : [];
