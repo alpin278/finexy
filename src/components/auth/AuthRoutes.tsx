@@ -1,12 +1,8 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
 
-function AuthLoadingScreen() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 text-sm text-secondary">
-      Restoring your Finexy session...
-    </main>
-  );
+function AuthLoadingPlaceholder() {
+  return <div className="min-h-screen w-full bg-canvas" aria-hidden="true" />;
 }
 
 export function ProtectedRoute() {
@@ -14,7 +10,7 @@ export function ProtectedRoute() {
   const location = useLocation();
 
   if (loading) {
-    return <AuthLoadingScreen />;
+    return <AuthLoadingPlaceholder />;
   }
 
   if (!user) {
@@ -28,7 +24,7 @@ export function PublicOnlyRoute() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <AuthLoadingScreen />;
+    return <AuthLoadingPlaceholder />;
   }
 
   if (user) {

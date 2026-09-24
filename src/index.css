@@ -1,6 +1,8 @@
 @import "bootstrap-icons/font/bootstrap-icons.css";
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, [data-theme="dark"], .dark *, [data-theme="dark"] *));
+
 @theme {
   --color-canvas: var(--color-canvas);
   --color-surface: var(--color-surface);
@@ -256,4 +258,160 @@ html::view-transition-new(root),
 .dark .modal-scrollbar::-webkit-scrollbar-thumb:hover,
 [data-theme="dark"] .modal-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #46463D;
+}
+
+
+/* Finexy Refined Splash Screen Animations (Stitch v1.1 Refined Spec) */
+@keyframes finexyLedgerProgress {
+  0% {
+    width: 0%;
+    opacity: 0.8;
+  }
+  12% {
+    opacity: 1;
+  }
+  71.1% {
+    width: 100%;
+    opacity: 1;
+  }
+  86.6% {
+    width: 100%;
+    opacity: 0.9;
+  }
+  93.3% {
+    width: 100%;
+    opacity: 0;
+  }
+  94%, 100% {
+    width: 0%;
+    opacity: 0;
+  }
+}
+
+@keyframes finexyPointTravel {
+  0% {
+    left: 0%;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  71.1% {
+    left: 100%;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  76% {
+    left: 100%;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.18);
+  }
+  86.6% {
+    left: 100%;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  93.3% {
+    left: 100%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+  94% {
+    left: 0%;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  100% {
+    left: 0%;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes finexyTickReveal {
+  0% {
+    opacity: 0.45;
+    transform: translate(-50%, -50%) scaleY(0.9);
+  }
+  20%, 86% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scaleY(1);
+  }
+  93.3% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scaleY(0.8);
+  }
+  100% {
+    opacity: 0.45;
+    transform: translate(-50%, -50%) scaleY(0.9);
+  }
+}
+
+@keyframes finexyPulseConfirm {
+  0%, 70% {
+    opacity: 0;
+    transform: translate(50%, -50%) scale(0.4);
+  }
+  73% {
+    opacity: 0.85;
+    transform: translate(50%, -50%) scale(0.7);
+  }
+  86.6% {
+    opacity: 0;
+    transform: translate(50%, -50%) scale(2.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(50%, -50%) scale(2.2);
+  }
+}
+
+@keyframes finexySplashEntrance {
+  0% {
+    opacity: 0.94;
+    transform: scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.finexy-splash-entrance {
+  animation: finexySplashEntrance 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.finexy-ledger-trail-active {
+  animation: finexyLedgerProgress 2.25s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.finexy-ledger-point-active {
+  animation: finexyPointTravel 2.25s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.finexy-ledger-tick-active {
+  animation: finexyTickReveal 2.25s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.finexy-ledger-pulse-active {
+  animation: finexyPulseConfirm 2.25s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finexy-splash-entrance,
+  .finexy-ledger-trail-active,
+  .finexy-ledger-point-active,
+  .finexy-ledger-tick-active,
+  .finexy-ledger-pulse-active {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+.finexy-splash-reduced .finexy-splash-entrance,
+.finexy-splash-reduced .finexy-ledger-trail-active,
+.finexy-splash-reduced .finexy-ledger-point-active,
+.finexy-splash-reduced .finexy-ledger-tick-active,
+.finexy-splash-reduced .finexy-ledger-pulse-active {
+  animation: none !important;
+  opacity: 1 !important;
 }

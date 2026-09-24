@@ -7,7 +7,7 @@
     <title>Finexy — Financial Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
       (function() {
         try {
@@ -25,9 +25,181 @@
         } catch (e) {}
       })();
     </script>
+    <style>
+      :root {
+        --color-canvas: #FAFAF8;
+        --color-primary: #171714;
+        --color-accent: #FF5A36;
+      }
+      :root.dark, [data-theme="dark"] {
+        --color-canvas: #121210;
+        --color-primary: #F2F2EE;
+        --color-accent: #FF5A36;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: var(--color-canvas);
+        color: var(--color-primary);
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      #root {
+        min-height: 100vh;
+      }
+      .finexy-boot-static {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--color-canvas);
+        color: var(--color-primary);
+        user-select: none;
+        overflow: hidden;
+      }
+      .finexy-boot-ambient {
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        border-radius: 9999px;
+        background: rgba(255, 90, 54, 0.1);
+        opacity: 0.2;
+        filter: blur(140px);
+        pointer-events: none;
+      }
+      @media (min-width: 768px) {
+        .finexy-boot-ambient {
+          width: 500px;
+          height: 500px;
+        }
+      }
+      .finexy-boot-content {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      .finexy-boot-wordmark {
+        margin-bottom: 0.75rem;
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        padding-left: 0.28em;
+        line-height: 1;
+      }
+      @media (min-width: 768px) {
+        .finexy-boot-wordmark {
+          font-size: 28px;
+        }
+      }
+      .finexy-boot-track {
+        position: relative;
+        margin-top: 0.25rem;
+        width: 130px;
+        height: 1.5px;
+        border-radius: 9999px;
+        background-color: rgba(23, 23, 20, 0.15);
+      }
+      :root.dark .finexy-boot-track, [data-theme="dark"] .finexy-boot-track {
+        background-color: rgba(242, 242, 238, 0.15);
+      }
+      @media (min-width: 768px) {
+        .finexy-boot-track {
+          width: 150px;
+        }
+      }
+      .finexy-boot-tick {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 1.5px;
+        height: 7px;
+        transform: translate(-50%, -50%);
+        border-radius: 9999px;
+        background-color: rgba(23, 23, 20, 0.35);
+      }
+      :root.dark .finexy-boot-tick, [data-theme="dark"] .finexy-boot-tick {
+        background-color: rgba(242, 242, 238, 0.35);
+      }
+      .finexy-boot-point {
+        position: absolute;
+        top: 50%;
+        left: 0%;
+        width: 5.5px;
+        height: 5.5px;
+        border-radius: 9999px;
+        background-color: #FF5A36;
+        box-shadow: 0 0 8px rgba(255, 90, 54, 0.6);
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        animation: finexyBootPointTravel 2.25s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+      }
+      @keyframes finexyBootPointTravel {
+        0% {
+          left: 0%;
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+        71.1% {
+          left: 100%;
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+        76% {
+          left: 100%;
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1.18);
+        }
+        86.6% {
+          left: 100%;
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+        93.3% {
+          left: 100%;
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.7);
+        }
+        94% {
+          left: 0%;
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.8);
+        }
+        100% {
+          left: 0%;
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .finexy-boot-point {
+          animation: none !important;
+          left: 100% !important;
+          opacity: 1 !important;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="finexy-boot-static" role="status" aria-label="Starting Finexy">
+        <div class="finexy-boot-ambient" aria-hidden="true"></div>
+        <div class="finexy-boot-content">
+          <div class="finexy-boot-wordmark">FINEXY</div>
+          <div class="finexy-boot-track">
+            <div class="finexy-boot-tick" aria-hidden="true"></div>
+            <div class="finexy-boot-point" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

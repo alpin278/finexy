@@ -12,8 +12,17 @@ import { CategoriesPage } from '../pages/CategoriesPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { ProfilePage } from '../pages/ProfilePage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { LoadingPreviewPage } from '../pages/LoadingPreviewPage';
 
 export const router = createBrowserRouter([
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: 'loading-preview',
+          element: <LoadingPreviewPage />,
+        },
+      ]
+    : []),
   {
     element: <PublicOnlyRoute />,
     children: [

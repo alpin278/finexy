@@ -7,6 +7,9 @@ export interface AuthContextValue {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  authReady: boolean;
+  authError: Error | AuthError | null;
+  retryAuth: () => Promise<void>;
   profileLoading: boolean;
   refreshProfile: () => Promise<Profile | null>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
