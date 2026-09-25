@@ -11,6 +11,7 @@ import {
 } from '../data/settings';
 import { Button, Card, LoadingState, Modal, Select, StatusBadge } from '../components/ui';
 import { DataBackupPanel, PreferenceToggle, SettingsSection } from '../components/settings';
+import { usePwa } from '../components/pwa/pwa-context';
 import type { AppearancePreference, SettingsCurrency, SettingsProfile, SettingsState } from '../types/settings';
 import { cn } from '../lib/utils';
 import { loadSettings, saveSettings, settingsErrorMessage } from '../lib/settings';
@@ -74,6 +75,8 @@ function createInitialSettings(): SettingsState {
 }
 
 export function SettingsPage() {
+  const { canInstall, isIOS, isInstalled, promptInstall } = usePwa();
+  const showInstallEntry = canInstall || (isIOS && !isInstalled);
   const location = useLocation();
   const invalidate = useDataInvalidation();
   const { preference, setPreference } = useTheme();
@@ -270,6 +273,24 @@ export function SettingsPage() {
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_240px] xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
+          {showInstallEntry && (
+            <SettingsSection id="app" icon="phone" eyebrow="App experience" title="Install Finexy" description="Keep Finexy one tap away in a focused standalone app window.">
+              <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent"><Icon name="download" className="text-lg" /></div>
+                  <div>
+                    <p className="text-sm font-semibold text-primary">Use Finexy like an app</p>
+                    {canInstall ? (
+                      <p className="mt-1 text-xs leading-relaxed text-secondary">Install Finexy for quick access and a standalone window without normal browser chrome.</p>
+                    ) : (
+                      <p className="mt-1 text-xs leading-relaxed text-secondary">In Safari, tap Share, then Add to Home Screen. Finexy will open in standalone mode.</p>
+                    )}
+                  </div>
+                </div>
+                {canInstall && <Button variant="primary" size="sm" onClick={() => void promptInstall()}>Install Finexy</Button>}
+              </div>
+            </SettingsSection>
+          )}
           <SettingsSection id="regional" icon="currency-dollar" eyebrow="Regional defaults" title="Currency & Regional" description="Choose the formats that make your balances and transactions easiest to read.">
             <div className="grid gap-4 sm:grid-cols-2">
               <div><label htmlFor="settings-currency" className={fieldLabelClass}>Default currency</label><Select id="settings-currency" value={settings.currency} onChange={(event) => { setSettings((current) => ({ ...current, currency: event.target.value as SettingsCurrency })); setSaveMessage(''); }} options={settingsCurrencyOptions} className={fieldClass} /><p className="mt-1.5 text-[11px] text-secondary">New values will display with {currencySymbols[settings.currency]} ({settings.currency}).</p></div>

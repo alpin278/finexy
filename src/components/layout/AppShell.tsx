@@ -158,7 +158,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
             />
 
             {/* Drawer Panel */}
-            <div className={cn('mobile-drawer-panel fixed inset-y-0 left-0 z-10 flex w-4/5 max-w-xs flex-col overflow-y-auto overscroll-contain bg-card p-6 shadow-xl', isMobileMenuOpen && 'mobile-drawer-panel-open')}>
+            <div className={cn('mobile-drawer-panel finexy-safe-drawer fixed inset-y-0 left-0 z-10 flex w-4/5 max-w-xs flex-col overflow-y-auto overscroll-contain bg-card px-6 shadow-xl', isMobileMenuOpen && 'mobile-drawer-panel-open')}>
               <div className="flex items-center justify-between pb-4 border-b border-border">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-white font-bold text-sm">
