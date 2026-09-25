@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import type { Session } from '@supabase/supabase-js';
 import { AuthContext, type AuthContextValue } from './auth-context';
 import { loadOrCreateProfile, type Profile } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { createSignupWatchNonce, createVerificationWatch, getEmailVerificationRedirectUrl } from '../lib/email-verification';
+import { supabase, verificationSupabase } from '../lib/supabase';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -131,8 +132,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error };
       },
       signUp: async (email, password) => {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        return { data, error };
+        const watchNonce = createSignupWatchNonce();
+        const { data, error } = await verificationSupabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: getEmailVerificationRedirectUrl(),
+            data: { finexy_verification_watch_nonce: watchNonce },
+          },
+        });
+
+        if (error || !data.user) {
+          return { data, error, verificationWatchToken: null, verificationWatchError: null };
+        }
+
+        // The isolated client does not persist sessions, but clear the
+        // temporary in-memory confirmation session as an additional guard.
+        if (data.session) {
+          await verificationSupabase.auth.signOut({ scope: 'local' });
+        }
+
+        try {
+          const verificationWatchToken = await createVerificationWatch(data.user.id, watchNonce);
+          return { data: { ...data, session: null }, error: null, verificationWatchToken, verificationWatchError: null };
+        } catch (verificationWatchError) {
+          return { data: { ...data, session: null }, error: null, verificationWatchToken: null, verificationWatchError: verificationWatchError instanceof Error ? verificationWatchError : new Error(String(verificationWatchError)) };
+        }
+      },
+      resendSignupConfirmation: async (email) => {
+        const { error } = await verificationSupabase.auth.resend({
+          type: 'signup',
+          email,
+          options: { emailRedirectTo: getEmailVerificationRedirectUrl() },
+        });
+        return { error };
       },
       signOut: async () => {
         const { error } = await supabase.auth.signOut();

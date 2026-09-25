@@ -10,3 +10,6 @@ verify_jwt = false
 [functions.refresh-fx-rates]
 verify_jwt = false
 
+[functions.email-verification-watch]
+verify_jwt = false
+

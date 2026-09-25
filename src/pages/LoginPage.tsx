@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AuthPageLayout } from '../components/auth/AuthPageLayout';
 import { Button, Input } from '../components/ui';
 import { Icon } from '../components/ui/Icon';
@@ -10,8 +10,12 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
+  const initialEmail = typeof (location.state as { email?: unknown } | null)?.email === 'string'
+    ? (location.state as { email: string }).email
+    : '';
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

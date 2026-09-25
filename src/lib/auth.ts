@@ -1,6 +1,7 @@
 import type { AuthError, User } from '@supabase/supabase-js';
 import type { Tables } from '../types/database';
 import { supabase } from './supabase';
+import { offlineErrorMessage } from './connectivity';
 
 export type Profile = Tables<'profiles'>;
 
@@ -63,6 +64,9 @@ export function authErrorMessage(error: AuthError | null): string {
   if (!error) {
     return '';
   }
+
+  const offline = offlineErrorMessage(error);
+  if (offline) return offline;
 
   const message = error.message.toLowerCase();
 

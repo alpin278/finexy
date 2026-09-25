@@ -3,6 +3,7 @@ import { ProtectedRoute, PublicOnlyRoute, RootRoute } from '../components/auth/A
 import { AppShell } from '../components/layout/AppShell';
 import { LoginPage } from '../pages/LoginPage';
 import { SignupPage } from '../pages/SignupPage';
+import { VerifyEmailPage } from '../pages/VerifyEmailPage';
 import { OverviewPage } from '../pages/OverviewPage';
 import { TransactionsPage } from '../pages/TransactionsPage';
 import { WalletsPage } from '../pages/WalletsPage';
@@ -36,6 +37,10 @@ export const router = createBrowserRouter([
         <LandingPage />
       </RootRoute>
     ),
+  },
+  {
+    path: 'verify-email',
+    element: <VerifyEmailPage />,
   },
   {
     element: <PublicOnlyRoute />,
