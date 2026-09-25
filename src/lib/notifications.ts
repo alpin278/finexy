@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Tables } from '../types/database';
+import { assertOnline } from './connectivity';
 
 export type NotificationRow = Tables<'notifications'>;
 
@@ -77,6 +78,7 @@ export async function loadUnreadNotificationCount(): Promise<number> {
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
+  assertOnline();
   const user = await requireUser();
   const { error } = await supabase
     .from('notifications')
@@ -88,6 +90,7 @@ export async function markNotificationRead(id: string): Promise<void> {
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
+  assertOnline();
   const user = await requireUser();
   const { error } = await supabase
     .from('notifications')

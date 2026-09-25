@@ -3,6 +3,7 @@ import type { SettingsState } from '../types/settings';
 import { defaultSettingsState } from '../data/settings';
 import { loadOrCreateProfile } from './auth';
 import { supabase } from './supabase';
+import { assertOnline, offlineErrorMessage } from './connectivity';
 
 function defaults(): SettingsState {
   return { ...defaultSettingsState, profile: { ...defaultSettingsState.profile }, notifications: defaultSettingsState.notifications.map((item) => ({ ...item })) };
@@ -31,6 +32,7 @@ export async function loadProfileDetails(): Promise<ProfileDetails> {
 }
 
 export async function saveProfileDetails(value: Pick<ProfileDetails, 'name' | 'location'>) {
+  assertOnline();
   const user = await requireUser();
   if (!value.name.trim()) throw new Error('Display name is required.');
   const profile: TablesUpdate<'profiles'> = { display_name: value.name.trim(), location: value.location.trim() || null };
@@ -57,6 +59,7 @@ export async function loadSettings(): Promise<SettingsState> {
 }
 
 export async function saveSettings(value: SettingsState) {
+  assertOnline();
   const user = await requireUser();
   if (!value.profile.name.trim()) throw new Error('Display name is required.');
   const profile: TablesUpdate<'profiles'> = { display_name: value.profile.name.trim(), location: value.profile.location.trim() || null };
@@ -66,6 +69,8 @@ export async function saveSettings(value: SettingsState) {
 }
 
 export function settingsErrorMessage(error: unknown) {
+  const offline = offlineErrorMessage(error);
+  if (offline) return offline;
   if (error instanceof Error && (error.message.includes('signed in') || error.message === 'Display name is required.')) return error.message;
   return 'We could not save your settings. Please try again.';
 }

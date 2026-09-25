@@ -3,6 +3,7 @@ import type { WalletCurrencyCode } from '../types/finance';
 import { loadBudgetPage } from './budgets';
 import { calculateFinancialTotals, isSettledFinancialTransaction, type FinancialDateRange } from './financial-analytics';
 import { supabase } from './supabase';
+import { offlineErrorMessage } from './connectivity';
 import { loadUserDisplayPreferences } from './user-display-preferences';
 import { categoryAllocations } from './category-allocations';
 import { loadTransactionSplits } from './transaction-splits';
@@ -128,6 +129,8 @@ export async function loadReportsData(range: ReportPeriodRange): Promise<Reports
 }
 
 export function reportsErrorMessage(error: unknown) {
+  const offline = offlineErrorMessage(error);
+  if (offline) return offline;
   if (error instanceof Error && error.message.includes('signed in')) return error.message;
   return 'We could not load your financial report. Please try again.';
 }

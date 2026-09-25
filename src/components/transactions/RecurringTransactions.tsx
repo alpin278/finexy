@@ -68,8 +68,8 @@ export function RecurringTransactions({ wallets, categories, locale, numberForma
       await refresh();
       await invalidate(['recurring']);
       await onChanged();
-    } catch {
-      setError('Could not update recurring transaction.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not update recurring transaction.');
     } finally {
       setBusy(false);
     }

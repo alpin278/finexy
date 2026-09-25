@@ -6,6 +6,7 @@ import type { Budget } from '../types/finance';
 import { ensureDefaultCategories, listActiveCategoryRuleRows, type CategoryRow, type CategoryRuleRow } from './category-bootstrap';
 import { resolveCategoryIconName } from './category-icons';
 import { supabase } from './supabase';
+import { assertOnline, offlineErrorMessage } from './connectivity';
 
 type CategoryType = Enums<'category_type'>;
 type CategoryStatus = Enums<'category_status'>;
@@ -149,6 +150,7 @@ export async function getCategory(categoryId: string) {
 }
 
 export async function createCategory(input: CreateCategoryInput) {
+  assertOnline();
   const userId = await requireUserId();
   const payload: TablesInsert<'categories'> = {
     user_id: userId,
@@ -165,6 +167,7 @@ export async function createCategory(input: CreateCategoryInput) {
 }
 
 export async function updateCategory(categoryId: string, input: UpdateCategoryInput) {
+  assertOnline();
   const userId = await requireUserId();
   const payload: TablesUpdate<'categories'> = {
     name: input.name.trim(),
@@ -179,6 +182,7 @@ export async function updateCategory(categoryId: string, input: UpdateCategoryIn
 }
 
 export async function archiveCategory(categoryId: string) {
+  assertOnline();
   const userId = await requireUserId();
   const now = new Date().toISOString();
   const { error: rulesError } = await supabase.from('category_rules').update({ deleted_at: now }).eq('category_id', categoryId).eq('user_id', userId).is('deleted_at', null);
@@ -188,6 +192,7 @@ export async function archiveCategory(categoryId: string) {
 }
 
 export async function createCategoryRule(input: CreateCategoryRuleInput) {
+  assertOnline();
   const userId = await requireUserId();
   const payload: TablesInsert<'category_rules'> = {
     user_id: userId,
@@ -205,6 +210,7 @@ export async function createCategoryRule(input: CreateCategoryRuleInput) {
 }
 
 export async function setCategoryRuleEnabled(ruleId: string, enabled: boolean) {
+  assertOnline();
   const userId = await requireUserId();
   const payload: TablesUpdate<'category_rules'> = { enabled };
   const { data, error } = await supabase.from('category_rules').update(payload).eq('id', ruleId).eq('user_id', userId).is('deleted_at', null).select('*').single();
@@ -213,12 +219,15 @@ export async function setCategoryRuleEnabled(ruleId: string, enabled: boolean) {
 }
 
 export async function archiveCategoryRule(ruleId: string) {
+  assertOnline();
   const userId = await requireUserId();
   const { error } = await supabase.from('category_rules').update({ deleted_at: new Date().toISOString() }).eq('id', ruleId).eq('user_id', userId).is('deleted_at', null);
   if (error) throw error;
 }
 
 export function categoryErrorMessage(error: unknown) {
+  const offline = offlineErrorMessage(error);
+  if (offline) return offline;
   const code = error && typeof error === 'object' && 'code' in error ? (error as PostgrestError).code : undefined;
   if (code === '23505') return 'A category with this name and type already exists.';
   if (code === '23503') return 'This category is still referenced by existing records.';

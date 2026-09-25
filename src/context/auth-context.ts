@@ -16,7 +16,10 @@ export interface AuthContextValue {
   signUp: (email: string, password: string) => Promise<{
     data: { session: Session | null; user: User | null };
     error: AuthError | null;
+    verificationWatchToken: string | null;
+    verificationWatchError: Error | null;
   }>;
+  resendSignupConfirmation: (email: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
 }
 

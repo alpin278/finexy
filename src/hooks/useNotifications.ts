@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuth } from '../context/useAuth';
+import { useConnectivity } from '../context/connectivity-context';
 import { supabase } from '../lib/supabase';
 import {
   loadNotifications,
@@ -17,6 +18,8 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
+  const { status } = useConnectivity();
+  const previousStatus = useRef(status);
 
   const fetchLatest = useCallback(async () => {
     if (!user) {
@@ -45,6 +48,11 @@ export function useNotifications() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [fetchLatest]);
+
+  useEffect(() => {
+    if (previousStatus.current === 'reconnecting' && status === 'online') void fetchLatest();
+    previousStatus.current = status;
+  }, [fetchLatest, status]);
 
   useEffect(() => {
     if (!user) return undefined;
@@ -115,6 +123,7 @@ export function useNotifications() {
 
   const markAsRead = useCallback(
     async (id: string) => {
+      if (status !== 'online') return;
       setNotifications((current) =>
         current.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n))
       );
@@ -125,10 +134,11 @@ export function useNotifications() {
         void fetchLatest();
       }
     },
-    [fetchLatest]
+    [fetchLatest, status]
   );
 
   const markAllAsRead = useCallback(async () => {
+    if (status !== 'online') return;
     const now = new Date().toISOString();
     setNotifications((current) => current.map((n) => ({ ...n, readAt: n.readAt ?? now })));
     setUnreadCount(0);
@@ -137,7 +147,7 @@ export function useNotifications() {
     } catch {
       void fetchLatest();
     }
-  }, [fetchLatest]);
+  }, [fetchLatest, status]);
 
   return {
     notifications,

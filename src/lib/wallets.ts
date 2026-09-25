@@ -4,6 +4,7 @@ import type { Enums, Tables, TablesInsert, TablesUpdate } from '../types/databas
 import type { Wallet, WalletCurrencyCode, WalletStatus } from '../types/finance';
 import { loadWalletDerivedData } from './wallet-balances';
 import { supabase } from './supabase';
+import { assertOnline, offlineErrorMessage } from './connectivity';
 import { loadUserDisplayPreferences, type UserDisplayPreferences } from './user-display-preferences';
 import { convertMoney, loadLatestFxRates } from './fx';
 
@@ -144,6 +145,7 @@ export async function getWallet(walletId: string) {
 }
 
 export async function createWallet(input: CreateWalletInput) {
+  assertOnline();
   const userId = await requireUserId();
   const payload: TablesInsert<'wallets'> = {
     user_id: userId,
@@ -163,6 +165,7 @@ export async function createWallet(input: CreateWalletInput) {
 }
 
 export async function updateWallet(walletId: string, input: UpdateWalletInput) {
+  assertOnline();
   const userId = await requireUserId();
   const payload: TablesUpdate<'wallets'> = {
     ...(input.name === undefined ? {} : { name: input.name.trim() }),
@@ -181,12 +184,15 @@ export async function updateWallet(walletId: string, input: UpdateWalletInput) {
 }
 
 export async function archiveWallet(walletId: string) {
+  assertOnline();
   const userId = await requireUserId();
   const { error } = await supabase.from('wallets').update({ deleted_at: new Date().toISOString() }).eq('id', walletId).eq('user_id', userId).is('deleted_at', null);
   if (error) throw error;
 }
 
 export function walletErrorMessage(error: unknown) {
+  const offline = offlineErrorMessage(error);
+  if (offline) return offline;
   const code = error && typeof error === 'object' && 'code' in error ? (error as PostgrestError).code : undefined;
   if (code === '23505') return 'A wallet with these details already exists.';
   if (code === '23514') return 'Check the wallet name and monthly limit values.';

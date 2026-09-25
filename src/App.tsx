@@ -6,22 +6,25 @@ import { DataRevalidationProvider } from './context/DataRevalidationContext';
 import { FinancialRealtimeBridge } from './context/FinancialRealtimeBridge';
 import { AppBootSplash } from './components/loading/AppBootSplash';
 import { PwaRuntime } from './components/pwa/PwaRuntime';
+import { ConnectivityProvider } from './context/ConnectivityContext';
 
 export function App() {
   return (
-    <PwaRuntime>
-      <ThemeProvider>
-        <AuthProvider>
-          <DataRevalidationProvider>
-            <FinancialRealtimeBridge />
-            <PrivacyProvider>
-              <AppRouter />
-              <AppBootSplash />
-            </PrivacyProvider>
-          </DataRevalidationProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </PwaRuntime>
+    <ConnectivityProvider>
+      <PwaRuntime>
+        <ThemeProvider>
+          <AuthProvider>
+            <DataRevalidationProvider>
+              <FinancialRealtimeBridge />
+              <PrivacyProvider>
+                <AppRouter />
+                <AppBootSplash />
+              </PrivacyProvider>
+            </DataRevalidationProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </PwaRuntime>
+    </ConnectivityProvider>
   );
 }
 

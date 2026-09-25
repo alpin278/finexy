@@ -7,6 +7,7 @@ import { ensureDefaultCategories } from './category-bootstrap';
 import { getBudgetStatus, currentBudgetPeriod, isBudgetPeriod, periodRange, periodStartDate } from './budget-utils';
 import { resolveCategoryIconName } from './category-icons';
 import { supabase } from './supabase';
+import { assertOnline, offlineErrorMessage } from './connectivity';
 import { loadUserDisplayPreferences, type UserDisplayPreferences } from './user-display-preferences';
 import { categoryAllocations } from './category-allocations';
 import { loadTransactionSplits } from './transaction-splits';
@@ -318,6 +319,7 @@ async function validateBudgetCategory(userId: string, categoryId: string) {
 }
 
 export async function createBudget(input: CreateBudgetInput) {
+  assertOnline();
   const userId = await requireUserId();
   validatePeriod(input.period);
   validateLimit(input.limitAmount);
@@ -339,6 +341,7 @@ export async function createBudget(input: CreateBudgetInput) {
 }
 
 export async function updateBudget(budgetId: string, input: UpdateBudgetInput) {
+  assertOnline();
   const userId = await requireUserId();
   if (input.period) validatePeriod(input.period);
   if (input.limitAmount !== undefined) validateLimit(input.limitAmount);
@@ -363,6 +366,7 @@ export async function updateBudget(budgetId: string, input: UpdateBudgetInput) {
 }
 
 export async function archiveBudget(budgetId: string) {
+  assertOnline();
   const userId = await requireUserId();
   const { error } = await supabase
     .from('budgets')
@@ -376,6 +380,8 @@ export async function archiveBudget(budgetId: string) {
 export const deleteBudget = archiveBudget;
 
 export function budgetErrorMessage(error: unknown) {
+  const offline = offlineErrorMessage(error);
+  if (offline) return offline;
   const code = error && typeof error === 'object' && 'code' in error ? (error as PostgrestError).code : undefined;
   if (code === '23505') return 'This category already has a budget for that period.';
   if (code === '23503') return 'Choose an expense category owned by your account.';

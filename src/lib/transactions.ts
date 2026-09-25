@@ -8,6 +8,7 @@ import type { Transaction, TransactionSplit, TransactionStatus, WalletCurrencyCo
 import { supabase } from './supabase';
 import { buildTransactionActivities, buildTransactionSummary } from './transaction-activities';
 import { loadTransactionSplits } from './transaction-splits';
+import { assertOnline, offlineErrorMessage } from './connectivity';
 
 type TransactionRow = Tables<'transactions'>;
 type TransactionStatusDb = Enums<'transaction_status'>;
@@ -299,6 +300,7 @@ function statusForDatabase(status: TransactionStatus): 'pending' | 'completed' |
 }
 
 export async function createTransaction(input: CreateTransactionInput, splits?: TransactionSplitInput[]) {
+  assertOnline();
   const userId = await requireUserId();
   const currency = await walletCurrency(userId, input.walletId);
   await validateCategory(userId, input.categoryId, input.type);
@@ -317,6 +319,7 @@ export async function createTransaction(input: CreateTransactionInput, splits?: 
 }
 
 export async function updateTransaction(transactionId: string, input: UpdateTransactionInput, splits?: TransactionSplitInput[]) {
+  assertOnline();
   const userId = await requireUserId();
   const walletId = input.walletId;
   const categoryId = input.categoryId;
@@ -353,12 +356,15 @@ export async function updateTransaction(transactionId: string, input: UpdateTran
 }
 
 export async function archiveTransaction(transactionId: string) {
+  assertOnline();
   const userId = await requireUserId();
   const { error } = await supabase.from('transactions').update({ deleted_at: new Date().toISOString() }).eq('id', transactionId).eq('user_id', userId).is('deleted_at', null);
   if (error) throw error;
 }
 
 export function transactionErrorMessage(error: unknown) {
+  const offline = offlineErrorMessage(error);
+  if (offline) return offline;
   const code = error && typeof error === 'object' && 'code' in error ? (error as PostgrestError).code : undefined;
   if (code === '23503') return 'Choose a wallet and category owned by your account.';
   if (code === '23514') return 'Check the transaction amount and ledger fields.';

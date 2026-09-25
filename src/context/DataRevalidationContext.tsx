@@ -1,4 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useConnectivity } from './connectivity-context';
+import { getBrowserOnline, isConnectivityError } from '../lib/connectivity';
+import { supabase } from '../lib/supabase';
 
 export type FinancialDataDomain = 'transactions' | 'wallets' | 'budgets' | 'overview' | 'reports' | 'categories' | 'recurring' | 'settings' | 'fx';
 
@@ -6,7 +9,7 @@ const financialDomains: FinancialDataDomain[] = ['transactions', 'wallets', 'bud
 type Revalidator = () => Promise<void> | void;
 
 interface DataRevalidationContextValue {
-  invalidate: (domains: FinancialDataDomain[]) => Promise<void>;
+  invalidate: (domains: FinancialDataDomain[]) => Promise<boolean>;
   register: (domains: FinancialDataDomain[], revalidate: Revalidator) => () => void;
 }
 
@@ -40,8 +43,28 @@ export function DataRevalidationProvider({ children }: { children: ReactNode }) 
       }
       refreshes.push(registration.inFlight);
     });
-    await Promise.allSettled(refreshes);
+    const results = await Promise.allSettled(refreshes);
+    return results.every((result) => result.status === 'fulfilled');
   }, []);
+
+  const { status, markOnline } = useConnectivity();
+  const reconnectInFlight = useRef(false);
+
+  useEffect(() => {
+    if (status !== 'reconnecting' || reconnectInFlight.current) return;
+    reconnectInFlight.current = true;
+    void (async () => {
+      await invalidate(financialDomains);
+      try {
+        const { error } = await supabase.from('profiles').select('id').limit(1);
+        if (getBrowserOnline() && !isConnectivityError(error)) markOnline();
+      } catch (error) {
+        if (getBrowserOnline() && !isConnectivityError(error)) markOnline();
+      } finally {
+        reconnectInFlight.current = false;
+      }
+    })();
+  }, [invalidate, markOnline, status]);
 
   useEffect(() => {
     const revalidateOnFocus = () => {

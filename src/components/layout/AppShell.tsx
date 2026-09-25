@@ -12,6 +12,7 @@ import { CommandPalette, type PaletteCommand } from './CommandPalette';
 import { lockBodyScroll } from '../../lib/scroll-lock';
 
 import { useTheme } from '../../context/useTheme';
+import { ConnectivityBanner } from './ConnectivityBanner';
 
 export interface AppShellProps {
   currentTab?: NavigationTab;
@@ -128,6 +129,8 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
           onTogglePrivacy={togglePrivacyMode}
           onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         />
+
+        <ConnectivityBanner />
 
         {/* Middle Body: Sidebar + Main Content */}
         <div className="flex-1 flex flex-col sm:flex-row sm:overflow-hidden relative">

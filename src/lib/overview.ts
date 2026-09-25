@@ -3,6 +3,7 @@ import type { Budget, BudgetPeriod, Wallet, WalletCurrencyCode } from '../types/
 import { currentBudgetPeriod, periodLabel, periodRange } from './budget-utils';
 import { loadBudgetPage, type BudgetSummaryData } from './budgets';
 import { supabase } from './supabase';
+import { offlineErrorMessage } from './connectivity';
 import { formatWalletAmount, loadWalletsPage } from './wallets';
 import { calculateFinancialTotals, isSettledFinancialTransaction } from './financial-analytics';
 import { loadUserDisplayPreferences } from './user-display-preferences';
@@ -223,6 +224,8 @@ export async function loadOverviewPage(period = currentBudgetPeriod()): Promise<
 }
 
 export function overviewErrorMessage(error: unknown) {
+  const offline = offlineErrorMessage(error);
+  if (offline) return offline;
   if (error instanceof Error && error.message.includes('signed in')) return error.message;
   return 'We could not load your financial overview. Please try again.';
 }

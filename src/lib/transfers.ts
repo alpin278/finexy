@@ -1,6 +1,7 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 import type { Database } from '../types/database';
 import { supabase } from './supabase';
+import { assertOnline, offlineErrorMessage } from './connectivity';
 
 type TransferRpcResult = Database['public']['Functions']['perform_wallet_transfer']['Returns'][number];
 
@@ -13,6 +14,7 @@ export interface CreateWalletTransferInput {
 }
 
 export async function createWalletTransfer(input: CreateWalletTransferInput): Promise<TransferRpcResult> {
+  assertOnline();
   const { data, error } = await supabase.rpc('perform_wallet_transfer', {
     p_source_wallet_id: input.sourceWalletId,
     p_destination_wallet_id: input.destinationWalletId,
@@ -27,6 +29,8 @@ export async function createWalletTransfer(input: CreateWalletTransferInput): Pr
 }
 
 export function transferErrorMessage(error: unknown) {
+  const offline = offlineErrorMessage(error);
+  if (offline) return offline;
   const code = error && typeof error === 'object' && 'code' in error ? (error as PostgrestError).code : undefined;
   if (code === '42501') return 'You must be signed in and own both wallets to transfer funds.';
   if (error instanceof Error) {

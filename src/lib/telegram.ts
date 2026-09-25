@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { assertOnline } from './connectivity';
 
 export type TelegramConnection =
   | { status: 'not_connected' }
@@ -35,6 +36,7 @@ export async function loadTelegramBudgetNotificationPreferences(connected: boole
 }
 
 export async function saveTelegramBudgetNotificationPreferences(value: TelegramBudgetNotificationPreferences) {
+  assertOnline();
   const userId = await requireUserId();
   if ((await loadTelegramConnection()).status !== 'connected') throw new Error('Telegram must be connected before enabling Telegram notifications.');
   const { error } = await supabase.from('notification_preferences').upsert([{ user_id: userId, preference_key: 'budget_near_limit', channel: 'telegram', enabled: value.nearLimit }, { user_id: userId, preference_key: 'budget_over_limit', channel: 'telegram', enabled: value.overLimit }, { user_id: userId, preference_key: 'daily_summary', channel: 'telegram', enabled: value.dailySummary }, { user_id: userId, preference_key: 'weekly_summary', channel: 'telegram', enabled: value.weeklySummary }], { onConflict: 'user_id,preference_key,channel' });
@@ -42,6 +44,7 @@ export async function saveTelegramBudgetNotificationPreferences(value: TelegramB
 }
 
 export async function generateTelegramLinkCode(): Promise<TelegramConnection> {
+  assertOnline();
   const { data, error } = await supabase.rpc('create_telegram_link_code');
   if (error) throw error;
   const link = Array.isArray(data) ? data[0] : data;
@@ -50,12 +53,13 @@ export async function generateTelegramLinkCode(): Promise<TelegramConnection> {
 }
 
 export async function disconnectTelegram() {
+  assertOnline();
   const { error } = await supabase.rpc('unlink_telegram');
   if (error) throw error;
 }
 export type TelegramDiagnostics = { connection: 'connected' | 'disconnected'; worker: 'healthy' | 'needs_attention' | 'disconnected'; last_worker_at?: string | null; last_delivered_at?: string | null; last_failed_at?: string | null; failure_class?: string | null; pending: number; retryable: number; failed: number };
 export async function loadTelegramDiagnostics(): Promise<TelegramDiagnostics> { const { data, error } = await (supabase as any).rpc('get_telegram_diagnostics'); if (error) throw error; return data as TelegramDiagnostics; }
-export async function sendTelegramTestNotification() { const { data, error } = await (supabase as any).rpc('queue_telegram_test_notification'); if (error) throw error; return data as 'queued' | 'already_queued'; }
+export async function sendTelegramTestNotification() { assertOnline(); const { data, error } = await (supabase as any).rpc('queue_telegram_test_notification'); if (error) throw error; return data as 'queued' | 'already_queued'; }
 
 /**
  * Normalizes the configured public Telegram bot username.

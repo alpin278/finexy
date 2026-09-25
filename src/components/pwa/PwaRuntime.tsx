@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { PwaContext } from './pwa-context';
+import { useConnectivity } from '../../context/connectivity-context';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -19,7 +20,7 @@ function isIOSDevice() {
 }
 
 export function PwaRuntime({ children }: { children: ReactNode }) {
-  const [isOnline, setIsOnline] = useState(() => typeof navigator === 'undefined' || navigator.onLine);
+  const { hasBootstrapped } = useConnectivity();
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(isStandalone);
   const isIOS = isIOSDevice();
@@ -27,17 +28,6 @@ export function PwaRuntime({ children }: { children: ReactNode }) {
     needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW();
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -64,7 +54,7 @@ export function PwaRuntime({ children }: { children: ReactNode }) {
     if (outcome === 'accepted') setIsInstalled(true);
   };
 
-  if (!isOnline) return <OfflineState />;
+  if (!hasBootstrapped) return <OfflineState />;
 
   return (
     <PwaContext.Provider value={{ canInstall: Boolean(installPrompt) && !isInstalled, isIOS, isInstalled, promptInstall }}>

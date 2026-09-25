@@ -1,5 +1,6 @@
 import type { Json } from '../types/database';
 import { supabase } from './supabase';
+import { assertOnline } from './connectivity';
 
 export const FINEXY_BACKUP_FORMAT = 'finexy-backup' as const;
 export const FINEXY_BACKUP_VERSION = 2 as const;
@@ -353,6 +354,7 @@ export async function exportFullBackup() {
 }
 
 export async function importBackup(backup: BackupDocument, mode: 'merge' | 'restore_empty'): Promise<BackupImportSummary> {
+  assertOnline();
   const { data, error } = await supabase.rpc('finexy_import_backup', { p_backup: backup as unknown as Json, p_mode: mode });
   if (error) throw error;
   return data as unknown as BackupImportSummary;
