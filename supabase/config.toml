@@ -13,3 +13,6 @@ verify_jwt = false
 [functions.email-verification-watch]
 verify_jwt = false
 
+[functions.web-push-notification-worker]
+verify_jwt = false
+

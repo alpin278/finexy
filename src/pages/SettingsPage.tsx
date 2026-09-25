@@ -31,6 +31,8 @@ import {
 import { useDataInvalidation } from '../context/DataRevalidationContext';
 import { loadFxCacheStatus, refreshFxRates } from '../lib/fx';
 import { useTheme } from '../context/useTheme';
+import { offlineErrorMessage } from '../lib/connectivity';
+import { disablePushNotifications, enablePushNotifications, loadPushNotificationState, type PushNotificationState } from '../lib/push';
 
 const appearanceIcons: Record<AppearancePreference, string> = {
   light: 'sun',
@@ -97,6 +99,9 @@ export function SettingsPage() {
   const [copiedCode, setCopiedCode] = useState(false);
   const [fxStatus, setFxStatus] = useState<{ provider: string; rateDate: string; fetchedAt: string } | null>(null);
   const [refreshingFx, setRefreshingFx] = useState(false);
+  const [pushState, setPushState] = useState<PushNotificationState | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState('');
   useEffect(() => {
     void Promise.all([loadSettings(), loadTelegramConnection()])
       .then(async ([loadedSettings, connection]) => {
@@ -153,6 +158,20 @@ export function SettingsPage() {
   }, [telegram.status, linkExpiresAt]);
 
   useEffect(() => { void loadFxCacheStatus().then(setFxStatus).catch(() => setFxStatus(null)); }, []);
+
+  useEffect(() => {
+    let active = true;
+    void loadPushNotificationState()
+      .then((state) => {
+        if (active) setPushState(state);
+      })
+      .catch((reason) => {
+        if (active) setPushError(offlineErrorMessage(reason) ?? 'Push notification status could not be loaded.');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   const [activeModal, setActiveModal] = useState<'security' | null>(null);
 
   useEffect(() => {
@@ -190,6 +209,7 @@ export function SettingsPage() {
   };
   const enabledInAppNotifications = settings.notifications.filter((notification) => notification.enabled).length;
   const enabledTelegramNotifications = Object.values(telegramNotifications).filter(Boolean).length;
+  const pushStatusLabel = !pushState ? 'Checking...' : pushState.status === 'enabled' ? 'Enabled on this device' : pushState.status === 'denied' ? 'Permission denied' : pushState.status === 'unsupported' ? 'Unsupported' : 'Not enabled';
   const handleConnectTelegram = async () => {
     setTelegramBusy(true);
     setError('');
@@ -252,6 +272,28 @@ export function SettingsPage() {
     finally { setTelegramBusy(false); }
   };
   const handleRefreshFx = async () => { setRefreshingFx(true); setError(''); try { const result = await refreshFxRates(); setFxStatus({ provider: result.provider, rateDate: result.rate_date, fetchedAt: new Date().toISOString() }); await invalidate(['fx', 'wallets', 'overview']); setSaveMessage(result.status === 'current' ? 'FX reference rates are already current.' : 'FX reference rates refreshed.'); } catch { setError('FX rates could not be refreshed. Native balances remain unchanged.'); } finally { setRefreshingFx(false); } };
+  const handleEnablePush = async () => {
+    setPushBusy(true);
+    setPushError('');
+    try {
+      setPushState(await enablePushNotifications());
+    } catch (reason) {
+      setPushError(offlineErrorMessage(reason) ?? (reason instanceof Error && reason.message.includes('service worker') ? reason.message : 'We could not enable push notifications. Please try again.'));
+    } finally {
+      setPushBusy(false);
+    }
+  };
+  const handleDisablePush = async () => {
+    setPushBusy(true);
+    setPushError('');
+    try {
+      setPushState(await disablePushNotifications());
+    } catch (reason) {
+      setPushError(offlineErrorMessage(reason) ?? 'We could not disable push notifications. Please try again.');
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   if (loading) return <LoadingState label="Loading your saved preferences" />;
   return (
@@ -462,9 +504,32 @@ export function SettingsPage() {
             <p className="mt-4 text-[11px] leading-relaxed text-secondary">Security controls will be connected only when authentication is introduced. This screen does not accept or retain passwords.</p>
           </SettingsSection>
 
-          <SettingsSection id="notifications" icon="bell" eyebrow="Stay informed" title="In-app notifications" description="Saved preference controls for future in-app delivery. Telegram delivery is configured separately above.">
-            <div className="divide-y divide-border">{settings.notifications.map((notification) => <PreferenceToggle key={notification.id} id={`settings-${notification.id}`} title={notification.title} description={notification.description} checked={notification.enabled} onChange={(enabled) => updateNotification(notification.id, enabled)} />)}</div>
-            <div className="mt-4 flex items-center gap-2 border-t border-border pt-4 text-[11px] text-secondary"><i className="bi bi-bell" aria-hidden="true" /><span>In-app: {enabledInAppNotifications} of {settings.notifications.length} enabled</span></div>
+          <SettingsSection id="notifications" icon="bell" eyebrow="Stay informed" title="Notifications" description="Control in-app alerts and secure push delivery on this device.">
+            <div className="rounded-2xl border border-border bg-surface p-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card text-accent"><Icon name="bell" className="text-lg" /></div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2"><p className="text-sm font-semibold text-primary">Push notifications</p><StatusBadge status={pushState?.status === 'enabled' ? 'active' : pushState?.status === 'denied' ? 'in_progress' : 'inactive'} label={pushStatusLabel} /></div>
+                    <p className="mt-1 text-xs leading-relaxed text-secondary">Receive Finexy notifications on this device. Push previews stay privacy-conscious and do not include financial details.</p>
+                    {pushState && <p role="status" className="mt-2 text-[11px] leading-relaxed text-secondary">{pushState.detail}</p>}
+                    {pushError && <p role="alert" className="mt-2 text-[11px] font-medium text-danger">{pushError}</p>}
+                  </div>
+                </div>
+                {!pushState ? (
+                  <Button variant="outline" size="sm" disabled>Checking...</Button>
+                ) : pushState.status === 'enabled' ? (
+                  <Button variant="outline" size="sm" loading={pushBusy} onClick={() => void handleDisablePush}>Disable on this device</Button>
+                ) : pushState.status === 'unsupported' || pushState.status === 'denied' ? null : (
+                  <Button variant="primary" size="sm" loading={pushBusy} onClick={() => void handleEnablePush}>Enable push notifications</Button>
+                )}
+              </div>
+            </div>
+            <div className="mt-6 border-t border-border pt-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-secondary">In-app notifications</p>
+              <div className="divide-y divide-border">{settings.notifications.map((notification) => <PreferenceToggle key={notification.id} id={`settings-${notification.id}`} title={notification.title} description={notification.description} checked={notification.enabled} onChange={(enabled) => updateNotification(notification.id, enabled)} />)}</div>
+              <div className="mt-4 flex items-center gap-2 border-t border-border pt-4 text-[11px] text-secondary"><i className="bi bi-bell" aria-hidden="true" /><span>In-app: {enabledInAppNotifications} of {settings.notifications.length} enabled</span></div>
+            </div>
           </SettingsSection>
         </div>
 

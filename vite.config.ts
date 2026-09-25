@@ -13,6 +13,9 @@ export default defineConfig({
     tailwindcss(),
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'prompt',
       manifest: {
         name: 'Finexy',
@@ -31,12 +34,9 @@ export default defineConfig({
           { src: '/icons/finexy-512-maskable.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        cleanupOutdatedCaches: true,
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         globIgnores: ['favicon.svg'],
-        navigateFallback: '/index.html',
-        runtimeCaching: [],
       },
       devOptions: { enabled: false },
     }),

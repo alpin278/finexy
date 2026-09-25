@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import { AuthError, type Session } from '@supabase/supabase-js';
 import { AuthContext, type AuthContextValue } from './auth-context';
 import { getPasswordResetRedirectUrl, loadOrCreateProfile, type Profile } from '../lib/auth';
 import { createSignupWatchNonce, createVerificationWatch, getEmailVerificationRedirectUrl } from '../lib/email-verification';
 import { recoverySupabase, supabase, verificationSupabase } from '../lib/supabase';
+import { suspendPushNotificationsForSignOut } from '../lib/push';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -185,6 +186,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
       signOut: async () => {
+        const pushSuspended = await suspendPushNotificationsForSignOut().catch(() => false);
+        if (!pushSuspended) return { error: new AuthError('Push notifications could not be safely disabled on this device. Please try again while online.', 0, 'push_logout_blocked') };
         const { error } = await supabase.auth.signOut();
         return { error };
       },

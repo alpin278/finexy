@@ -451,6 +451,122 @@ export type Database = {
           },
         ]
       }
+      web_push_notification_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          delivered_at: string | null
+          failed_at: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error_class: string | null
+          next_retry_at: string
+          notification_id: string
+          status: string
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          failed_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error_class?: string | null
+          next_retry_at?: string
+          notification_id: string
+          status?: string
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          failed_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error_class?: string | null
+          next_retry_at?: string
+          notification_id?: string
+          status?: string
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "web_push_notification_outbox_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "web_push_notification_outbox_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "web_push_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      web_push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string
+          deactivated_at: string | null
+          endpoint: string
+          failure_count: number
+          id: string
+          is_active: boolean
+          last_error_class: string | null
+          last_failure_at: string | null
+          last_success_at: string | null
+          p256dh_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string
+          deactivated_at?: string | null
+          endpoint: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_error_class?: string | null
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          p256dh_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string
+          deactivated_at?: string | null
+          endpoint?: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_error_class?: string | null
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          p256dh_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "web_push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -914,6 +1030,38 @@ export type Database = {
           status: Database["public"]["Enums"]["transfer_status"]
           transfer_id: string
         }[]
+      }
+      register_web_push_subscription: {
+        Args: {
+          p_auth_key: string
+          p_endpoint: string
+          p_p256dh_key: string
+        }
+        Returns: string
+      }
+      deactivate_web_push_subscription: {
+        Args: {
+          p_endpoint: string
+        }
+        Returns: undefined
+      }
+      claim_web_push_notification: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      complete_web_push_notification: {
+        Args: {
+          p_deactivate_subscription?: boolean
+          p_delivered: boolean
+          p_error_class?: string | null
+          p_outbox_id: string
+          p_retryable?: boolean
+        }
+        Returns: undefined
+      }
+      invoke_web_push_notification_worker: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
