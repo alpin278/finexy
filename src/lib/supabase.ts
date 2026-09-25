@@ -20,7 +20,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabasePublishableK
   auth: {
     // Keep OAuth/code redirects working everywhere except the explicit
     // verification route, which must never be auto-exchanged into a session.
-    detectSessionInUrl: (url) => !url.pathname.endsWith('/verify-email'),
+    detectSessionInUrl: (url) => !url.pathname.endsWith('/verify-email') && !url.pathname.endsWith('/reset-password'),
   },
 });
 
@@ -36,6 +36,20 @@ export const verificationSupabase = createClient<Database>(supabaseUrl, supabase
     persistSession: false,
     autoRefreshToken: false,
     detectSessionInUrl: false,
+  },
+});
+
+/**
+ * Recovery links are resolved in memory only. The main client deliberately
+ * ignores /reset-password URLs so AuthProvider cannot treat recovery as login.
+ */
+export const recoverySupabase = createClient<Database>(supabaseUrl, supabasePublishableKey, {
+  global: { fetch: connectivityFetch },
+  auth: {
+    storageKey: 'finexy-password-recovery',
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: true,
   },
 });
 

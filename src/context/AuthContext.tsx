@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { AuthContext, type AuthContextValue } from './auth-context';
-import { loadOrCreateProfile, type Profile } from '../lib/auth';
+import { getPasswordResetRedirectUrl, loadOrCreateProfile, type Profile } from '../lib/auth';
 import { createSignupWatchNonce, createVerificationWatch, getEmailVerificationRedirectUrl } from '../lib/email-verification';
-import { supabase, verificationSupabase } from '../lib/supabase';
+import { recoverySupabase, supabase, verificationSupabase } from '../lib/supabase';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -166,6 +166,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           options: { emailRedirectTo: getEmailVerificationRedirectUrl() },
         });
         return { error };
+      },
+      sendPasswordResetEmail: async (email) => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: getPasswordResetRedirectUrl(),
+        });
+        return { error };
+      },
+      updatePassword: async (password) => {
+        const { error } = await recoverySupabase.auth.updateUser({ password });
+        return { error };
+      },
+      clearRecoverySession: async () => {
+        try {
+          await recoverySupabase.auth.signOut({ scope: 'local' });
+        } finally {
+          await supabase.auth.signOut({ scope: 'local' });
+        }
       },
       signOut: async () => {
         const { error } = await supabase.auth.signOut();

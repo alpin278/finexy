@@ -4,7 +4,7 @@ import { AuthPageLayout } from '../components/auth/AuthPageLayout';
 import { Button, Input } from '../components/ui';
 import { Icon } from '../components/ui/Icon';
 import { useAuth } from '../context/useAuth';
-import { authErrorMessage } from '../lib/auth';
+import { authErrorMessage, isValidPassword } from '../lib/auth';
 import { getVerificationWatchStatus } from '../lib/email-verification';
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -83,7 +83,7 @@ export function SignupPage() {
       return;
     }
 
-    if (password.length < 8) {
+    if (!isValidPassword(password)) {
       setError('Use a password with at least 8 characters.');
       return;
     }

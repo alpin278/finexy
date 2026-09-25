@@ -20,6 +20,9 @@ export interface AuthContextValue {
     verificationWatchError: Error | null;
   }>;
   resendSignupConfirmation: (email: string) => Promise<{ error: AuthError | null }>;
+  sendPasswordResetEmail: (email: string) => Promise<{ error: AuthError | null }>;
+  updatePassword: (password: string) => Promise<{ error: AuthError | null }>;
+  clearRecoverySession: () => Promise<void>;
   signOut: () => Promise<{ error: AuthError | null }>;
 }
 

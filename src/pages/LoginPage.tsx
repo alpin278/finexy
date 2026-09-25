@@ -61,7 +61,10 @@ export function LoginPage() {
           <Input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" leftIcon={<Icon name="envelope" />} />
         </div>
         <div>
-          <label htmlFor="login-password" className="mb-1.5 block text-xs font-semibold text-primary">Password</label>
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <label htmlFor="login-password" className="block text-xs font-semibold text-primary">Password</label>
+            <Link to="/forgot-password" className="text-xs font-semibold text-accent transition-colors hover:text-accent-hover">Forgot password?</Link>
+          </div>
           <Input id="login-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" leftIcon={<Icon name="lock" />} />
         </div>
         <Button type="submit" variant="primary" className="w-full" disabled={isSubmitting}>{isSubmitting ? 'Signing in...' : 'Sign in'}</Button>
