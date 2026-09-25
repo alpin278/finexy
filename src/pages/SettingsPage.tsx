@@ -31,8 +31,7 @@ import {
 import { useDataInvalidation } from '../context/DataRevalidationContext';
 import { loadFxCacheStatus, refreshFxRates } from '../lib/fx';
 import { useTheme } from '../context/useTheme';
-import { offlineErrorMessage } from '../lib/connectivity';
-import { disablePushNotifications, enablePushNotifications, loadPushNotificationState, type PushNotificationState } from '../lib/push';
+import { disablePushNotifications, enablePushNotifications, loadPushNotificationState, pushErrorMessage, type PushNotificationState } from '../lib/push';
 
 const appearanceIcons: Record<AppearancePreference, string> = {
   light: 'sun',
@@ -166,7 +165,7 @@ export function SettingsPage() {
         if (active) setPushState(state);
       })
       .catch((reason) => {
-        if (active) setPushError(offlineErrorMessage(reason) ?? 'Push notification status could not be loaded.');
+        if (active) setPushError(pushErrorMessage(reason, 'Push notification status could not be loaded.'));
       });
     return () => {
       active = false;
@@ -209,7 +208,7 @@ export function SettingsPage() {
   };
   const enabledInAppNotifications = settings.notifications.filter((notification) => notification.enabled).length;
   const enabledTelegramNotifications = Object.values(telegramNotifications).filter(Boolean).length;
-  const pushStatusLabel = !pushState ? 'Checking...' : pushState.status === 'enabled' ? 'Enabled on this device' : pushState.status === 'denied' ? 'Permission denied' : pushState.status === 'unsupported' ? 'Unsupported' : 'Not enabled';
+  const pushStatusLabel = !pushState ? 'Checking...' : pushState.status === 'enabled' ? 'Enabled on this device' : pushState.status === 'denied' ? 'Permission denied' : pushState.status === 'configuration-unavailable' ? 'Push configuration unavailable' : pushState.status === 'unsupported' ? 'Unsupported' : 'Not enabled';
   const handleConnectTelegram = async () => {
     setTelegramBusy(true);
     setError('');
@@ -278,7 +277,7 @@ export function SettingsPage() {
     try {
       setPushState(await enablePushNotifications());
     } catch (reason) {
-      setPushError(offlineErrorMessage(reason) ?? (reason instanceof Error && reason.message.includes('service worker') ? reason.message : 'We could not enable push notifications. Please try again.'));
+      setPushError(pushErrorMessage(reason));
     } finally {
       setPushBusy(false);
     }
@@ -289,7 +288,7 @@ export function SettingsPage() {
     try {
       setPushState(await disablePushNotifications());
     } catch (reason) {
-      setPushError(offlineErrorMessage(reason) ?? 'We could not disable push notifications. Please try again.');
+      setPushError(pushErrorMessage(reason, "Couldn't disable notifications — Try again."));
     } finally {
       setPushBusy(false);
     }
@@ -519,9 +518,9 @@ export function SettingsPage() {
                 {!pushState ? (
                   <Button variant="outline" size="sm" disabled>Checking...</Button>
                 ) : pushState.status === 'enabled' ? (
-                  <Button variant="outline" size="sm" loading={pushBusy} onClick={() => void handleDisablePush}>Disable on this device</Button>
-                ) : pushState.status === 'unsupported' || pushState.status === 'denied' ? null : (
-                  <Button variant="primary" size="sm" loading={pushBusy} onClick={() => void handleEnablePush}>Enable push notifications</Button>
+                  <Button variant="outline" size="sm" loading={pushBusy} onClick={() => void handleDisablePush()}>{pushBusy ? 'Disabling…' : 'Disable on this device'}</Button>
+                ) : pushState.status === 'unsupported' || pushState.status === 'configuration-unavailable' || pushState.status === 'denied' ? null : (
+                  <Button variant="primary" size="sm" loading={pushBusy} onClick={() => void handleEnablePush()}>{pushBusy ? 'Enabling…' : 'Enable push notifications'}</Button>
                 )}
               </div>
             </div>
