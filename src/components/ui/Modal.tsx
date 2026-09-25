@@ -129,7 +129,7 @@ export function Modal({
               </button>
             </div>
             {/* Content with refined dark scrollbar */}
-            <div data-popover-scroll-root className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6 modal-scrollbar">{children}</div>
+            <div data-popover-scroll-root className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6 sm:py-6 modal-scrollbar">{children}</div>
 
             {/* Footer: integrated with body rather than separate black slab */}
             {footer && (
