@@ -13,7 +13,6 @@ import { useTheme } from '../../context/useTheme';
 export interface TopNavigationProps {
   currentTab?: NavigationTab;
   onNavigate?: (tab: NavigationTab) => void;
-  onOpenMobileMenu?: () => void;
   className?: string;
   privacyMode?: boolean;
   onTogglePrivacy?: () => void;
@@ -22,7 +21,6 @@ export interface TopNavigationProps {
 export function TopNavigation({
   currentTab,
   onNavigate,
-  onOpenMobileMenu,
   className,
   privacyMode = false,
   onTogglePrivacy,
@@ -111,20 +109,8 @@ export function TopNavigation({
         className
       )}
     >
-      {/* Left: Mobile hamburger + Finexy Logo */}
-      <div className="flex items-center gap-3">
-        {onOpenMobileMenu && (
-          <button
-            type="button"
-            onClick={onOpenMobileMenu}
-            aria-label="Open navigation menu"
-            className="sm:hidden p-2 rounded-full text-secondary hover:text-primary hover:bg-border/60 cursor-pointer"
-          >
-            <Icon name="list" className="text-base" />
-          </button>
-        )}
-
-        {/* Finexy Logo */}
+      {/* Left: Finexy Logo */}
+      <div className="flex items-center">
         <Link
           to="/overview"
           onClick={() => onNavigate?.('overview')}
