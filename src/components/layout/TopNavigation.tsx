@@ -105,10 +105,11 @@ export function TopNavigation({
   return (
     <header
       className={cn(
-        'h-16 finexy-safe-top px-4 sm:px-6 lg:px-8 border-b border-border/60 flex items-center justify-between gap-2 sm:gap-3 lg:gap-2 bg-transparent select-none shrink-0',
+        'finexy-safe-top border-b border-border/60 bg-surface select-none shrink-0',
         className
       )}
     >
+      <div className="h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-3 lg:gap-2">
       {/* Left: Finexy Logo */}
       <div className="flex items-center">
         <Link
@@ -381,6 +382,7 @@ export function TopNavigation({
             </div>
           )}
         </div>
+      </div>
       </div>
     </header>
   );

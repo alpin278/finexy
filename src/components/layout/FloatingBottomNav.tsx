@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { Icon } from '../ui/Icon';
 import { getActiveTabFromPath, type NavigationTab } from '../../types/navigation';
+import { prefetchRouteData } from '../../lib/route-prefetch';
 
 export interface FloatingBottomNavProps {
   currentTab?: NavigationTab;
@@ -178,7 +179,7 @@ export function FloatingBottomNav({ currentTab, onNavigate, className }: Floatin
       onFocusCapture={handleInteraction}
       onPointerDownCapture={handleInteraction}
       className={cn(
-        'fixed bottom-0 left-0 right-0 z-40 md:hidden flex justify-center pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] px-4',
+        'fixed bottom-0 left-0 right-0 z-40 md:hidden flex justify-center pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] px-4',
         'motion-reduce:transition-none',
         isVisible
           ? 'translate-y-0 opacity-100 transition-[transform,opacity] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] pointer-events-none'
@@ -217,6 +218,9 @@ export function FloatingBottomNav({ currentTab, onNavigate, className }: Floatin
                 handleInteraction();
                 onNavigate?.(item.id);
               }}
+              onFocus={() => prefetchRouteData(item.path)}
+              onPointerEnter={() => prefetchRouteData(item.path)}
+              onPointerDown={() => prefetchRouteData(item.path)}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
               className={cn(

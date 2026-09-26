@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import type { AppearancePreference } from '../types/settings';
 
 export type ResolvedTheme = 'light' | 'dark';
@@ -76,6 +77,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Sync DOM with resolvedTheme whenever resolvedTheme changes
   useEffect(() => {
     applyThemeToDOM(resolvedTheme);
+    const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    themeColor?.setAttribute('content', resolvedTheme === 'dark' ? '#121210' : '#FAFAF8');
+    if (Capacitor.isNativePlatform()) {
+      void SystemBars.setStyle({ style: resolvedTheme === 'dark' ? SystemBarsStyle.Dark : SystemBarsStyle.Light }).catch(() => undefined);
+    }
   }, [resolvedTheme]);
 
   const setThemePreference = useCallback(

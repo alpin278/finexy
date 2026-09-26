@@ -11,11 +11,12 @@ export function MainContent({ children, className }: MainContentProps) {
     <main
       data-popover-scroll-root
       className={cn(
-        'pt-6 sm:pt-8 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:pb-8 min-w-0 flex-1 sm:overflow-x-hidden sm:overflow-y-auto sm:overscroll-contain px-4 sm:px-6 lg:px-8 max-w-[1520px] w-full mx-auto',
+        'pt-6 sm:pt-8 pb-0 md:pb-8 min-w-0 flex-1 sm:overflow-x-hidden sm:overflow-y-auto sm:overscroll-contain px-4 sm:px-6 lg:px-8 max-w-[1520px] w-full mx-auto',
         className
       )}
     >
       {children}
+      <div aria-hidden="true" className="h-[calc(3.5rem+0.75rem+env(safe-area-inset-bottom,0px))] md:hidden" />
     </main>
   );
 }

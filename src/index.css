@@ -136,17 +136,24 @@ html::view-transition-new(root),
   * {
     border-color: var(--color-border);
   }
+  html,
+  body,
+  #root {
+    background-color: var(--color-canvas);
+  }
   html {
     scroll-behavior: smooth;
   }
   body {
-    background-color: var(--color-canvas);
     color: var(--color-primary);
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
     padding: 0;
+    min-height: 100vh;
+  }
+  #root {
     min-height: 100vh;
   }
 
@@ -198,8 +205,6 @@ html::view-transition-new(root),
 }
 
 .finexy-safe-top {
-  min-height: 4rem;
-  height: auto;
   padding-top: env(safe-area-inset-top, 0px);
 }
 
