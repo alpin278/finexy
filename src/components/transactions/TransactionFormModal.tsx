@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { AmountInput } from '../ui/AmountInput';
 import { Modal } from '../ui/Modal';
 import { Select, type SelectOption } from '../ui/Select';
+import { Icon } from '../ui/Icon';
 import type { Transaction, TransactionStatus, TransactionType } from '../../types/finance';
 import { transactionStatuses } from '../../data/transactions';
 import { parseAmountNumber } from '../../lib/amount-format';
@@ -83,8 +85,18 @@ export function TransactionFormModal({
   onSubmit,
   submitting = false,
 }: TransactionFormModalProps) {
+  const navigate = useNavigate();
   const [values, setValues] = useState<TransactionFormValues>(() => getInitialValues(transaction, categories, wallets));
   const [errors, setErrors] = useState<Partial<Record<keyof TransactionFormValues, string>>>({});
+
+  const manageCategoriesAction = {
+    label: 'Manage Categories',
+    icon: <Icon name="tags" />,
+    onSelect: () => {
+      onClose();
+      navigate('/settings#categories');
+    },
+  };
 
   const categoryOptions: SelectOption[] = categories.filter((option) => option.type === values.type).map(({ value, label }) => ({ value, label }));
   const walletOptions: SelectOption[] = wallets.map((wallet) => ({ value: wallet.value, label: wallet.label }));
@@ -206,6 +218,7 @@ export function TransactionFormModal({
               value={values.category}
               onChange={(event) => updateValue('category', event.target.value)}
               options={categoryOptions}
+              action={manageCategoriesAction}
               className="w-full h-10 rounded-[12px] bg-card dark:bg-[#1A1A17] px-3 pr-8"
               aria-invalid={Boolean(errors.category)}
             />
@@ -263,6 +276,7 @@ export function TransactionFormModal({
                     value={split.category}
                     onChange={(event) => updateValue('splits', values.splits.map((item, itemIndex) => itemIndex === index ? { ...item, category: event.target.value } : item))}
                     options={categoryOptions}
+                    action={manageCategoriesAction}
                     className="h-10 min-w-0 bg-card dark:bg-[#1A1A17]"
                   />
                   <AmountInput

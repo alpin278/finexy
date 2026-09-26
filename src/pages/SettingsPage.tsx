@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/ui/Icon';
 import {
   appearanceOptions,
@@ -53,6 +53,7 @@ const settingsSections = [
   ['regional', 'Regional & Currency'],
   ['appearance', 'Appearance'],
   ['preferences', 'Transaction Preferences'],
+  ['categories', 'Categories'],
   ['notifications', 'Notifications'],
   ['data-backup', 'Data & Backup'],
   ['telegram', 'Telegram'],
@@ -79,6 +80,7 @@ export function SettingsPage() {
   const { canInstall, isIOS, isInstalled, promptInstall } = usePwa();
   const showInstallEntry = canInstall || (isIOS && !isInstalled);
   const location = useLocation();
+  const navigate = useNavigate();
   const invalidate = useDataInvalidation();
   const { preference, setPreference } = useTheme();
   const [settings, setSettings] = useState<SettingsState>(createInitialSettings);
@@ -383,6 +385,36 @@ export function SettingsPage() {
               <div><label htmlFor="settings-entry-mode" className={fieldLabelClass}>Entry style</label><Select id="settings-entry-mode" value={settings.entryMode} onChange={(event) => { setSettings((current) => ({ ...current, entryMode: event.target.value as SettingsState['entryMode'] })); setSaveMessage(''); }} options={[{ value: 'quick', label: 'Quick entry' }, { value: 'detailed', label: 'Detailed entry' }]} className={fieldClass} /><p className="mt-1.5 text-[11px] text-secondary">Saved for future transaction form defaults.</p></div>
             </div>
             <div className="mt-5 divide-y divide-border border-t border-border pt-2"><PreferenceToggle id="settings-auto-categorize" title="Suggest categories" description="Use the existing local category list to suggest a category while entering a transaction." checked={settings.autoCategorize} onChange={(autoCategorize) => { setSettings((current) => ({ ...current, autoCategorize })); setSaveMessage(''); }} /><PreferenceToggle id="settings-merchant-suggestions" title="Remember merchant labels" description="Keep merchant names consistent in this session so spending is easier to scan." checked={settings.merchantSuggestions} onChange={(merchantSuggestions) => { setSettings((current) => ({ ...current, merchantSuggestions })); setSaveMessage(''); }} /><PreferenceToggle id="settings-confirm-delete" title="Confirm before deleting" description="Ask for a confirmation before removing a local transaction or budget." checked={settings.confirmBeforeDeleting} onChange={(confirmBeforeDeleting) => { setSettings((current) => ({ ...current, confirmBeforeDeleting })); setSaveMessage(''); }} /></div>
+          </SettingsSection>
+
+          <SettingsSection
+            id="categories"
+            icon="tags"
+            eyebrow="Organization"
+            title="Category Management"
+            description="Manage transaction categories, icon badges, auto-classification rules, and budget limits."
+          >
+            <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                  <Icon name="tags" className="text-lg" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-primary">Manage Categories &amp; Rules</p>
+                  <p className="mt-1 text-xs leading-relaxed text-secondary">
+                    Customize income and expense classifications, visual icons, categorization rules, and budget linkages in the dedicated categories workspace.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Icon name="arrow-up-right" />}
+                onClick={() => navigate('/categories')}
+              >
+                Open Categories
+              </Button>
+            </div>
           </SettingsSection>
 
           <SettingsSection id="data-backup" icon="database" eyebrow="Account data" title="Data &amp; Backup" description="Export a portable copy of your Finexy data or safely restore a Finexy backup into this authenticated account.">

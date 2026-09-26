@@ -1,5 +1,7 @@
+import { useNavigate } from 'react-router-dom';
 import { SearchInput } from '../ui/SearchInput';
 import { Select, type SelectOption } from '../ui/Select';
+import { Icon } from '../ui/Icon';
 import { transactionStatuses } from '../../data/transactions';
 import type { CurrencyCode, WalletCurrencyCode } from '../../types/finance';
 import { TransactionDateFilter } from './TransactionDateFilter';
@@ -41,6 +43,7 @@ export function TransactionFilters({
   currencies,
   reportingCurrency,
 }: TransactionFiltersProps) {
+  const navigate = useNavigate();
   const categoryOptions: SelectOption[] = [
     { value: 'all', label: 'All Categories' },
     ...categories.map((option) => ({ value: option, label: option })),
@@ -86,6 +89,11 @@ export function TransactionFilters({
             value={category}
             onChange={(event) => onCategoryChange(event.target.value)}
             options={categoryOptions}
+            action={{
+              label: 'Manage Categories',
+              icon: <Icon name="tags" />,
+              onSelect: () => navigate('/settings#categories'),
+            }}
             className="w-full xl:w-[158px]"
           />
 

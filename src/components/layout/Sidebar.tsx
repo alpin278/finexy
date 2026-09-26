@@ -43,7 +43,6 @@ export function Sidebar({
     path?: string;
     icon: string;
   }[] = [
-    { id: 'categories', label: 'Categories', tab: 'categories', path: '/categories', icon: 'layers' },
     { id: 'settings', label: 'Settings', tab: 'settings', path: '/settings', icon: 'gear' },
   ];
 

@@ -24,9 +24,16 @@ export interface SelectOption {
   icon?: ReactNode;
 }
 
+export interface SelectAction {
+  label: string;
+  icon?: ReactNode;
+  onSelect: () => void;
+}
+
 export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'multiple' | 'size'> {
   options: SelectOption[];
   icon?: ReactNode;
+  action?: SelectAction;
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
@@ -34,6 +41,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     className,
     options,
     icon,
+    action,
     style,
     id,
     value,
@@ -111,7 +119,15 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 120);
     }, [clearScheduledClose]);
 
-    const positioning = useMemo(() => ({ contentHeight: Math.max(14, options.length * 37 + 14), preferredMaxHeight: 280, flip: false, onClose: closeMenu }), [closeMenu, options.length]);
+    const positioning = useMemo(
+      () => ({
+        contentHeight: Math.max(14, options.length * 37 + 14 + (action ? 38 : 0)),
+        preferredMaxHeight: 280,
+        flip: false,
+        onClose: closeMenu,
+      }),
+      [action, closeMenu, options.length]
+    );
     const position = useAnchoredPopoverPosition(isMounted, triggerRef, positioning, menuRef, closeMenu);
 
     useLayoutEffect(() => {
@@ -287,6 +303,22 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                     </div>
                   );
                 })}
+                {action && (
+                  <div className="mt-1 border-t border-border dark:border-[#32322A] pt-1">
+                    <button
+                      type="button"
+                      onPointerDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        closeMenu();
+                        action.onSelect();
+                      }}
+                      className="flex w-full cursor-pointer select-none items-center gap-2 rounded-[10px] px-3 py-2 text-xs font-semibold text-secondary hover:text-primary dark:text-[#9C9C94] dark:hover:text-[#F2F2EE] hover:bg-surface dark:hover:bg-[#2C2C26] outline-none transition-colors"
+                    >
+                      {action.icon && <span className="flex shrink-0 items-center text-secondary">{action.icon}</span>}
+                      <span className="min-w-0 flex-1 truncate text-left">{action.label}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );

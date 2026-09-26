@@ -8,6 +8,7 @@ import { useAuth } from '../../context/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 import { formatNotificationTime, type InAppNotification } from '../../lib/notifications';
 import { lockBodyScroll } from '../../lib/scroll-lock';
+import { useTheme } from '../../context/useTheme';
 
 export interface TopNavigationProps {
   currentTab?: NavigationTab;
@@ -16,7 +17,6 @@ export interface TopNavigationProps {
   className?: string;
   privacyMode?: boolean;
   onTogglePrivacy?: () => void;
-  onOpenCommandPalette?: () => void;
 }
 
 export function TopNavigation({
@@ -26,12 +26,12 @@ export function TopNavigation({
   className,
   privacyMode = false,
   onTogglePrivacy,
-  onOpenCommandPalette,
 }: TopNavigationProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const { user, profile, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const notificationsRef = useRef<HTMLDivElement>(null);
   const notificationsPanelRef = useRef<HTMLDivElement>(null);
@@ -118,7 +118,7 @@ export function TopNavigation({
             type="button"
             onClick={onOpenMobileMenu}
             aria-label="Open navigation menu"
-            className="lg:hidden p-2 rounded-full text-secondary hover:text-primary hover:bg-border/60 cursor-pointer"
+            className="sm:hidden p-2 rounded-full text-secondary hover:text-primary hover:bg-border/60 cursor-pointer"
           >
             <Icon name="list" className="text-base" />
           </button>
@@ -171,10 +171,16 @@ export function TopNavigation({
         })}
       </nav>
 
-      {/* Right: Search, Notifications, Info, Profile */}
+      {/* Right: Theme Toggle, Notifications, Info, Profile */}
       <div className="flex items-center gap-1.5 sm:gap-2 xl:gap-3">
-        <button type="button" onClick={onOpenCommandPalette} aria-label="Open command palette" className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-secondary transition-[background-color,border-color,color,transform] duration-150 hover:bg-card hover:text-primary active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 sm:w-40 sm:justify-start sm:gap-2 sm:px-3 xl:w-48">
-          <Icon name="search" className="text-sm" /><span className="hidden flex-1 text-left text-xs sm:block">Search commands</span><kbd className="hidden rounded border border-border bg-card px-1 text-[9px] font-semibold text-secondary xl:inline">⌘K</kbd>
+        {/* Theme Toggle (Preserves radial view transition animation) */}
+        <button
+          type="button"
+          onClick={(e) => toggleTheme(e)}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-secondary transition-[background-color,color,box-shadow,transform] duration-150 hover:bg-surface hover:text-primary hover:shadow-sm active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25"
+        >
+          <Icon name={theme === 'dark' ? 'sun' : 'moon-stars'} className="text-sm" />
         </button>
 
         {onTogglePrivacy && <button type="button" aria-label={`Privacy mode ${privacyMode ? 'on' : 'off'}`} aria-pressed={privacyMode} title="Privacy mode (Shift+P)" onClick={onTogglePrivacy} className={cn('flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-[background-color,color,box-shadow,transform] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25', privacyMode ? 'bg-dark text-white shadow-sm' : 'text-secondary hover:bg-surface hover:text-primary')}>
