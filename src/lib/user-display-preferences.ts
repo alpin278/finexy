@@ -1,6 +1,6 @@
 import type { WalletCurrencyCode } from '../types/finance';
 import { supabase } from './supabase';
-import { resolveTimeZone } from './date-time';
+import { resolveUserDisplayTimeZone } from './date-time';
 
 export interface UserDisplayPreferences {
   reportingCurrency: WalletCurrencyCode;
@@ -22,5 +22,5 @@ export async function loadUserDisplayPreferences(userId: string): Promise<UserDi
     ? data?.default_currency as WalletCurrencyCode
     : 'USD';
   const locale = data?.region && Intl.NumberFormat.supportedLocalesOf(data.region).length ? data.region : 'en-US';
-  return { reportingCurrency: currency, locale, numberFormat: data?.number_format ?? '1,234.56', timeZone: resolveTimeZone(data?.timezone) };
+  return { reportingCurrency: currency, locale, numberFormat: data?.number_format ?? '1,234.56', timeZone: resolveUserDisplayTimeZone(data?.timezone) };
 }

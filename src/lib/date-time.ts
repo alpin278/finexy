@@ -45,6 +45,24 @@ export function resolveTimeZone(preferred?: string | null) {
   return browserTimeZone();
 }
 
+const LEGACY_UNCONFIGURED_TIME_ZONES = new Set(['UTC', 'ETC/UTC', 'Z']);
+
+/**
+ * Normalizes a stored user display timezone preference.
+ *
+ * PostgreSQL schema historically bootstraps `user_settings.timezone = 'UTC'`.
+ * Because Finexy's UI timezone selector has never offered UTC as a choice,
+ * a stored 'UTC' value indicates an unconfigured default rather than an explicit choice.
+ * For user display preferences, treat this as unset and resolve to browserTimeZone().
+ */
+export function resolveUserDisplayTimeZone(preferred?: string | null) {
+  const candidate = preferred?.trim().split(/\s+/)[0];
+  if (!candidate || LEGACY_UNCONFIGURED_TIME_ZONES.has(candidate.toUpperCase())) {
+    return browserTimeZone();
+  }
+  return resolveTimeZone(candidate);
+}
+
 function parseInstant(value: Date | string | number) {
   const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;

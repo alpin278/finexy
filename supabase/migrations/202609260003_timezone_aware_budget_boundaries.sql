@@ -1,5 +1,43 @@
 begin;
 
+-- Align user_settings.timezone default with Finexy's primary regional target
+alter table public.user_settings
+  alter column timezone set default 'Asia/Jakarta';
+
+-- Safely normalize existing unconfigured legacy UTC rows.
+-- Explicit non-UTC choices (e.g. America/New_York, Europe/London) remain untouched.
+update public.user_settings
+   set timezone = 'Asia/Jakarta'
+ where trim(upper(timezone)) in ('UTC', 'ETC/UTC', 'Z', '')
+    or timezone is null;
+
+-- Ensure server-side timezone resolution treats legacy technical defaults
+-- as Finexy's deterministic fallback ('Asia/Jakarta') while cleanly parsing
+-- UI display strings like 'Asia/Jakarta (GMT+7)' and validating against pg_timezone_names.
+create or replace function public.recurring_tz(p_user uuid)
+returns text
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  z text;
+begin
+  select split_part(timezone, ' ', 1) into z
+    from public.user_settings
+   where user_id = p_user;
+
+  if z is null or trim(upper(z)) in ('UTC', 'ETC/UTC', 'Z', '') or not exists(select 1 from pg_timezone_names where name = z) then
+    return 'Asia/Jakarta';
+  end if;
+
+  return z;
+end;
+$$;
+
+revoke all on function public.recurring_tz(uuid) from public, authenticated;
+
 -- Keep budget threshold notifications aligned with the user's financial
 -- calendar. The stored occurred_at value remains an absolute timestamptz;
 -- only the month boundary used for evaluation is localized.

@@ -8,6 +8,9 @@ import {
   getLocalMonthKey,
   isDateOnly,
   reportRange,
+  resolveTimeZone,
+  resolveUserDisplayTimeZone,
+  browserTimeZone,
   zonedDateTimeToIso,
 } from '../src/lib/date-time.ts';
 import { periodRange, periodLabel } from '../src/lib/budget-utils.ts';
@@ -165,4 +168,50 @@ console.log('Running Finexy date/time timezone audit and regression tests...');
   assert.equal(formatMonthKey('2026-09'), 'September 2026');
 }
 
-console.log('✓ All A-G date/time timezone audit and regression tests passed successfully!');
+// -----------------------------------------------------------------------------
+// Test H: Production incident verification & user preference boundary
+// -----------------------------------------------------------------------------
+{
+  const instant = '2026-09-26T07:54:00.000Z';
+  assert.equal(getLocalDateKey(instant, WIB), '2026-09-26');
+  assert.equal(formatLocalTime(instant, WIB), '02:54 PM');
+
+  // Verify 2026-09-25T17:30:00Z -> Asia/Jakarta -> 2026-09-26 00:30
+  const instantNight = '2026-09-25T17:30:00.000Z';
+  assert.equal(getLocalDateKey(instantNight, WIB), '2026-09-26');
+  assert.equal(formatLocalTime(instantNight, WIB), '12:30 AM');
+
+  // 1. resolveTimeZone must remain semantically correct:
+  // resolveTimeZone("UTC") must return "UTC"
+  assert.equal(resolveTimeZone('UTC'), 'UTC');
+  assert.equal(resolveTimeZone('Etc/UTC'), 'Etc/UTC');
+  assert.equal(resolveTimeZone('Asia/Jakarta'), 'Asia/Jakarta');
+  assert.equal(resolveTimeZone(null), browserTimeZone());
+  assert.equal(resolveTimeZone(''), browserTimeZone());
+
+  // An explicit call to format in UTC still legitimately renders UTC
+  assert.equal(formatLocalTime(instant, 'UTC'), '07:54 AM');
+
+  // 2. Legacy database default at the USER PREFERENCE boundary:
+  // PostgreSQL historically bootstrapped user_settings.timezone = "UTC".
+  // resolveUserDisplayTimeZone treats legacy "UTC" as unconfigured and normalizes to browser timezone.
+  assert.equal(resolveUserDisplayTimeZone('UTC'), browserTimeZone());
+  assert.equal(resolveUserDisplayTimeZone('Etc/UTC'), browserTimeZone());
+  assert.equal(resolveUserDisplayTimeZone(null), browserTimeZone());
+  assert.equal(resolveUserDisplayTimeZone(''), browserTimeZone());
+
+  // Explicit user selections from Settings dropdown are preserved
+  assert.equal(resolveUserDisplayTimeZone('Asia/Jakarta (GMT+7)'), 'Asia/Jakarta');
+  assert.equal(resolveUserDisplayTimeZone('America/New_York (GMT-5)'), 'America/New_York');
+  assert.equal(resolveUserDisplayTimeZone('Europe/London (GMT+0)'), 'Europe/London');
+
+  // 3. Ensure frontend and server agree on month boundaries:
+  // 2026-09-01 00:30 Asia/Jakarta is 2026-08-31T17:30:00Z in UTC.
+  const sepEarlyMorning = '2026-08-31T17:30:00.000Z';
+  assert.equal(getLocalDateKey(sepEarlyMorning, WIB), '2026-09-01', 'History date must be Sep 1');
+  assert.equal(getLocalMonthKey(sepEarlyMorning, WIB), '2026-09', 'Overview & Reports month must be September');
+  const sepRange = periodRange('2026-09', WIB);
+  assert.equal(sepEarlyMorning >= sepRange.start && sepEarlyMorning < sepRange.end, true, 'Belongs to September budget range');
+}
+
+console.log('✓ All A-H date/time timezone audit and regression tests passed successfully!');

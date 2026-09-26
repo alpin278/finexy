@@ -4,6 +4,7 @@ import { defaultSettingsState } from '../data/settings';
 import { loadOrCreateProfile } from './auth';
 import { supabase } from './supabase';
 import { assertOnline, offlineErrorMessage } from './connectivity';
+import { browserTimeZone } from './date-time';
 
 function defaults(): SettingsState {
   return { ...defaultSettingsState, profile: { ...defaultSettingsState.profile }, notifications: defaultSettingsState.notifications.map((item) => ({ ...item })) };
@@ -40,6 +41,18 @@ export async function saveProfileDetails(value: Pick<ProfileDetails, 'name' | 'l
   if (error) throw error;
 }
 
+const UNSET_TIME_ZONES = new Set(['UTC', 'ETC/UTC', 'Z']);
+
+function normalizeSettingsTimezone(tz?: string | null): string {
+  if (!tz || UNSET_TIME_ZONES.has(tz.trim().toUpperCase())) {
+    const browser = browserTimeZone();
+    if (browser === 'America/New_York') return 'America/New_York (GMT-5)';
+    if (browser === 'Europe/London') return 'Europe/London (GMT+0)';
+    return 'Asia/Jakarta (GMT+7)';
+  }
+  return tz;
+}
+
 export async function loadSettings(): Promise<SettingsState> {
   const user = await requireUser();
   const profile = await loadOrCreateProfile(user);
@@ -55,7 +68,7 @@ export async function loadSettings(): Promise<SettingsState> {
     const { error: notificationBootstrapError } = await supabase.from('notification_preferences').upsert(missing.map((item) => ({ user_id: user.id, preference_key: item.id, channel: 'in_app', enabled: item.enabled })), { onConflict: 'user_id,preference_key,channel', ignoreDuplicates: true });
     if (notificationBootstrapError) throw notificationBootstrapError;
   }
-  return { ...base, profile: { name: profile?.display_name ?? user.email ?? '', email: user.email ?? '', location: profile?.location ?? '', timezone: settings.timezone }, currency: settings.default_currency, region: settings.region, dateFormat: settings.date_format, numberFormat: settings.number_format, appearance: settings.appearance as SettingsState['appearance'], transactionType: settings.default_transaction_type, entryMode: settings.entry_mode as SettingsState['entryMode'], autoCategorize: settings.auto_categorize, merchantSuggestions: settings.merchant_suggestions, confirmBeforeDeleting: settings.confirm_before_delete, notifications: base.notifications.map((item) => ({ ...item, enabled: existing.get(item.id) ?? item.enabled })) };
+  return { ...base, profile: { name: profile?.display_name ?? user.email ?? '', email: user.email ?? '', location: profile?.location ?? '', timezone: normalizeSettingsTimezone(settings.timezone) }, currency: settings.default_currency, region: settings.region, dateFormat: settings.date_format, numberFormat: settings.number_format, appearance: settings.appearance as SettingsState['appearance'], transactionType: settings.default_transaction_type, entryMode: settings.entry_mode as SettingsState['entryMode'], autoCategorize: settings.auto_categorize, merchantSuggestions: settings.merchant_suggestions, confirmBeforeDeleting: settings.confirm_before_delete, notifications: base.notifications.map((item) => ({ ...item, enabled: existing.get(item.id) ?? item.enabled })) };
 }
 
 export async function saveSettings(value: SettingsState) {
@@ -63,7 +76,7 @@ export async function saveSettings(value: SettingsState) {
   const user = await requireUser();
   if (!value.profile.name.trim()) throw new Error('Display name is required.');
   const profile: TablesUpdate<'profiles'> = { display_name: value.profile.name.trim(), location: value.profile.location.trim() || null };
-  const settings: TablesUpdate<'user_settings'> = { default_currency: value.currency, region: value.region, timezone: value.profile.timezone, date_format: value.dateFormat, number_format: value.numberFormat, appearance: value.appearance, default_transaction_type: value.transactionType, entry_mode: value.entryMode, auto_categorize: value.autoCategorize, merchant_suggestions: value.merchantSuggestions, confirm_before_delete: value.confirmBeforeDeleting };
+  const settings: TablesUpdate<'user_settings'> = { default_currency: value.currency, region: value.region, timezone: normalizeSettingsTimezone(value.profile.timezone), date_format: value.dateFormat, number_format: value.numberFormat, appearance: value.appearance, default_transaction_type: value.transactionType, entry_mode: value.entryMode, auto_categorize: value.autoCategorize, merchant_suggestions: value.merchantSuggestions, confirm_before_delete: value.confirmBeforeDeleting };
   const [{ error: profileError }, { error: settingsError }, { error: notificationError }] = await Promise.all([supabase.from('profiles').update(profile).eq('id', user.id), supabase.from('user_settings').update(settings).eq('user_id', user.id), supabase.from('notification_preferences').upsert(value.notifications.map((item) => ({ user_id: user.id, preference_key: item.id, channel: 'in_app', enabled: item.enabled })), { onConflict: 'user_id,preference_key,channel' })]);
   if (profileError) throw profileError; if (settingsError) throw settingsError; if (notificationError) throw notificationError;
 }
