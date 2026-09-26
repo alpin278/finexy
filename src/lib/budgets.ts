@@ -11,6 +11,7 @@ import { assertOnline, offlineErrorMessage } from './connectivity';
 import { loadUserDisplayPreferences, type UserDisplayPreferences } from './user-display-preferences';
 import { categoryAllocations } from './category-allocations';
 import { loadTransactionSplits } from './transaction-splits';
+import { browserTimeZone } from './date-time';
 
 type BudgetRow = Tables<'budgets'>;
 type BudgetCurrency = Enums<'currency_code'>;
@@ -106,8 +107,8 @@ async function listRawBudgetRows(userId: string, period?: BudgetPeriod) {
   return data as unknown as JoinedBudgetRow[];
 }
 
-async function listBudgetableTransactions(userId: string, period: BudgetPeriod) {
-  const range = periodRange(period);
+async function listBudgetableTransactions(userId: string, period: BudgetPeriod, timeZone = browserTimeZone()) {
+  const range = periodRange(period, timeZone);
   const { data, error } = await supabase
     .from('transactions')
     .select('id, category_id, amount, currency, occurred_at, type, status, transfer_id, deleted_at')
@@ -173,14 +174,14 @@ function buildSummary(budgets: Budget[]): BudgetSummaryData {
   };
 }
 
-function availablePeriods(rows: BudgetRow[]) {
+function availablePeriods(rows: BudgetRow[], timeZone = browserTimeZone()) {
   const periods = new Set(rows.map((row) => row.period_start.slice(0, 7)));
-  periods.add(currentBudgetPeriod());
+  periods.add(currentBudgetPeriod(new Date(), timeZone));
   return [...periods].sort((a, b) => b.localeCompare(a));
 }
 
-function preferredPeriod(rows: BudgetRow[]) {
-  const current = currentBudgetPeriod();
+function preferredPeriod(rows: BudgetRow[], timeZone = browserTimeZone()) {
+  const current = currentBudgetPeriod(new Date(), timeZone);
   const rowPeriods = rows.map((row) => row.period_start.slice(0, 7));
   if (rowPeriods.includes(current)) return current;
   if (rowPeriods.includes(demoBudgetPeriod)) return demoBudgetPeriod;
@@ -236,23 +237,23 @@ async function preparedBudgetRows(userId: string) {
   return { categoryRows, rows: bootstrapped };
 }
 
-async function mapRowsForPeriod(userId: string, rows: JoinedBudgetRow[], period: BudgetPeriod) {
+async function mapRowsForPeriod(userId: string, rows: JoinedBudgetRow[], period: BudgetPeriod, timeZone = browserTimeZone()) {
   const periodRows = rows.filter((row) => row.period_start.slice(0, 7) === period);
-  const transactions = await listBudgetableTransactions(userId, period);
+  const transactions = await listBudgetableTransactions(userId, period, timeZone);
   return periodRows.map((row) => mapBudget(row, transactions));
 }
 
 export async function listBudgets(period?: BudgetPeriod) {
   const userId = await requireUserId();
   if (period) validatePeriod(period);
-  const rows = await listRawBudgetRows(userId, period);
-  return mapRowsForPeriod(userId, rows, period ?? preferredPeriod(rows));
+  const [rows, displayPreferences] = await Promise.all([listRawBudgetRows(userId, period), loadUserDisplayPreferences(userId)]);
+  return mapRowsForPeriod(userId, rows, period ?? preferredPeriod(rows, displayPreferences.timeZone), displayPreferences.timeZone);
 }
 
 export async function listBudgetPeriods() {
   const userId = await requireUserId();
-  const { rows } = await preparedBudgetRows(userId);
-  return availablePeriods(rows);
+  const [{ rows }, displayPreferences] = await Promise.all([preparedBudgetRows(userId), loadUserDisplayPreferences(userId)]);
+  return availablePeriods(rows, displayPreferences.timeZone);
 }
 
 export async function loadBudgetPage(period?: BudgetPeriod): Promise<BudgetPageData> {
@@ -262,8 +263,8 @@ export async function loadBudgetPage(period?: BudgetPeriod): Promise<BudgetPageD
     preparedBudgetRows(userId),
     loadUserDisplayPreferences(userId),
   ]);
-  const selectedPeriod = period ?? preferredPeriod(rows);
-  const budgets = await mapRowsForPeriod(userId, rows, selectedPeriod);
+  const selectedPeriod = period ?? preferredPeriod(rows, displayPreferences.timeZone);
+  const budgets = await mapRowsForPeriod(userId, rows, selectedPeriod, displayPreferences.timeZone);
   const categories: BudgetCategoryOption[] = categoryRows
     .filter((category) => category.type === 'expense' && category.status === 'active')
     .map((category) => ({ id: category.id, name: category.name, icon: resolveCategoryIconName(category.icon_identifier) }));
@@ -271,7 +272,7 @@ export async function loadBudgetPage(period?: BudgetPeriod): Promise<BudgetPageD
     period: selectedPeriod,
     budgets,
     byCategory: Object.fromEntries(budgets.map((budget) => [budget.categoryId, budget])),
-    availablePeriods: availablePeriods(rows),
+    availablePeriods: availablePeriods(rows, displayPreferences.timeZone),
     categories,
     summary: buildSummary(budgets),
     displayPreferences,
@@ -281,9 +282,9 @@ export async function loadBudgetPage(period?: BudgetPeriod): Promise<BudgetPageD
 export async function loadCategoryBudgetLayer(period?: BudgetPeriod): Promise<CategoryBudgetLayer> {
   const userId = await requireUserId();
   if (period) validatePeriod(period);
-  const { rows } = await preparedBudgetRows(userId);
-  const selectedPeriod = period ?? preferredPeriod(rows);
-  const budgets = await mapRowsForPeriod(userId, rows, selectedPeriod);
+  const [{ rows }, displayPreferences] = await Promise.all([preparedBudgetRows(userId), loadUserDisplayPreferences(userId)]);
+  const selectedPeriod = period ?? preferredPeriod(rows, displayPreferences.timeZone);
+  const budgets = await mapRowsForPeriod(userId, rows, selectedPeriod, displayPreferences.timeZone);
   return {
     period: selectedPeriod,
     budgets,
@@ -303,7 +304,8 @@ export async function getBudget(budgetId: string) {
   if (error) throw error;
   if (!data) return null;
   const row = data as unknown as JoinedBudgetRow;
-  return (await mapRowsForPeriod(userId, [row], row.period_start.slice(0, 7)))[0] ?? null;
+  const displayPreferences = await loadUserDisplayPreferences(userId);
+  return (await mapRowsForPeriod(userId, [row], row.period_start.slice(0, 7), displayPreferences.timeZone))[0] ?? null;
 }
 
 async function validateBudgetCategory(userId: string, categoryId: string) {

@@ -1,4 +1,5 @@
 import type { Budget, BudgetCurrencyTotal, BudgetPeriod, BudgetStatus, WalletCurrencyCode } from '../types/finance';
+import { browserTimeZone, formatMonthKey, getLocalCalendarParts, zonedDateTimeToIso } from './date-time';
 
 export const supportedBudgetCurrencies: WalletCurrencyCode[] = ['USD', 'EUR', 'GBP', 'IDR'];
 
@@ -19,26 +20,27 @@ export function isBudgetPeriod(value: string): value is BudgetPeriod {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }
 
-export function currentBudgetPeriod(date = new Date()): BudgetPeriod {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+export function currentBudgetPeriod(date = new Date(), timeZone = browserTimeZone()): BudgetPeriod {
+  const parts = getLocalCalendarParts(date, timeZone);
+  return `${parts.year}-${String(parts.month).padStart(2, '0')}`;
 }
 
 export function periodStartDate(period: BudgetPeriod) {
   return `${period}-01`;
 }
 
-export function periodRange(period: BudgetPeriod) {
+export function periodRange(period: BudgetPeriod, timeZone = browserTimeZone()) {
   const [year, month] = period.split('-').map(Number);
-  const next = new Date(Date.UTC(year, month, 1));
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
   return {
-    start: `${period}-01T00:00:00.000Z`,
-    end: `${next.toISOString().slice(0, 10)}T00:00:00.000Z`,
+    start: zonedDateTimeToIso(`${period}-01`, '00:00:00', timeZone),
+    end: zonedDateTimeToIso(`${nextYear}-${String(nextMonth).padStart(2, '0')}-01`, '00:00:00', timeZone),
   };
 }
 
 export function periodLabel(period: BudgetPeriod) {
-  const date = new Date(`${period}-01T00:00:00.000Z`);
-  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date);
+  return formatMonthKey(period);
 }
 
 export function groupBudgetTotals(budgets: Budget[]): BudgetCurrencyTotal[] {

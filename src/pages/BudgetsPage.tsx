@@ -15,7 +15,7 @@ import { StableFilterRegion } from '../components/ui/StableFilterRegion';
 import { isFinexyActionState } from '../lib/interaction-actions';
 import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
 
-const emptyData: BudgetPageData = { period: currentBudgetPeriod(), budgets: [], byCategory: {}, availablePeriods: [currentBudgetPeriod()], categories: [], summary: { activeBudgetCount: 0, totalsByCurrency: [], overBudgetCategoryCount: 0 }, displayPreferences: { reportingCurrency: 'USD', locale: 'en-US', numberFormat: '1,234.56' } };
+const emptyData: BudgetPageData = { period: currentBudgetPeriod(), budgets: [], byCategory: {}, availablePeriods: [currentBudgetPeriod()], categories: [], summary: { activeBudgetCount: 0, totalsByCurrency: [], overBudgetCategoryCount: 0 }, displayPreferences: { reportingCurrency: 'USD', locale: 'en-US', numberFormat: '1,234.56', timeZone: 'Asia/Jakarta' } };
 
 export function BudgetsPage() {
   const navigate = useNavigate();

@@ -2,7 +2,7 @@
 
 import { assertOnline } from './connectivity';
 
-export type RecurringRule = { id: string; type: 'income' | 'expense'; wallet_id: string; category_id: string; amount: number; note: string | null; frequency: 'weekly' | 'monthly'; start_date: string; end_date: string | null; next_due_at: string; local_time: string; active: boolean; archived_at: string | null; wallet: { name: string; currency: string } | null; category: { name: string } | null; };
+export type RecurringRule = { id: string; type: 'income' | 'expense'; wallet_id: string; category_id: string; amount: number; note: string | null; frequency: 'weekly' | 'monthly'; start_date: string; end_date: string | null; next_due_at: string; local_time: string; timezone: string; active: boolean; archived_at: string | null; wallet: { name: string; currency: string } | null; category: { name: string } | null; };
 export type RecurringRuleInput = { type: 'income' | 'expense'; walletId: string; categoryId: string; amount: number; note: string; frequency: 'weekly' | 'monthly'; startDate: string; endDate: string; localTime: string; };
 
 export async function loadRecurringRules(): Promise<RecurringRule[]> { const { data, error } = await (supabase as any).from('recurring_transaction_rules').select('*, wallet:wallets(name,currency), category:categories(name)').is('archived_at', null).order('next_due_at'); if (error) throw error; return data ?? []; }

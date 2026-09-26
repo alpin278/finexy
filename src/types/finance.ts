@@ -121,6 +121,8 @@ export interface Transaction {
   method: string;
   date: string;
   time: string;
+  /** ISO timestamp of when the financial transaction occurred (occurred_at). */
+  occurredAt?: string;
   /** ISO timestamp of when this transaction was recorded in Finexy (created_at). */
   createdAt?: string;
   amount: number;

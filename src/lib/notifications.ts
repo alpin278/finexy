@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import type { Tables } from '../types/database';
 import { assertOnline } from './connectivity';
+import { formatLocalDate } from './date-time';
 
 export type NotificationRow = Tables<'notifications'>;
 
@@ -115,5 +116,5 @@ export function formatNotificationTime(isoDate: string, now: Date = new Date()):
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return formatLocalDate(isoDate).replace(/, \d{4}$/, '');
 }

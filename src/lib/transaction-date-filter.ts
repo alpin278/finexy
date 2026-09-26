@@ -1,3 +1,5 @@
+import { browserTimeZone, getLocalCalendarParts } from './date-time';
+
 export interface TransactionDateFilterBounds {
   currentYear: string;
   currentMonth: string;
@@ -5,16 +7,17 @@ export interface TransactionDateFilterBounds {
   today: string;
 }
 
-export function getTransactionDateFilterBounds(now = new Date()): TransactionDateFilterBounds {
-  const year = now.getFullYear();
-  const month = now.getMonth(); // 0-11
+export function getTransactionDateFilterBounds(now = new Date(), timeZone = browserTimeZone()): TransactionDateFilterBounds {
+  const nowParts = getLocalCalendarParts(now, timeZone);
+  const year = nowParts.year;
+  const month = nowParts.month - 1; // 0-11
   const currentYear = String(year);
   const currentMonth = `${year}-${String(month + 1).padStart(2, '0')}`;
 
   const lastMonthDate = new Date(year, month - 1, 1);
   const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
-  const today = `${year}-${String(month + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const today = `${year}-${String(month + 1).padStart(2, '0')}-${String(nowParts.day).padStart(2, '0')}`;
 
   return { currentYear, currentMonth, lastMonth, today };
 }
@@ -98,15 +101,13 @@ export function getExportDateRangeForPeriod(
 export function formatPeriodDateLabel(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number);
   if (!y || !m || !d) return dateStr;
-  const date = new Date(y, m - 1, d);
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
 export function formatPeriodMonthLabel(monthStr: string): string {
   const [y, m] = monthStr.split('-').map(Number);
   if (!y || !m) return monthStr;
-  const date = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(date);
+  return new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, 1)));
 }
 
 export function getDatePeriodLabel(selectedPeriod: string): string {

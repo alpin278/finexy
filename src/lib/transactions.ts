@@ -9,6 +9,8 @@ import { supabase } from './supabase';
 import { buildTransactionActivities, buildTransactionSummary } from './transaction-activities';
 import { loadTransactionSplits } from './transaction-splits';
 import { assertOnline, offlineErrorMessage } from './connectivity';
+import { browserTimeZone, formatLocalTime, getLocalDateKey, zonedDateTimeToIso } from './date-time';
+import { loadUserDisplayPreferences } from './user-display-preferences';
 
 type TransactionRow = Tables<'transactions'>;
 type TransactionStatusDb = Enums<'transaction_status'>;
@@ -37,6 +39,7 @@ export interface TransactionPageData {
   reportingCurrency: WalletCurrencyCode;
   numberLocale: string;
   numberFormat: string;
+  timeZone: string;
 }
 
 export interface CreateTransactionInput {
@@ -85,10 +88,6 @@ async function listTransferRows(userId: string, transferIds?: string[]) {
   return data;
 }
 
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' }).format(new Date(value));
-}
-
 function mapStatus(status: TransactionStatusDb): TransactionStatus {
   if (status === 'canceled') return 'canceled';
   return status === 'pending' ? 'pending' : 'completed';
@@ -98,7 +97,7 @@ function mapSource(source: string) {
   return source === 'web' ? 'Web entry' : `${source.charAt(0).toUpperCase()}${source.slice(1)} entry`;
 }
 
-function mapTransaction(row: JoinedTransactionRow, transfer?: TransferRow, walletNames?: Map<string, string>): Transaction {
+function mapTransaction(row: JoinedTransactionRow, transfer?: TransferRow, walletNames?: Map<string, string>, timeZone = browserTimeZone()): Transaction {
   const description = row.description ?? row.payee ?? 'Untitled transaction';
   const isTransfer = row.type === 'transfer';
   const transferSourceWallet = transfer ? walletNames?.get(transfer.source_wallet_id) : undefined;
@@ -116,8 +115,9 @@ function mapTransaction(row: JoinedTransactionRow, transfer?: TransferRow, walle
     category: isTransfer ? 'Transfer' : row.category?.name ?? 'Uncategorized',
     wallet: row.wallet?.name ?? 'Unknown wallet',
     method: isTransfer ? 'Wallet transfer' : mapSource(row.source),
-    date: row.occurred_at.slice(0, 10),
-    time: formatTime(row.occurred_at),
+    date: getLocalDateKey(row.occurred_at, timeZone),
+    time: formatLocalTime(row.occurred_at, timeZone),
+    occurredAt: row.occurred_at,
     createdAt: row.created_at,
     amount: Number(row.amount),
     currency: row.currency,
@@ -158,12 +158,12 @@ async function deterministicId(userId: string, key: string) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${(8 | (Number.parseInt(hex[16], 16) & 3)).toString(16)}${hex.slice(17, 20)}-${hex.slice(20)}`;
 }
 
-function mockOccurredAt(date: string, time: string) {
+function mockOccurredAt(date: string, time: string, timeZone = browserTimeZone()) {
   const match = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!match) return `${date}T12:00:00Z`;
+  if (!match) return zonedDateTimeToIso(date, '12:00:00', timeZone);
   let hour = Number(match[1]) % 12;
   if (match[3].toUpperCase() === 'PM') hour += 12;
-  return `${date}T${String(hour).padStart(2, '0')}:${match[2]}:00Z`;
+  return zonedDateTimeToIso(date, `${String(hour).padStart(2, '0')}:${match[2]}:00`, timeZone);
 }
 
 async function reconcileSeedOpeningBalances(userId: string, walletRows: Tables<'wallets'>[]) {
@@ -189,7 +189,7 @@ async function reconcileSeedOpeningBalances(userId: string, walletRows: Tables<'
   }
 }
 
-async function bootstrapDefaultTransactions(userId: string, walletRows: Tables<'wallets'>[], categoryOptions: TransactionCategoryOption[], activeRows: JoinedTransactionRow[]) {
+async function bootstrapDefaultTransactions(userId: string, walletRows: Tables<'wallets'>[], categoryOptions: TransactionCategoryOption[], activeRows: JoinedTransactionRow[], timeZone = browserTimeZone()) {
   if (activeRows.length > 0) return;
   const { data: historicalRows, error: historicalError } = await supabase.from('transactions').select('external_id').eq('user_id', userId).like('external_id', 'phase15:demo:%');
   if (historicalError) throw historicalError;
@@ -229,7 +229,7 @@ async function bootstrapDefaultTransactions(userId: string, walletRows: Tables<'
       payee: transaction.payee,
       description: transaction.description,
       note: transaction.secondaryReference,
-      occurred_at: mockOccurredAt(transaction.date, transaction.time),
+      occurred_at: mockOccurredAt(transaction.date, transaction.time, timeZone),
       status: transaction.status === 'completed' ? 'completed' : 'pending',
       source: 'web',
       reference: transaction.reference,
@@ -246,12 +246,12 @@ export async function loadTransactionsPage(): Promise<TransactionPageData> {
   const [walletPage, categoryPage, activeRows] = await Promise.all([loadWalletsPage(), loadCategoriesPage(), listTransactionRows(userId)]);
   const walletOptions = walletPage.wallets.map((wallet) => ({ id: wallet.id, name: wallet.name, currency: wallet.currency as CurrencyDb }));
   const categoryOptions = categoryPage.categories.filter((category) => category.status === 'active').map((category) => ({ id: category.id, name: category.name, type: category.type }));
-  await bootstrapDefaultTransactions(userId, await listRawWallets(userId), categoryOptions, activeRows);
+  await bootstrapDefaultTransactions(userId, await listRawWallets(userId), categoryOptions, activeRows, walletPage.displayPreferences.timeZone);
   const rows = await listTransactionRows(userId);
   const transferRows = await listTransferRows(userId, rows.flatMap((row) => row.transfer_id ? [row.transfer_id] : []));
   const walletNames = new Map(walletOptions.map((wallet) => [wallet.id, wallet.name]));
   const transfersById = new Map(transferRows.map((transfer) => [transfer.id, transfer]));
-  const transactions = buildTransactionActivities(rows.map((row) => mapTransaction(row, row.transfer_id ? transfersById.get(row.transfer_id) : undefined, walletNames)));
+  const transactions = buildTransactionActivities(rows.map((row) => mapTransaction(row, row.transfer_id ? transfersById.get(row.transfer_id) : undefined, walletNames, walletPage.displayPreferences.timeZone)));
   return {
     transactions,
     categories: categoryOptions,
@@ -260,6 +260,7 @@ export async function loadTransactionsPage(): Promise<TransactionPageData> {
     reportingCurrency: walletPage.displayPreferences.reportingCurrency,
     numberLocale: walletPage.displayPreferences.locale,
     numberFormat: walletPage.displayPreferences.numberFormat,
+    timeZone: walletPage.displayPreferences.timeZone,
   };
 }
 
@@ -269,7 +270,7 @@ async function listRawWallets(userId: string) {
   return data;
 }
 
-export async function getTransaction(transactionId: string) {
+export async function getTransaction(transactionId: string, timeZone?: string) {
   const userId = await requireUserId();
   const { data, error } = await supabase.from('transactions').select('*, wallet:wallets(id, name, currency), category:categories(id, name, type)').eq('id', transactionId).eq('user_id', userId).is('deleted_at', null).maybeSingle();
   if (error) throw error;
@@ -277,7 +278,8 @@ export async function getTransaction(transactionId: string) {
   const row = data as unknown as JoinedTransactionRow;
   row.splits = (await loadTransactionSplits(userId, [row.id])).get(row.id) ?? [];
   const transfer = row.transfer_id ? (await listTransferRows(userId, [row.transfer_id]))[0] : undefined;
-  return mapTransaction(row, transfer);
+  const resolvedTimeZone = timeZone ?? (await loadUserDisplayPreferences(userId)).timeZone;
+  return mapTransaction(row, transfer, undefined, resolvedTimeZone);
 }
 
 async function walletCurrency(userId: string, walletId: string) {
@@ -302,25 +304,29 @@ function statusForDatabase(status: TransactionStatus): 'pending' | 'completed' |
 export async function createTransaction(input: CreateTransactionInput, splits?: TransactionSplitInput[]) {
   assertOnline();
   const userId = await requireUserId();
-  const currency = await walletCurrency(userId, input.walletId);
+  const [currency, displayPreferences] = await Promise.all([
+    walletCurrency(userId, input.walletId),
+    loadUserDisplayPreferences(userId),
+  ]);
   await validateCategory(userId, input.categoryId, input.type);
   if (currency !== input.currency) throw new Error('Transaction currency must match the selected wallet.');
   if (splits?.length) {
     const { data, error } = await (supabase as any).rpc('save_transaction_with_splits', { p_transaction_id: null, p_wallet_id: input.walletId, p_type: input.type, p_amount: input.amount, p_currency: currency, p_payee: input.payee.trim(), p_description: input.description.trim(), p_note: input.note?.trim() || null, p_occurred_at: input.occurredAt, p_status: input.status, p_reference: input.reference?.trim() || null, p_splits: splits.map((split) => ({ category_id: split.categoryId, amount: split.amount, note: split.note?.trim() || null })) });
     if (error) throw error;
-    const created = await getTransaction(data);
+    const created = await getTransaction(data, displayPreferences.timeZone);
     if (!created) throw new Error('Split transaction was not returned after saving.');
     return created;
   }
   const payload: TablesInsert<'transactions'> = { user_id: userId, wallet_id: input.walletId, category_id: input.categoryId, type: input.type, amount: input.amount, currency, payee: input.payee.trim(), description: input.description.trim(), note: input.note?.trim() || null, occurred_at: input.occurredAt, status: input.status, source: 'web', reference: input.reference?.trim() || null };
   const { data, error } = await supabase.from('transactions').insert(payload).select('*, wallet:wallets(id, name, currency), category:categories(id, name, type)').single();
   if (error) throw error;
-  return mapTransaction(data as unknown as JoinedTransactionRow);
+  return mapTransaction(data as unknown as JoinedTransactionRow, undefined, undefined, displayPreferences.timeZone);
 }
 
 export async function updateTransaction(transactionId: string, input: UpdateTransactionInput, splits?: TransactionSplitInput[]) {
   assertOnline();
   const userId = await requireUserId();
+  const displayPreferences = await loadUserDisplayPreferences(userId);
   const walletId = input.walletId;
   const categoryId = input.categoryId;
   const type = input.type;
@@ -329,7 +335,7 @@ export async function updateTransaction(transactionId: string, input: UpdateTran
   if (splits?.length) {
     const { data, error } = await (supabase as any).rpc('save_transaction_with_splits', { p_transaction_id: transactionId, p_wallet_id: input.walletId, p_type: input.type, p_amount: input.amount, p_currency: currency, p_payee: input.payee?.trim(), p_description: input.description?.trim(), p_note: input.note?.trim() || null, p_occurred_at: input.occurredAt, p_status: input.status && statusForDatabase(input.status), p_reference: input.reference?.trim() || null, p_splits: splits.map((split) => ({ category_id: split.categoryId, amount: split.amount, note: split.note?.trim() || null })) });
     if (error) throw error;
-    const updated = await getTransaction(data);
+    const updated = await getTransaction(data, displayPreferences.timeZone);
     if (!updated) throw new Error('Split transaction was not returned after saving.');
     return updated;
   }
@@ -352,7 +358,7 @@ export async function updateTransaction(transactionId: string, input: UpdateTran
   };
   const { data, error } = await supabase.from('transactions').update(payload).eq('id', transactionId).eq('user_id', userId).is('deleted_at', null).select('*, wallet:wallets(id, name, currency), category:categories(id, name, type)').single();
   if (error) throw error;
-  return mapTransaction(data as unknown as JoinedTransactionRow);
+  return mapTransaction(data as unknown as JoinedTransactionRow, undefined, undefined, displayPreferences.timeZone);
 }
 
 export async function archiveTransaction(transactionId: string) {

@@ -28,7 +28,7 @@ export function WalletsPage() {
   const [deletingWallet, setDeletingWallet] = useState<Wallet | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [displayPreferences, setDisplayPreferences] = useState<UserDisplayPreferences>({ reportingCurrency: 'USD', locale: 'en-US', numberFormat: '1,234.56' });
+  const [displayPreferences, setDisplayPreferences] = useState<UserDisplayPreferences>({ reportingCurrency: 'USD', locale: 'en-US', numberFormat: '1,234.56', timeZone: 'Asia/Jakarta' });
   const [templateInitialValues, setTemplateInitialValues] = useState<Partial<WalletFormValues> | undefined>(undefined);
   const invalidate = useDataInvalidation();
 

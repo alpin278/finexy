@@ -1,13 +1,8 @@
 import type { Transaction, TransactionStatus } from '../../types/finance';
+import { formatDateOnly } from '../../lib/date-time';
 
 export function formatTransactionDate(date: string) {
-  const parsedDate = new Date(`${date}T12:00:00`);
-
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(parsedDate);
+  return formatDateOnly(date, 'en-GB');
 }
 
 export function formatTransactionAmount(transaction: Transaction) {

@@ -6,10 +6,10 @@ import { supabase } from './supabase';
 import { offlineErrorMessage } from './connectivity';
 import { formatWalletAmount, loadWalletsPage } from './wallets';
 import { calculateFinancialTotals, isSettledFinancialTransaction } from './financial-analytics';
-import { loadUserDisplayPreferences } from './user-display-preferences';
 import { groupLogicalActivities } from './transaction-activities';
 import { categoryAllocations } from './category-allocations';
 import { loadTransactionSplits } from './transaction-splits';
+import { browserTimeZone, formatLocalDateTime, getLocalMonthKey } from './date-time';
 
 type TransactionRow = Tables<'transactions'>;
 type Currency = WalletCurrencyCode;
@@ -84,20 +84,20 @@ export interface OverviewPageData {
   budgetProgress: OverviewBudgetProgress;
 }
 
-function rowPeriod(row: TransactionRow) {
-  return row.occurred_at.slice(0, 7) as BudgetPeriod;
+function rowPeriod(row: TransactionRow, timeZone = browserTimeZone()) {
+  return getLocalMonthKey(row.occurred_at, timeZone) as BudgetPeriod;
 }
 
-export function calculatePeriodFinancials(rows: TransactionRow[], period: BudgetPeriod, currency: Currency) {
-  return calculateFinancialTotals(rows, periodRange(period), currency);
+export function calculatePeriodFinancials(rows: TransactionRow[], period: BudgetPeriod, currency: Currency, timeZone = browserTimeZone()) {
+  return calculateFinancialTotals(rows, periodRange(period, timeZone), currency);
 }
 
 const spendingColors = ['#FF5A36', '#F29B62', '#E8CF56', '#55B88B', '#777771'];
 
-export function aggregateCategorySpending(rows: OverviewTransactionRow[], period: BudgetPeriod, currency: Currency): OverviewCategorySpending[] {
+export function aggregateCategorySpending(rows: OverviewTransactionRow[], period: BudgetPeriod, currency: Currency, timeZone = browserTimeZone()): OverviewCategorySpending[] {
   const totals = new Map<string, { label: string; amount: number }>();
   for (const row of rows) {
-    if (!isSettledFinancialTransaction(row, periodRange(period), currency) || row.type !== 'expense') continue;
+    if (!isSettledFinancialTransaction(row, periodRange(period, timeZone), currency) || row.type !== 'expense') continue;
     for (const allocation of categoryAllocations(row)) {
       const current = totals.get(allocation.categoryId) ?? { label: allocation.label, amount: 0 };
       current.amount += allocation.amount;
@@ -111,15 +111,15 @@ export function aggregateCategorySpending(rows: OverviewTransactionRow[], period
     .slice(0, 4);
 }
 
-export function buildCashFlowTrend(rows: TransactionRow[], selectedPeriod: BudgetPeriod, currency: Currency): CashFlowPoint[] {
+export function buildCashFlowTrend(rows: TransactionRow[], selectedPeriod: BudgetPeriod, currency: Currency, timeZone = browserTimeZone()): CashFlowPoint[] {
   const [yearStr] = selectedPeriod.split('-');
   const year = Number(yearStr);
   return Array.from({ length: 12 }, (_, index) => {
     const monthNumber = String(index + 1).padStart(2, '0');
     const period: BudgetPeriod = `${year}-${monthNumber}`;
-    const totals = calculatePeriodFinancials(rows, period, currency);
+    const totals = calculatePeriodFinancials(rows, period, currency, timeZone);
     return {
-      month: new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' }).format(new Date(`${period}-01T00:00:00.000Z`)),
+      month: (['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const)[index],
       income: totals.income,
       expenses: totals.expenses,
       net: totals.net,
@@ -127,11 +127,11 @@ export function buildCashFlowTrend(rows: TransactionRow[], selectedPeriod: Budge
   });
 }
 
-function formatRecentDate(value: string) {
-  return new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' }).format(new Date(value));
+function formatRecentDate(value: string, timeZone = browserTimeZone()) {
+  return formatLocalDateTime(value, timeZone);
 }
 
-function mapRecentTransaction(row: OverviewTransactionRow, transferRows: OverviewTransactionRow[] = [row]): OverviewRecentTransaction {
+function mapRecentTransaction(row: OverviewTransactionRow, transferRows: OverviewTransactionRow[] = [row], timeZone = browserTimeZone()): OverviewRecentTransaction {
   const isTransfer = row.type === 'transfer';
   const sourceWallet = transferRows.find((item) => item.transfer_leg === 'outbound')?.wallet?.name;
   const destinationWallet = transferRows.find((item) => item.transfer_leg === 'inbound')?.wallet?.name;
@@ -144,7 +144,7 @@ function mapRecentTransaction(row: OverviewTransactionRow, transferRows: Overvie
     currency: row.currency as Currency,
     type: row.type,
     status: row.status,
-    occurredAt: formatRecentDate(row.occurred_at),
+    occurredAt: formatRecentDate(row.occurred_at, timeZone),
     createdAt: row.created_at,
     ...(sourceWallet ? { sourceWallet } : {}),
     ...(destinationWallet ? { destinationWallet } : {}),
@@ -156,10 +156,6 @@ async function requireUserId() {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) throw new Error('You must be signed in to view your overview.');
   return data.user.id;
-}
-
-async function loadReportingCurrency(userId: string): Promise<Currency> {
-  return (await loadUserDisplayPreferences(userId)).reportingCurrency;
 }
 
 async function loadOverviewTransactionRows(userId: string) {
@@ -179,15 +175,17 @@ async function loadOverviewTransactionRows(userId: string) {
 
 export async function loadOverviewPage(period = currentBudgetPeriod()): Promise<OverviewPageData> {
   const userId = await requireUserId();
-  const [reportingCurrency, walletsPage, rows, budgetPage] = await Promise.all([
-    loadReportingCurrency(userId),
+  const [walletsPage, rows, budgetPage] = await Promise.all([
     loadWalletsPage(),
     loadOverviewTransactionRows(userId),
     loadBudgetPage(period),
   ]);
-  const transactionPeriods = rows.map(rowPeriod);
-  const availablePeriods = [...new Set([currentBudgetPeriod(), period, ...transactionPeriods, ...budgetPage.availablePeriods])].sort((a, b) => b.localeCompare(a));
-  const totals = calculatePeriodFinancials(rows, period, reportingCurrency);
+  const reportingCurrency = walletsPage.displayPreferences.reportingCurrency;
+  const timeZone = walletsPage.displayPreferences.timeZone;
+  const currentPeriod = currentBudgetPeriod(new Date(), timeZone);
+  const transactionPeriods = rows.map((row) => rowPeriod(row, timeZone));
+  const availablePeriods = [...new Set([currentPeriod, period, ...transactionPeriods, ...budgetPage.availablePeriods])].sort((a, b) => b.localeCompare(a));
+  const totals = calculatePeriodFinancials(rows, period, reportingCurrency, timeZone);
   const reportingWallets = walletsPage.wallets.filter((wallet) => wallet.status === 'Active');
   const convertibleWallets = reportingWallets.filter((wallet) => wallet.currency === reportingCurrency || wallet.valuation);
   const valuationComplete = convertibleWallets.length === reportingWallets.length;
@@ -210,9 +208,9 @@ export async function loadOverviewPage(period = currentBudgetPeriod()): Promise<
     ],
     recentTransactions: groupLogicalActivities(rows.map((row) => ({ ...row, transferId: row.transfer_id ?? undefined, transferLeg: row.transfer_leg ?? undefined })))
       .slice(0, 6)
-      .map(({ primary, items }) => mapRecentTransaction(primary, items)),
-    categorySpending: aggregateCategorySpending(rows, period, reportingCurrency),
-    cashFlowTrend: buildCashFlowTrend(rows, period, reportingCurrency),
+      .map(({ primary, items }) => mapRecentTransaction(primary, items, timeZone)),
+    categorySpending: aggregateCategorySpending(rows, period, reportingCurrency, timeZone),
+    cashFlowTrend: buildCashFlowTrend(rows, period, reportingCurrency, timeZone),
     budgetProgress: {
       budgets: budgetPage.budgets,
       summary: budgetPage.summary,

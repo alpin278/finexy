@@ -11,10 +11,10 @@ import { StableFilterRegion } from '../components/ui/StableFilterRegion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isFinexyActionState } from '../lib/interaction-actions';
 import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
-import { occurredAtForTransactionDate } from '../lib/transaction-timestamp';
+import { resolveOccurredAt } from '../lib/transaction-timestamp';
 import { getExportDateRangeForPeriod, getTransactionDateFilterBounds, matchesTransactionDatePeriod } from '../lib/transaction-date-filter';
 
-const emptyData: TransactionPageData = { transactions: [], categories: [], wallets: [], summary: { count: 0, income: {}, expenses: {}, net: {} }, reportingCurrency: 'USD', numberLocale: 'en-US', numberFormat: '1,234.56' };
+const emptyData: TransactionPageData = { transactions: [], categories: [], wallets: [], summary: { count: 0, income: {}, expenses: {}, net: {} }, reportingCurrency: 'USD', numberLocale: 'en-US', numberFormat: '1,234.56', timeZone: 'Asia/Jakarta' };
 
 export function TransactionsPage() {
   const location = useLocation();
@@ -87,7 +87,7 @@ export function TransactionsPage() {
       if (!wallet || !category) throw new Error(`Choose a valid ${values.type} category and wallet.`);
       const amount = parseAmountNumber(values.amount);
       if (amount === null) throw new Error('Enter a valid transaction amount.');
-      const input = { walletId: wallet.id, categoryId: category.id, type, amount, currency: wallet.currency, payee: values.description, description: values.description, note: values.referenceNote, occurredAt: occurredAtForTransactionDate(values.date), status: values.status === 'canceled' ? 'canceled' : values.status === 'completed' ? 'completed' : 'pending' } as const;
+      const input = { walletId: wallet.id, categoryId: category.id, type, amount, currency: wallet.currency, payee: values.description, description: values.description, note: values.referenceNote, occurredAt: resolveOccurredAt(values.date, editingTransaction?.occurredAt, new Date(), pageData.timeZone), status: values.status === 'canceled' ? 'canceled' : values.status === 'completed' ? 'completed' : 'pending' } as const;
       const splits = values.splits.length ? values.splits.map((split) => {
         const splitCategory = pageData.categories.find((item) => item.name === split.category && item.type === type);
         if (!splitCategory) throw new Error('Choose a valid category for every split allocation.');
@@ -129,7 +129,7 @@ export function TransactionsPage() {
 
   const filteredTransactions = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    const dateBounds = getTransactionDateFilterBounds();
+    const dateBounds = getTransactionDateFilterBounds(new Date(), pageData.timeZone);
     return pageData.transactions.filter((transaction) => {
       const matchesTab = activeTab === 'all' || transaction.type === activeTab;
       const matchesSearch = !normalizedQuery || [transaction.description, transaction.payee, transaction.reference, transaction.secondaryReference, transaction.category, transaction.wallet, transaction.method].some((field) => field.toLowerCase().includes(normalizedQuery));
@@ -140,7 +140,7 @@ export function TransactionsPage() {
       const matchesDate = matchesTransactionDatePeriod(transaction.date, selectedDatePeriod, dateBounds);
       return matchesTab && matchesSearch && matchesCategory && matchesWallet && matchesStatus && matchesCurrency && matchesDate;
     });
-  }, [activeActivityCurrency, activeTab, pageData.transactions, searchQuery, selectedCategory, selectedWallet, selectedStatus, selectedDatePeriod]);
+  }, [activeActivityCurrency, activeTab, pageData.transactions, pageData.timeZone, searchQuery, selectedCategory, selectedWallet, selectedStatus, selectedDatePeriod]);
 
   return <div className="min-w-0 w-full max-w-[calc(100vw-2rem)] space-y-6 sm:space-y-7 pb-8">
     <div className="flex min-w-0 flex-col lg:flex-row lg:items-center justify-between gap-4"><div className="min-w-0 w-full max-w-full"><h1 className="text-2xl sm:text-[32px] font-bold text-primary tracking-tight">Transactions</h1><p className="w-[calc(100vw-4rem)] max-w-full break-words whitespace-normal text-xs sm:w-auto sm:max-w-2xl sm:text-sm text-secondary mt-1">Manage, search, and audit income, expenses, and wallet transfer activity.</p></div><div className="flex items-center gap-2.5 flex-wrap"><Button variant="secondary" size="sm" leftIcon={<Icon name="upload" />} onClick={() => setIsImportOpen(true)}>Import statement</Button><Button variant="secondary" size="sm" leftIcon={<Icon name="download" />} onClick={() => setIsExportOpen(true)}>{exportFeedback || 'Export CSV'}</Button><Button variant="accent" size="sm" leftIcon={<Icon name="plus-lg" />} onClick={openAddTransaction}>Add Transaction</Button></div></div>

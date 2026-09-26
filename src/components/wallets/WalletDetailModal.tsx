@@ -5,8 +5,9 @@ import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { ProgressBar } from '../ui/ProgressBar';
 import { StatusBadge } from '../ui/StatusBadge';
+import { formatDateOnly } from '../../lib/date-time';
 
-const formatDate = (date: string) => new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(`${date}T00:00:00`));
+const formatDate = (date: string) => formatDateOnly(date, 'en');
 
 export function WalletDetailModal({ wallet, transactions, onClose }: { wallet?: Wallet | null; transactions: Transaction[]; onClose: () => void }) {
   const navigate = useNavigate();

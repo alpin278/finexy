@@ -4,10 +4,11 @@ import { archiveRecurringRule, createRecurringRule, loadRecurringRules, setRecur
 import type { TransactionCategoryOption, TransactionWalletOption } from '../../lib/transactions';
 import { parseAmountNumber } from '../../lib/amount-format';
 import { useDataInvalidation, useDataRevalidation } from '../../context/DataRevalidationContext';
+import { formatLocalDate, getLocalDateKey } from '../../lib/date-time';
 
 type Props = { wallets: TransactionWalletOption[]; categories: TransactionCategoryOption[]; locale: string; numberFormat: string; onChanged: () => Promise<void>; openCreateSignal?: number };
 type RecurringFormState = Omit<RecurringRuleInput, 'amount'> & { amount: string };
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => getLocalDateKey(new Date());
 const initial = (): RecurringFormState => ({ type: 'expense', walletId: '', categoryId: '', amount: '', note: '', frequency: 'monthly', startDate: today(), endDate: '', localTime: '09:00' });
 
 function formatAmount(value: number, currency?: string) {
@@ -95,7 +96,7 @@ export function RecurringTransactions({ wallets, categories, locale, numberForma
                   <p className="min-w-0 truncate text-sm font-semibold text-primary">{rule.note || 'Recurring transaction'} <span className="font-normal text-secondary">·</span> {rule.wallet?.name ?? 'Wallet'}</p>
                   <StatusBadge status={rule.active ? 'active' : 'inactive'} label={rule.active ? 'Active' : 'Paused'} className="px-2 py-0.5 text-[10px]" />
                 </div>
-                <p className="mt-1.5 text-xs text-secondary">{rule.frequency} <span aria-hidden="true">·</span> {rule.category?.name ?? 'Category'} <span aria-hidden="true">·</span> <span className="money-value">{formatAmount(Number(rule.amount), rule.wallet?.currency)}</span> <span aria-hidden="true">·</span> Next {new Date(rule.next_due_at).toLocaleDateString()}</p>
+                <p className="mt-1.5 text-xs text-secondary">{rule.frequency} <span aria-hidden="true">·</span> {rule.category?.name ?? 'Category'} <span aria-hidden="true">·</span> <span className="money-value">{formatAmount(Number(rule.amount), rule.wallet?.currency)}</span> <span aria-hidden="true">·</span> Next {formatLocalDate(rule.next_due_at, rule.timezone)}</p>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 md:justify-end">
                 <Button variant="ghost" size="sm" disabled={busy} onClick={() => openEdit(rule)}>Edit</Button>

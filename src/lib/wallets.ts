@@ -122,7 +122,7 @@ export async function loadWalletsPage(): Promise<WalletPageData> {
     bootstrapDefaults(userId, existingRows),
     loadUserDisplayPreferences(userId),
   ]);
-  const derived = await loadWalletDerivedData(walletRows);
+  const derived = await loadWalletDerivedData(walletRows, displayPreferences.timeZone);
   const wallets = walletRows.map((row) => mapWallet(row, derived.balances.get(row.id) ?? Number(row.opening_balance), derived.spentThisMonth.get(row.id) ?? 0));
   // Rate-cache downtime must never prevent native wallet access.
   try {
@@ -140,7 +140,8 @@ export async function getWallet(walletId: string) {
   const { data, error } = await supabase.from('wallets').select('*').eq('id', walletId).eq('user_id', userId).is('deleted_at', null).maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const derived = await loadWalletDerivedData([data]);
+  const displayPreferences = await loadUserDisplayPreferences(userId);
+  const derived = await loadWalletDerivedData([data], displayPreferences.timeZone);
   return mapWallet(data, derived.balances.get(data.id) ?? Number(data.opening_balance), derived.spentThisMonth.get(data.id) ?? 0);
 }
 
@@ -160,7 +161,8 @@ export async function createWallet(input: CreateWalletInput) {
   };
   const { data, error } = await supabase.from('wallets').insert(payload).select('*').single();
   if (error) throw error;
-  const derived = await loadWalletDerivedData([data]);
+  const displayPreferences = await loadUserDisplayPreferences(userId);
+  const derived = await loadWalletDerivedData([data], displayPreferences.timeZone);
   return mapWallet(data, derived.balances.get(data.id) ?? Number(data.opening_balance), derived.spentThisMonth.get(data.id) ?? 0);
 }
 
@@ -179,7 +181,8 @@ export async function updateWallet(walletId: string, input: UpdateWalletInput) {
   };
   const { data, error } = await supabase.from('wallets').update(payload).eq('id', walletId).eq('user_id', userId).is('deleted_at', null).select('*').single();
   if (error) throw error;
-  const derived = await loadWalletDerivedData([data]);
+  const displayPreferences = await loadUserDisplayPreferences(userId);
+  const derived = await loadWalletDerivedData([data], displayPreferences.timeZone);
   return mapWallet(data, derived.balances.get(data.id) ?? Number(data.opening_balance), derived.spentThisMonth.get(data.id) ?? 0);
 }
 
