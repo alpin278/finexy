@@ -11,6 +11,7 @@ import { loadTransactionSplits } from './transaction-splits';
 import { assertOnline, offlineErrorMessage } from './connectivity';
 import { browserTimeZone, formatLocalTime, getLocalDateKey, zonedDateTimeToIso } from './date-time';
 import { loadUserDisplayPreferences } from './user-display-preferences';
+import { loadCachedPageData, type PageDataLoadOptions } from './page-data-cache';
 
 type TransactionRow = Tables<'transactions'>;
 type TransactionStatusDb = Enums<'transaction_status'>;
@@ -241,27 +242,29 @@ async function bootstrapDefaultTransactions(userId: string, walletRows: Tables<'
   }
 }
 
-export async function loadTransactionsPage(): Promise<TransactionPageData> {
-  const userId = await requireUserId();
-  const [walletPage, categoryPage, activeRows] = await Promise.all([loadWalletsPage(), loadCategoriesPage(), listTransactionRows(userId)]);
-  const walletOptions = walletPage.wallets.map((wallet) => ({ id: wallet.id, name: wallet.name, currency: wallet.currency as CurrencyDb }));
-  const categoryOptions = categoryPage.categories.filter((category) => category.status === 'active').map((category) => ({ id: category.id, name: category.name, type: category.type }));
-  await bootstrapDefaultTransactions(userId, await listRawWallets(userId), categoryOptions, activeRows, walletPage.displayPreferences.timeZone);
-  const rows = await listTransactionRows(userId);
-  const transferRows = await listTransferRows(userId, rows.flatMap((row) => row.transfer_id ? [row.transfer_id] : []));
-  const walletNames = new Map(walletOptions.map((wallet) => [wallet.id, wallet.name]));
-  const transfersById = new Map(transferRows.map((transfer) => [transfer.id, transfer]));
-  const transactions = buildTransactionActivities(rows.map((row) => mapTransaction(row, row.transfer_id ? transfersById.get(row.transfer_id) : undefined, walletNames, walletPage.displayPreferences.timeZone)));
-  return {
-    transactions,
-    categories: categoryOptions,
-    wallets: walletOptions,
-    summary: buildTransactionSummary(transactions),
-    reportingCurrency: walletPage.displayPreferences.reportingCurrency,
-    numberLocale: walletPage.displayPreferences.locale,
-    numberFormat: walletPage.displayPreferences.numberFormat,
-    timeZone: walletPage.displayPreferences.timeZone,
-  };
+export async function loadTransactionsPage(options: PageDataLoadOptions = {}): Promise<TransactionPageData> {
+  return loadCachedPageData('transactions', ['transactions', 'wallets', 'categories', 'settings'], async () => {
+    const userId = await requireUserId();
+    const [walletPage, categoryPage, activeRows] = await Promise.all([loadWalletsPage(options), loadCategoriesPage(options), listTransactionRows(userId)]);
+    const walletOptions = walletPage.wallets.map((wallet) => ({ id: wallet.id, name: wallet.name, currency: wallet.currency as CurrencyDb }));
+    const categoryOptions = categoryPage.categories.filter((category) => category.status === 'active').map((category) => ({ id: category.id, name: category.name, type: category.type }));
+    await bootstrapDefaultTransactions(userId, await listRawWallets(userId), categoryOptions, activeRows, walletPage.displayPreferences.timeZone);
+    const rows = await listTransactionRows(userId);
+    const transferRows = await listTransferRows(userId, rows.flatMap((row) => row.transfer_id ? [row.transfer_id] : []));
+    const walletNames = new Map(walletOptions.map((wallet) => [wallet.id, wallet.name]));
+    const transfersById = new Map(transferRows.map((transfer) => [transfer.id, transfer]));
+    const transactions = buildTransactionActivities(rows.map((row) => mapTransaction(row, row.transfer_id ? transfersById.get(row.transfer_id) : undefined, walletNames, walletPage.displayPreferences.timeZone)));
+    return {
+      transactions,
+      categories: categoryOptions,
+      wallets: walletOptions,
+      summary: buildTransactionSummary(transactions),
+      reportingCurrency: walletPage.displayPreferences.reportingCurrency,
+      numberLocale: walletPage.displayPreferences.locale,
+      numberFormat: walletPage.displayPreferences.numberFormat,
+      timeZone: walletPage.displayPreferences.timeZone,
+    };
+  }, options);
 }
 
 async function listRawWallets(userId: string) {

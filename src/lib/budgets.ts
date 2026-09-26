@@ -12,6 +12,7 @@ import { loadUserDisplayPreferences, type UserDisplayPreferences } from './user-
 import { categoryAllocations } from './category-allocations';
 import { loadTransactionSplits } from './transaction-splits';
 import { browserTimeZone } from './date-time';
+import { loadCachedPageData, type PageDataLoadOptions } from './page-data-cache';
 
 type BudgetRow = Tables<'budgets'>;
 type BudgetCurrency = Enums<'currency_code'>;
@@ -256,40 +257,44 @@ export async function listBudgetPeriods() {
   return availablePeriods(rows, displayPreferences.timeZone);
 }
 
-export async function loadBudgetPage(period?: BudgetPeriod): Promise<BudgetPageData> {
-  const userId = await requireUserId();
-  if (period) validatePeriod(period);
-  const [{ categoryRows, rows }, displayPreferences] = await Promise.all([
-    preparedBudgetRows(userId),
-    loadUserDisplayPreferences(userId),
-  ]);
-  const selectedPeriod = period ?? preferredPeriod(rows, displayPreferences.timeZone);
-  const budgets = await mapRowsForPeriod(userId, rows, selectedPeriod, displayPreferences.timeZone);
-  const categories: BudgetCategoryOption[] = categoryRows
-    .filter((category) => category.type === 'expense' && category.status === 'active')
-    .map((category) => ({ id: category.id, name: category.name, icon: resolveCategoryIconName(category.icon_identifier) }));
-  return {
-    period: selectedPeriod,
-    budgets,
-    byCategory: Object.fromEntries(budgets.map((budget) => [budget.categoryId, budget])),
-    availablePeriods: availablePeriods(rows, displayPreferences.timeZone),
-    categories,
-    summary: buildSummary(budgets),
-    displayPreferences,
-  };
+export async function loadBudgetPage(period?: BudgetPeriod, options: PageDataLoadOptions = {}): Promise<BudgetPageData> {
+  return loadCachedPageData(`budgets:${period ?? 'default'}`, ['budgets', 'categories', 'transactions', 'settings'], async () => {
+    const userId = await requireUserId();
+    if (period) validatePeriod(period);
+    const [{ categoryRows, rows }, displayPreferences] = await Promise.all([
+      preparedBudgetRows(userId),
+      loadUserDisplayPreferences(userId),
+    ]);
+    const selectedPeriod = period ?? preferredPeriod(rows, displayPreferences.timeZone);
+    const budgets = await mapRowsForPeriod(userId, rows, selectedPeriod, displayPreferences.timeZone);
+    const categories: BudgetCategoryOption[] = categoryRows
+      .filter((category) => category.type === 'expense' && category.status === 'active')
+      .map((category) => ({ id: category.id, name: category.name, icon: resolveCategoryIconName(category.icon_identifier) }));
+    return {
+      period: selectedPeriod,
+      budgets,
+      byCategory: Object.fromEntries(budgets.map((budget) => [budget.categoryId, budget])),
+      availablePeriods: availablePeriods(rows, displayPreferences.timeZone),
+      categories,
+      summary: buildSummary(budgets),
+      displayPreferences,
+    };
+  }, options);
 }
 
-export async function loadCategoryBudgetLayer(period?: BudgetPeriod): Promise<CategoryBudgetLayer> {
-  const userId = await requireUserId();
-  if (period) validatePeriod(period);
-  const [{ rows }, displayPreferences] = await Promise.all([preparedBudgetRows(userId), loadUserDisplayPreferences(userId)]);
-  const selectedPeriod = period ?? preferredPeriod(rows, displayPreferences.timeZone);
-  const budgets = await mapRowsForPeriod(userId, rows, selectedPeriod, displayPreferences.timeZone);
-  return {
-    period: selectedPeriod,
-    budgets,
-    byCategory: Object.fromEntries(budgets.map((budget) => [budget.categoryId, budget])),
-  };
+export async function loadCategoryBudgetLayer(period?: BudgetPeriod, options: PageDataLoadOptions = {}): Promise<CategoryBudgetLayer> {
+  return loadCachedPageData(`category-budget-layer:${period ?? 'default'}`, ['budgets', 'categories', 'transactions', 'settings'], async () => {
+    const userId = await requireUserId();
+    if (period) validatePeriod(period);
+    const [{ rows }, displayPreferences] = await Promise.all([preparedBudgetRows(userId), loadUserDisplayPreferences(userId)]);
+    const selectedPeriod = period ?? preferredPeriod(rows, displayPreferences.timeZone);
+    const budgets = await mapRowsForPeriod(userId, rows, selectedPeriod, displayPreferences.timeZone);
+    return {
+      period: selectedPeriod,
+      budgets,
+      byCategory: Object.fromEntries(budgets.map((budget) => [budget.categoryId, budget])),
+    };
+  }, options);
 }
 
 export async function getBudget(budgetId: string) {

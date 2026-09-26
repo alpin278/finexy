@@ -8,17 +8,22 @@ import type { UserDisplayPreferences } from '../lib/user-display-preferences';
 import { parseAmountNumber } from '../lib/amount-format';
 import { Button } from '../components/ui/Button';
 import { Icon } from '../components/ui/Icon';
+import { PageSkeleton } from '../components/ui/PageSkeleton';
 import { DeleteWalletDialog, WalletDetailModal, WalletFormModal, WalletGrid, WalletSummary, WalletTransferModal, type WalletFormValues } from '../components/wallets';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isFinexyActionState } from '../lib/interaction-actions';
 import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
+import { getCachedPageData } from '../lib/page-data-cache';
 
 export function WalletsPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [walletTransactions, setWalletTransactions] = useState<import('../types/finance').Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedData = getCachedPageData<Awaited<ReturnType<typeof loadWalletsPage>>>('wallets');
+  const cachedTransactions = getCachedPageData<Awaited<ReturnType<typeof loadTransactionsPage>>>('transactions');
+  const [wallets, setWallets] = useState<Wallet[]>(cachedData?.wallets ?? []);
+  const [walletTransactions, setWalletTransactions] = useState<import('../types/finance').Transaction[]>(cachedTransactions?.transactions ?? []);
+  const [loading, setLoading] = useState(cachedData === undefined || cachedTransactions === undefined);
+  const [hasLoadedData, setHasLoadedData] = useState(cachedData !== undefined && cachedTransactions !== undefined);
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
   const [transferFeedback, setTransferFeedback] = useState('');
@@ -36,9 +41,11 @@ export function WalletsPage() {
     let active = true;
     void (async () => {
       try {
-        const transactionData = await loadTransactionsPage();
-        const walletData = await loadWalletsPage();
-        if (active) { setWallets(walletData.wallets); setDisplayPreferences(walletData.displayPreferences); setWalletTransactions(transactionData.transactions); setLoadError(''); }
+        const [transactionData, walletData] = await Promise.all([
+          loadTransactionsPage({ force: true }),
+          loadWalletsPage({ force: true }),
+        ]);
+        if (active) { setWallets(walletData.wallets); setDisplayPreferences(walletData.displayPreferences); setWalletTransactions(transactionData.transactions); setLoadError(''); setHasLoadedData(true); }
       } catch (error) {
         if (active) setLoadError(walletErrorMessage(error));
       } finally {
@@ -49,12 +56,21 @@ export function WalletsPage() {
   }, []);
 
   const refresh = useCallback(async () => {
-    const transactionData = await loadTransactionsPage();
-    const data = await loadWalletsPage();
-    setWalletTransactions(transactionData.transactions);
-    setWallets(data.wallets);
-    setDisplayPreferences(data.displayPreferences);
-    setDetailWallet((current) => current ? data.wallets.find((wallet) => wallet.id === current.id) ?? null : null);
+    try {
+      const [transactionData, data] = await Promise.all([
+        loadTransactionsPage({ force: true }),
+        loadWalletsPage({ force: true }),
+      ]);
+      setWalletTransactions(transactionData.transactions);
+      setWallets(data.wallets);
+      setDisplayPreferences(data.displayPreferences);
+      setLoadError('');
+      setHasLoadedData(true);
+      setDetailWallet((current) => current ? data.wallets.find((wallet) => wallet.id === current.id) ?? null : null);
+    } catch (error) {
+      setLoadError(walletErrorMessage(error));
+      throw error;
+    }
   }, []);
   useDataRevalidation(['transactions', 'wallets', 'settings'], refresh);
   const openAdd = () => { setActionError(''); setTransferFeedback(''); setEditingWallet(null); setTemplateInitialValues(undefined); setFormOpen(true); };
@@ -104,7 +120,7 @@ export function WalletsPage() {
   return <div className="min-w-0 w-full max-w-[calc(100vw-2rem)] space-y-6 sm:space-y-7 pb-8">
     <header className="flex min-w-0 flex-col lg:flex-row lg:items-center justify-between gap-4"><div className="min-w-0"><h1 className="text-2xl sm:text-[32px] font-bold text-primary tracking-tight">Wallets</h1><p className="text-xs sm:text-sm text-secondary mt-1">Manage your persisted accounts, balances, and payment sources.</p></div><div className="flex items-center gap-2.5 flex-wrap"><Button variant="secondary" size="sm" leftIcon={<Icon name="arrow-left-right"/>} onClick={()=>setTransferOpen(true)}>Transfer</Button><Button variant="accent" size="sm" leftIcon={<Icon name="plus-lg"/>} onClick={openAdd}>Add Wallet</Button></div></header>
     {actionError && <div role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{actionError}</div>}{transferFeedback && <div role="status" className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">{transferFeedback}</div>}
-    {loading ? <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-secondary" role="status">Loading wallets…</div> : loadError ? <div className="rounded-2xl border border-danger/30 bg-danger/10 p-8 text-center"><p className="text-sm font-semibold text-danger">Could not load wallets</p><p className="mt-1 text-xs text-secondary">{loadError}</p></div> : <><WalletSummary wallets={wallets}/><section className="space-y-4"><div className="flex items-center justify-between gap-4"><div><h2 className="text-base font-bold text-primary">Your wallets</h2><p className="mt-0.5 text-xs text-secondary">Persisted wallets with balances derived from opening positions and completed transactions.</p></div><span className="hidden sm:inline text-xs font-medium text-secondary">{wallets.length} total</span></div><WalletGrid wallets={wallets} defaultCurrency={displayPreferences.reportingCurrency} openMenuId={openMenuId} onToggleMenu={(id)=>setOpenMenuId(current=>current===id?null:id)} onView={(wallet)=>{setOpenMenuId(null);setDetailWallet(wallet);}} onEdit={openEdit} onSetLimit={openEdit} onDelete={(wallet)=>{setOpenMenuId(null);setDeletingWallet(wallet);}} onUseTemplate={handleUseTemplate}/></section></>}
+    {loading ? <PageSkeleton variant="list" /> : loadError && !hasLoadedData ? <div className="rounded-2xl border border-danger/30 bg-danger/10 p-8 text-center"><p className="text-sm font-semibold text-danger">Could not load wallets</p><p className="mt-1 text-xs text-secondary">{loadError}</p></div> : <><>{loadError && <div role="alert" className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-primary">Live refresh failed. Showing the last successful wallets.</div>}</><WalletSummary wallets={wallets}/><section className="space-y-4"><div className="flex items-center justify-between gap-4"><div><h2 className="text-base font-bold text-primary">Your wallets</h2><p className="mt-0.5 text-xs text-secondary">Persisted wallets with balances derived from opening positions and completed transactions.</p></div><span className="hidden sm:inline text-xs font-medium text-secondary">{wallets.length} total</span></div><WalletGrid wallets={wallets} defaultCurrency={displayPreferences.reportingCurrency} openMenuId={openMenuId} onToggleMenu={(id)=>setOpenMenuId(current=>current===id?null:id)} onView={(wallet)=>{setOpenMenuId(null);setDetailWallet(wallet);}} onEdit={openEdit} onSetLimit={openEdit} onDelete={(wallet)=>{setOpenMenuId(null);setDeletingWallet(wallet);}} onUseTemplate={handleUseTemplate}/></section></>}
     {formOpen && <WalletFormModal key={editingWallet?.id ?? (templateInitialValues ? 'template-wallet' : 'new-wallet')} wallet={editingWallet} initialTemplateValues={templateInitialValues} locale={displayPreferences.locale} numberFormat={displayPreferences.numberFormat} onClose={()=>{setFormOpen(false);setEditingWallet(null);setTemplateInitialValues(undefined);}} onSubmit={saveWallet}/>}<WalletDetailModal wallet={detailWallet} transactions={detailTransactions} onClose={()=>setDetailWallet(null)}/><DeleteWalletDialog wallet={deletingWallet} onCancel={()=>setDeletingWallet(null)} onConfirm={()=>void confirmDelete()}/>{transferOpen && <WalletTransferModal wallets={wallets} locale={displayPreferences.locale} numberFormat={displayPreferences.numberFormat} onClose={()=>setTransferOpen(false)} onSubmit={handleTransfer}/>}</div>;
 
 }

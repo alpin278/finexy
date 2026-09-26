@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useConnectivity } from './connectivity-context';
 import { getBrowserOnline, isConnectivityError } from '../lib/connectivity';
+import { invalidatePageDataCache } from '../lib/page-data-cache';
 import { supabase } from '../lib/supabase';
 
 export type FinancialDataDomain = 'transactions' | 'wallets' | 'budgets' | 'overview' | 'reports' | 'categories' | 'recurring' | 'settings' | 'fx';
@@ -27,6 +28,7 @@ export function DataRevalidationProvider({ children }: { children: ReactNode }) 
   }, []);
 
   const invalidate = useCallback(async (domains: FinancialDataDomain[]) => {
+    invalidatePageDataCache(domains);
     const requested = new Set(domains);
     const refreshes: Promise<void>[] = [];
     registrations.current.forEach((registration) => {

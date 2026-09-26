@@ -6,9 +6,10 @@ import type { CategoryRule, CategorySummaryData, FinanceCategory } from '../type
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Icon } from '../components/ui/Icon';
-import { LoadingState } from '../components/ui/LoadingState';
+import { PageSkeleton } from '../components/ui/PageSkeleton';
 import { StableFilterRegion } from '../components/ui/StableFilterRegion';
 import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
+import { getCachedPageData } from '../lib/page-data-cache';
 import {
   CategoryDetailModal,
   CategoryFilters,
@@ -30,10 +31,13 @@ const initialFilters: CategoryFilterValues = { search: '', type: 'all', budget: 
 export function CategoriesPage() {
   const navigate = useNavigate();
   const invalidate = useDataInvalidation();
-  const [categories, setCategories] = useState<FinanceCategory[]>([]);
-  const [rules, setRules] = useState<CategoryRule[]>([]);
-  const [summary, setSummary] = useState<CategorySummaryData>(() => buildCategorySummary([]));
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedCategoryData = getCachedPageData<CategoryPageData>('categories');
+  const cachedBudgetLayer = getCachedPageData<Awaited<ReturnType<typeof loadCategoryBudgetLayer>>>('category-budget-layer:default');
+  const cachedCategories = cachedCategoryData && cachedBudgetLayer ? attachCategoryBudgets(cachedCategoryData.categories, cachedBudgetLayer.budgets) : undefined;
+  const [categories, setCategories] = useState<FinanceCategory[]>(cachedCategories ?? []);
+  const [rules, setRules] = useState<CategoryRule[]>(cachedCategoryData?.rules ?? []);
+  const [summary, setSummary] = useState<CategorySummaryData>(() => cachedCategories ? buildCategorySummary(cachedCategories) : buildCategorySummary([]));
+  const [isLoading, setIsLoading] = useState(cachedCategories === undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<CategoryTab>('expense');
@@ -54,9 +58,9 @@ export function CategoriesPage() {
     setLoadError(null);
   };
 
-  const loadPageData = async () => {
-    const categoryData = await loadCategoriesPage();
-    const budgetLayer = await loadCategoryBudgetLayer();
+  const loadPageData = async (force = false) => {
+    const categoryData = await loadCategoriesPage({ force });
+    const budgetLayer = await loadCategoryBudgetLayer(undefined, { force });
     const categoriesWithBudgets = attachCategoryBudgets(categoryData.categories, budgetLayer.budgets);
     return { ...categoryData, categories: categoriesWithBudgets, summary: buildCategorySummary(categoriesWithBudgets) };
   };
@@ -64,7 +68,7 @@ export function CategoriesPage() {
   const refreshData = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     try {
-      applyPageData(await loadPageData());
+      applyPageData(await loadPageData(true));
     } catch (error) {
       setLoadError(categoryErrorMessage(error));
     } finally {
@@ -75,7 +79,7 @@ export function CategoriesPage() {
 
   useEffect(() => {
     let isActive = true;
-    void loadPageData()
+    void loadPageData(true)
       .then((data) => {
         if (isActive) applyPageData(data);
       })
@@ -179,9 +183,7 @@ export function CategoriesPage() {
     window.setTimeout(() => { setIsReindexing(false); setReindexFeedback(true); }, 850);
   };
 
-  if (isLoading) {
-    return <LoadingState label="Loading your categories" />;
-  }
+  if (isLoading) return <PageSkeleton variant="list" />;
 
   if (loadError && !categories.length) {
     return <div className="space-y-6"><Card padding="lg"><div className="space-y-3"><p className="text-sm font-semibold text-primary">Categories could not be loaded.</p><p className="text-xs leading-5 text-secondary">{loadError}</p><Button variant="outline" size="sm" onClick={() => void refreshData()}>Try again</Button></div></Card></div>;

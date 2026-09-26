@@ -10,6 +10,7 @@ import { groupLogicalActivities } from './transaction-activities';
 import { categoryAllocations } from './category-allocations';
 import { loadTransactionSplits } from './transaction-splits';
 import { browserTimeZone, formatLocalDateTime, getLocalMonthKey } from './date-time';
+import { loadCachedPageData, type PageDataLoadOptions } from './page-data-cache';
 
 type TransactionRow = Tables<'transactions'>;
 type Currency = WalletCurrencyCode;
@@ -173,13 +174,14 @@ async function loadOverviewTransactionRows(userId: string) {
   return rows.map((row) => ({ ...row, splits: splits.get(row.id) ?? [] }));
 }
 
-export async function loadOverviewPage(period = currentBudgetPeriod()): Promise<OverviewPageData> {
-  const userId = await requireUserId();
-  const [walletsPage, rows, budgetPage] = await Promise.all([
-    loadWalletsPage(),
-    loadOverviewTransactionRows(userId),
-    loadBudgetPage(period),
-  ]);
+export async function loadOverviewPage(period = currentBudgetPeriod(), options: PageDataLoadOptions = {}): Promise<OverviewPageData> {
+  return loadCachedPageData(`overview:${period}`, ['overview', 'transactions', 'wallets', 'budgets', 'settings'], async () => {
+    const userId = await requireUserId();
+    const [walletsPage, rows, budgetPage] = await Promise.all([
+      loadWalletsPage(options),
+      loadOverviewTransactionRows(userId),
+      loadBudgetPage(period, options),
+    ]);
   const reportingCurrency = walletsPage.displayPreferences.reportingCurrency;
   const timeZone = walletsPage.displayPreferences.timeZone;
   const currentPeriod = currentBudgetPeriod(new Date(), timeZone);
@@ -192,7 +194,7 @@ export async function loadOverviewPage(period = currentBudgetPeriod()): Promise<
   const valuationDates = convertibleWallets.flatMap((wallet) => wallet.valuation ? [wallet.valuation] : []);
   const reportingCurrencyTotal = budgetPage.summary.totalsByCurrency.find((total) => total.currency === reportingCurrency) ?? null;
 
-  return {
+    return {
     period,
     availablePeriods,
     reportingCurrency,
@@ -218,7 +220,8 @@ export async function loadOverviewPage(period = currentBudgetPeriod()): Promise<
       nearLimitCount: budgetPage.budgets.filter((budget) => budget.status === 'near_limit').length,
       overBudgetCount: budgetPage.summary.overBudgetCategoryCount,
     },
-  };
+    };
+  }, options);
 }
 
 export function overviewErrorMessage(error: unknown) {

@@ -7,6 +7,7 @@ import { supabase } from './supabase';
 import { assertOnline, offlineErrorMessage } from './connectivity';
 import { loadUserDisplayPreferences, type UserDisplayPreferences } from './user-display-preferences';
 import { convertMoney, loadLatestFxRates } from './fx';
+import { loadCachedPageData, type PageDataLoadOptions } from './page-data-cache';
 
 type WalletRow = Tables<'wallets'>;
 type WalletCurrency = Enums<'currency_code'>;
@@ -115,24 +116,26 @@ async function bootstrapDefaults(userId: string, walletRows: WalletRow[]) {
   return listWalletRows(userId);
 }
 
-export async function loadWalletsPage(): Promise<WalletPageData> {
-  const userId = await requireUserId();
-  const existingRows = await listWalletRows(userId);
-  const [walletRows, displayPreferences] = await Promise.all([
-    bootstrapDefaults(userId, existingRows),
-    loadUserDisplayPreferences(userId),
-  ]);
-  const derived = await loadWalletDerivedData(walletRows, displayPreferences.timeZone);
-  const wallets = walletRows.map((row) => mapWallet(row, derived.balances.get(row.id) ?? Number(row.opening_balance), derived.spentThisMonth.get(row.id) ?? 0));
-  // Rate-cache downtime must never prevent native wallet access.
-  try {
-    const rates = await loadLatestFxRates([...wallets.map((wallet) => wallet.currency), displayPreferences.reportingCurrency]);
-    for (const wallet of wallets) {
-      const conversion = convertMoney(wallet.balance, wallet.currency, displayPreferences.reportingCurrency, rates);
-      if (conversion.available && conversion.amount && conversion.rate && wallet.currency !== displayPreferences.reportingCurrency) wallet.valuation = { amount: Number(conversion.amount), currency: displayPreferences.reportingCurrency, rateDate: conversion.rate.rateDate, provider: conversion.rate.provider };
-    }
-  } catch { /* Native-only presentation is safe before migration, offline, or during provider incidents. */ }
-  return { wallets, displayPreferences };
+export async function loadWalletsPage(options: PageDataLoadOptions = {}): Promise<WalletPageData> {
+  return loadCachedPageData('wallets', ['wallets', 'transactions', 'settings'], async () => {
+    const userId = await requireUserId();
+    const existingRows = await listWalletRows(userId);
+    const [walletRows, displayPreferences] = await Promise.all([
+      bootstrapDefaults(userId, existingRows),
+      loadUserDisplayPreferences(userId),
+    ]);
+    const derived = await loadWalletDerivedData(walletRows, displayPreferences.timeZone);
+    const wallets = walletRows.map((row) => mapWallet(row, derived.balances.get(row.id) ?? Number(row.opening_balance), derived.spentThisMonth.get(row.id) ?? 0));
+    // Rate-cache downtime must never prevent native wallet access.
+    try {
+      const rates = await loadLatestFxRates([...wallets.map((wallet) => wallet.currency), displayPreferences.reportingCurrency]);
+      for (const wallet of wallets) {
+        const conversion = convertMoney(wallet.balance, wallet.currency, displayPreferences.reportingCurrency, rates);
+        if (conversion.available && conversion.amount && conversion.rate && wallet.currency !== displayPreferences.reportingCurrency) wallet.valuation = { amount: Number(conversion.amount), currency: displayPreferences.reportingCurrency, rateDate: conversion.rate.rateDate, provider: conversion.rate.provider };
+      }
+    } catch { /* Native-only presentation is safe before migration, offline, or during provider incidents. */ }
+    return { wallets, displayPreferences };
+  }, options);
 }
 
 export async function getWallet(walletId: string) {

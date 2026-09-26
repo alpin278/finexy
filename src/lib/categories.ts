@@ -7,6 +7,7 @@ import { ensureDefaultCategories, listActiveCategoryRuleRows, type CategoryRow, 
 import { resolveCategoryIconName } from './category-icons';
 import { supabase } from './supabase';
 import { assertOnline, offlineErrorMessage } from './connectivity';
+import { loadCachedPageData, type PageDataLoadOptions } from './page-data-cache';
 
 type CategoryType = Enums<'category_type'>;
 type CategoryStatus = Enums<'category_status'>;
@@ -130,16 +131,18 @@ export function buildCategorySummary(categories: FinanceCategory[]): CategorySum
   };
 }
 
-export async function loadCategoriesPage(): Promise<CategoryPageData> {
-  const userId = await requireUserId();
-  const categoryRows = await ensureDefaultCategories(userId);
-  const ruleRows = await listActiveCategoryRuleRows(userId);
-  const categories = categoryRows.map(mapCategory);
-  return {
-    categories,
-    rules: ruleRows.map((row) => mapRule(row, categoryRows)),
-    summary: buildCategorySummary(categories),
-  };
+export async function loadCategoriesPage(options: PageDataLoadOptions = {}): Promise<CategoryPageData> {
+  return loadCachedPageData('categories', ['categories', 'budgets', 'transactions'], async () => {
+    const userId = await requireUserId();
+    const categoryRows = await ensureDefaultCategories(userId);
+    const ruleRows = await listActiveCategoryRuleRows(userId);
+    const categories = categoryRows.map(mapCategory);
+    return {
+      categories,
+      rules: ruleRows.map((row) => mapRule(row, categoryRows)),
+      summary: buildCategorySummary(categories),
+    };
+  }, options);
 }
 
 export async function getCategory(categoryId: string) {

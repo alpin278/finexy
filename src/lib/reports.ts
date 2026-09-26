@@ -9,6 +9,7 @@ import { categoryAllocations } from './category-allocations';
 import { loadTransactionSplits } from './transaction-splits';
 import { reportBucketForOccurredAt } from './report-buckets';
 import { getLocalCalendarParts, getLocalMonthKey, reportRange, customReportRange, type ReportPeriodRange, zonedDateTimeToIso } from './date-time';
+import { loadCachedPageData, type PageDataLoadOptions } from './page-data-cache';
 
 type TransactionRow = Tables<'transactions'>;
 type Currency = WalletCurrencyCode;
@@ -83,18 +84,20 @@ async function loadBudgetContext(range: ReportPeriodRange, currency: Currency, t
   return { nearLimitCount: budgets.filter((budget) => budget.status === 'near_limit').length, overBudgetCount: budgets.filter((budget) => budget.status === 'over_budget').length, utilization: limit > 0 ? (spent / limit) * 100 : null };
 }
 
-export async function loadReportsData(range: ReportPeriodRange): Promise<ReportsData> {
-  const userId = await requireUserId();
-  const [displayPreferences, transactionResult] = await Promise.all([
-    loadUserDisplayPreferences(userId),
-    supabase.from('transactions').select('*, category:categories(id, name, icon_identifier)').eq('user_id', userId).is('deleted_at', null).gte('occurred_at', range.start).lt('occurred_at', range.end).order('occurred_at', { ascending: true }),
-  ]);
-  if (transactionResult.error) throw transactionResult.error;
-  const baseRows = transactionResult.data as unknown as ReportTransactionRow[];
-  const splits = await loadTransactionSplits(userId, baseRows.map((row) => row.id));
-  const rows = baseRows.map((row) => ({ ...row, splits: splits.get(row.id) ?? [] }));
-  const totals = calculateFinancialTotals(rows, range, displayPreferences.reportingCurrency);
-  return { reportingCurrency: displayPreferences.reportingCurrency, timeZone: displayPreferences.timeZone, range, totals, incomeCategories: aggregateCategories(rows, range, displayPreferences.reportingCurrency, 'income'), expenseCategories: aggregateCategories(rows, range, displayPreferences.reportingCurrency, 'expense'), trend: buildTrend(rows, range, displayPreferences.reportingCurrency, displayPreferences.timeZone), budgetContext: await loadBudgetContext(range, displayPreferences.reportingCurrency, displayPreferences.timeZone) };
+export async function loadReportsData(range: ReportPeriodRange, options: PageDataLoadOptions = {}): Promise<ReportsData> {
+  return loadCachedPageData(`reports:${range.start}:${range.end}`, ['reports', 'transactions', 'budgets', 'settings'], async () => {
+    const userId = await requireUserId();
+    const [displayPreferences, transactionResult] = await Promise.all([
+      loadUserDisplayPreferences(userId),
+      supabase.from('transactions').select('*, category:categories(id, name, icon_identifier)').eq('user_id', userId).is('deleted_at', null).gte('occurred_at', range.start).lt('occurred_at', range.end).order('occurred_at', { ascending: true }),
+    ]);
+    if (transactionResult.error) throw transactionResult.error;
+    const baseRows = transactionResult.data as unknown as ReportTransactionRow[];
+    const splits = await loadTransactionSplits(userId, baseRows.map((row) => row.id));
+    const rows = baseRows.map((row) => ({ ...row, splits: splits.get(row.id) ?? [] }));
+    const totals = calculateFinancialTotals(rows, range, displayPreferences.reportingCurrency);
+    return { reportingCurrency: displayPreferences.reportingCurrency, timeZone: displayPreferences.timeZone, range, totals, incomeCategories: aggregateCategories(rows, range, displayPreferences.reportingCurrency, 'income'), expenseCategories: aggregateCategories(rows, range, displayPreferences.reportingCurrency, 'expense'), trend: buildTrend(rows, range, displayPreferences.reportingCurrency, displayPreferences.timeZone), budgetContext: await loadBudgetContext(range, displayPreferences.reportingCurrency, displayPreferences.timeZone) };
+  }, options);
 }
 
 export function reportsErrorMessage(error: unknown) {

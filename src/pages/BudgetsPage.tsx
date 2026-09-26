@@ -5,6 +5,7 @@ import { currentBudgetPeriod, periodLabel } from '../components/budgets/budgetUt
 import type { Budget, BudgetPeriod } from '../types/finance';
 import { Button } from '../components/ui/Button';
 import { Icon } from '../components/ui/Icon';
+import { PageSkeleton } from '../components/ui/PageSkeleton';
 
 const Search = ({ className }: { className?: string }) => <Icon name="search" className={className} />;
 import { Input } from '../components/ui/Input';
@@ -14,13 +15,15 @@ import { parseAmountNumber } from '../lib/amount-format';
 import { StableFilterRegion } from '../components/ui/StableFilterRegion';
 import { isFinexyActionState } from '../lib/interaction-actions';
 import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
+import { getCachedPageData } from '../lib/page-data-cache';
 
 const emptyData: BudgetPageData = { period: currentBudgetPeriod(), budgets: [], byCategory: {}, availablePeriods: [currentBudgetPeriod()], categories: [], summary: { activeBudgetCount: 0, totalsByCurrency: [], overBudgetCategoryCount: 0 }, displayPreferences: { reportingCurrency: 'USD', locale: 'en-US', numberFormat: '1,234.56', timeZone: 'Asia/Jakarta' } };
 
 export function BudgetsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [pageData, setPageData] = useState<BudgetPageData>(emptyData);
+  const cachedData = getCachedPageData<BudgetPageData>('budgets:default');
+  const [pageData, setPageData] = useState<BudgetPageData>(cachedData ?? emptyData);
   const [activeFilter, setActiveFilter] = useState<BudgetFilter>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('most-used');
@@ -31,16 +34,21 @@ export function BudgetsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [duplicateError, setDuplicateError] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Budget | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(cachedData === undefined);
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
   const invalidate = useDataInvalidation();
 
   const refresh = useCallback(async (period?: BudgetPeriod) => {
-    const next = await loadBudgetPage(period);
-    setPageData(next);
-    setLoadError('');
-    setDetailBudget((current) => current ? next.budgets.find((budget) => budget.id === current.id) ?? null : null);
+    try {
+      const next = await loadBudgetPage(period, { force: true });
+      setPageData(next);
+      setLoadError('');
+      setDetailBudget((current) => current ? next.budgets.find((budget) => budget.id === current.id) ?? null : null);
+    } catch (error) {
+      if (getCachedPageData<BudgetPageData>(`budgets:${period ?? 'default'}`) === undefined) setLoadError(budgetErrorMessage(error));
+      throw error;
+    }
   }, []);
   useDataRevalidation(['transactions', 'budgets', 'categories', 'settings'], () => refresh(pageData.period));
 
@@ -48,7 +56,7 @@ export function BudgetsPage() {
     let active = true;
     void (async () => {
       try {
-        const next = await loadBudgetPage();
+        const next = await loadBudgetPage(undefined, { force: true });
         if (active) { setPageData(next); setLoadError(''); }
       } catch (error) {
         if (active) setLoadError(budgetErrorMessage(error));
@@ -103,6 +111,8 @@ export function BudgetsPage() {
     try { await archiveBudget(deleteTarget.id); setDeleteTarget(null); await invalidate(['budgets', 'overview', 'reports', 'categories']); }
     catch (error) { setActionError(budgetErrorMessage(error)); }
   };
+
+  if (loading) return <PageSkeleton variant="list" />;
 
   return <div className="min-w-0 w-full max-w-[calc(100vw-2rem)] space-y-6 pb-8 sm:space-y-7">
     <header className="flex min-w-0 flex-col justify-between gap-4 lg:flex-row lg:items-center"><div className="min-w-0"><h1 className="text-2xl font-bold tracking-tight text-primary sm:text-[32px]">Budgets</h1><p className="mt-1 text-xs text-secondary sm:text-sm">Plan spending limits and monitor persisted monthly budgets.</p></div><div className="flex flex-wrap items-center gap-2.5"><Select aria-label="Budget period" value={pageData.period} onChange={(event) => { setActiveFilter('all'); void refresh(event.target.value); }} options={pageData.availablePeriods.map((period) => ({ value: period, label: periodLabel(period) }))} className="h-9 w-auto min-w-[150px] rounded-xl bg-card text-xs" /><Button variant="outline" size="sm" leftIcon={<Icon name="arrow-right" />} onClick={() => navigate('/categories')}>Manage Categories</Button><Button variant="accent" size="sm" leftIcon={<Icon name="plus-lg" />} onClick={openCreate}>Create Budget</Button></div></header>
