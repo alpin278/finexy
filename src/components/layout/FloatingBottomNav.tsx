@@ -22,6 +22,7 @@ const navItems: readonly NavItem[] = [
   { id: 'transactions', label: 'Transactions', path: '/transactions', icon: 'arrow-left-right' },
   { id: 'wallets', label: 'Wallets', path: '/wallets', icon: 'wallet2' },
   { id: 'budgets', label: 'Budgets', path: '/budgets', icon: 'pie-chart' },
+  { id: 'categories', label: 'Categories', path: '/categories', icon: 'tags' },
   { id: 'reports', label: 'Reports', path: '/reports', icon: 'bar-chart-line' },
 ];
 
@@ -30,6 +31,12 @@ export function FloatingBottomNav({ currentTab, onNavigate, className }: Floatin
   const [isVisible, setIsVisible] = useState(true);
   const isInteractingRef = useRef(false);
   const interactionTimeoutRef = useRef<number | null>(null);
+
+  // Directional scroll accumulation refs
+  const accumulatedDownRef = useRef(0);
+  const accumulatedUpRef = useRef(0);
+  const lastScrollYRef = useRef(0);
+  const lastDirectionRef = useRef<'down' | 'up' | null>(null);
 
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
   const activeIndex = navItems.findIndex(
@@ -43,9 +50,17 @@ export function FloatingBottomNav({ currentTab, onNavigate, className }: Floatin
     setIsVisible(true);
   }
 
+  useEffect(() => {
+    accumulatedDownRef.current = 0;
+    accumulatedUpRef.current = 0;
+    lastDirectionRef.current = null;
+  }, [location.pathname]);
+
   // Keep visible when user taps or focuses the navigation
   const handleInteraction = useCallback(() => {
     setIsVisible(true);
+    accumulatedDownRef.current = 0;
+    accumulatedUpRef.current = 0;
     isInteractingRef.current = true;
     if (interactionTimeoutRef.current !== null) {
       window.clearTimeout(interactionTimeoutRef.current);
@@ -63,11 +78,11 @@ export function FloatingBottomNav({ currentTab, onNavigate, className }: Floatin
     };
   }, []);
 
-  // Directional scroll auto-hide
+  // Directional scroll auto-hide with hysteresis & accumulation
   useEffect(() => {
-    const threshold = 10;
-    const topThreshold = 24;
-    let lastScrollY = 0;
+    const downThreshold = 32; // Accumulate ~32px of downward scroll before hiding
+    const upThreshold = 14;   // Reveal more easily (~14px of upward scroll)
+    const topThreshold = 24;  // Always visible when <= 24px from top
     let ticking = false;
 
     const getScrollY = () => {
@@ -77,15 +92,17 @@ export function FloatingBottomNav({ currentTab, onNavigate, className }: Floatin
       return Math.max(mainScroll, windowScroll);
     };
 
-    lastScrollY = getScrollY();
+    lastScrollYRef.current = getScrollY();
 
     const updateScrollDirection = () => {
       const currentScrollY = getScrollY();
-      const delta = currentScrollY - lastScrollY;
+      const delta = currentScrollY - lastScrollYRef.current;
+      lastScrollYRef.current = currentScrollY;
 
       if (isInteractingRef.current) {
         setIsVisible(true);
-        lastScrollY = currentScrollY;
+        accumulatedDownRef.current = 0;
+        accumulatedUpRef.current = 0;
         ticking = false;
         return;
       }
@@ -93,16 +110,45 @@ export function FloatingBottomNav({ currentTab, onNavigate, className }: Floatin
       // Near top of page: always keep visible
       if (currentScrollY <= topThreshold) {
         setIsVisible(true);
-        lastScrollY = currentScrollY;
-      } else if (Math.abs(delta) >= threshold) {
-        if (delta > 0) {
-          // Meaningful scroll down -> smoothly hide
-          setIsVisible(false);
-        } else {
-          // Meaningful scroll up -> smoothly return
-          setIsVisible(true);
+        accumulatedDownRef.current = 0;
+        accumulatedUpRef.current = 0;
+        lastDirectionRef.current = null;
+        ticking = false;
+        return;
+      }
+
+      // Ignore micro movements (< 4px per frame)
+      if (Math.abs(delta) < 4) {
+        ticking = false;
+        return;
+      }
+
+      if (delta > 0) {
+        // Downward movement
+        if (lastDirectionRef.current === 'up') {
+          accumulatedUpRef.current = 0;
+          accumulatedDownRef.current = 0;
         }
-        lastScrollY = currentScrollY;
+        lastDirectionRef.current = 'down';
+        accumulatedDownRef.current += delta;
+
+        if (accumulatedDownRef.current >= downThreshold) {
+          setIsVisible(false);
+          accumulatedDownRef.current = downThreshold; // clamp
+        }
+      } else {
+        // Upward movement
+        if (lastDirectionRef.current === 'down') {
+          accumulatedDownRef.current = 0;
+          accumulatedUpRef.current = 0;
+        }
+        lastDirectionRef.current = 'up';
+        accumulatedUpRef.current += Math.abs(delta);
+
+        if (accumulatedUpRef.current >= upThreshold) {
+          setIsVisible(true);
+          accumulatedUpRef.current = upThreshold; // clamp
+        }
       }
 
       ticking = false;
@@ -133,27 +179,27 @@ export function FloatingBottomNav({ currentTab, onNavigate, className }: Floatin
       onPointerDownCapture={handleInteraction}
       className={cn(
         'fixed bottom-0 left-0 right-0 z-40 md:hidden flex justify-center pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] px-4',
-        'transition-[transform,opacity] duration-[250ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none',
+        'motion-reduce:transition-none',
         isVisible
-          ? 'translate-y-0 opacity-100 pointer-events-none'
-          : 'translate-y-[calc(100%+2rem)] opacity-0 pointer-events-none',
+          ? 'translate-y-0 opacity-100 transition-[transform,opacity] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] pointer-events-none'
+          : 'translate-y-[calc(100%+2.5rem+env(safe-area-inset-bottom,0px))] opacity-0 transition-[transform_380ms_cubic-bezier(0.22,1,0.36,1),opacity_260ms_ease-out_120ms] pointer-events-none',
         className
       )}
     >
       <div
         className={cn(
-          'pointer-events-auto relative flex items-center p-1.5 rounded-full select-none',
-          'bg-card/85 dark:bg-[#1E1E1A]/85 backdrop-blur-xl backdrop-saturate-150',
+          'pointer-events-auto relative flex items-center p-2 rounded-full select-none',
+          'bg-card/85 dark:bg-[#1A1A17]/85 backdrop-blur-xl backdrop-saturate-150',
           'border border-border/80 dark:border-white/10',
           'shadow-[0_8px_32px_-4px_rgba(23,23,20,0.12),0_2px_8px_rgba(23,23,20,0.06)]',
           'dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.3)]'
         )}
       >
-        {/* Animated active indicator bubble (compact 40px) */}
+        {/* Animated active indicator bubble (44px circle gliding smoothly over 40px slots) */}
         {activeIndex >= 0 && (
           <div
             data-active-indicator
-            className="absolute top-1.5 left-1.5 w-10 h-10 rounded-full bg-dark dark:bg-white shadow-[0_2px_8px_rgba(23,23,20,0.16)] dark:shadow-[0_2px_10px_rgba(255,255,255,0.2)] transition-transform duration-200 ease-out pointer-events-none motion-reduce:transition-none"
+            className="absolute top-1.5 left-1.5 w-11 h-11 rounded-full bg-dark dark:bg-white shadow-[0_2px_8px_rgba(23,23,20,0.16)] dark:shadow-[0_2px_10px_rgba(255,255,255,0.2)] transition-transform duration-[300ms] ease-[cubic-bezier(0.22,1,0.36,1)] pointer-events-none motion-reduce:transition-none"
             style={{
               transform: `translateX(${activeIndex * 40}px)`,
             }}
