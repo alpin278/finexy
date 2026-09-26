@@ -173,7 +173,7 @@ export function SettingsPage() {
       active = false;
     };
   }, []);
-  const [activeModal, setActiveModal] = useState<'security' | null>(null);
+  const [activeModal, setActiveModal] = useState<'security' | 'telegram-connect' | 'telegram-disconnect' | null>(null);
 
   useEffect(() => {
     if (loading || !location.hash) return undefined;
@@ -268,9 +268,21 @@ export function SettingsPage() {
   };
   const handleDisconnectTelegram = async () => {
     setTelegramBusy(true); setError(''); setSaveMessage(''); setTelegramError('');
-    try { await disconnectTelegram(); setTelegram({ status: 'not_connected' }); setTelegramNotifications({ nearLimit: false, overLimit: false, dailySummary: false, weeklySummary: false }); setSaveMessage('Telegram disconnected. Link codes and active Telegram sessions were invalidated.'); }
-    catch (reason) { setError(settingsErrorMessage(reason)); }
-    finally { setTelegramBusy(false); }
+    try {
+      await disconnectTelegram();
+      setTelegram({ status: 'not_connected' });
+      setTelegramNotifications({ nearLimit: false, overLimit: false, dailySummary: false, weeklySummary: false });
+      setTelegramDiagnostics(null);
+      setTelegramTestFeedback('');
+      setTestNotificationCooldownEndsAt(null);
+      setShowTelegramDiagnostics(false);
+      setActiveModal(null);
+      setSaveMessage('Telegram disconnected successfully.');
+    } catch {
+      setTelegramError('Unable to disconnect Telegram. Please try again.');
+    } finally {
+      setTelegramBusy(false);
+    }
   };
   const handleRefreshFx = async () => { setRefreshingFx(true); setError(''); try { const result = await refreshFxRates(); setFxStatus({ provider: result.provider, rateDate: result.rate_date, fetchedAt: new Date().toISOString() }); await invalidate(['fx', 'wallets', 'overview']); setSaveMessage(result.status === 'current' ? 'FX reference rates are already current.' : 'FX reference rates refreshed.'); } catch { setError('FX rates could not be refreshed. Native balances remain unchanged.'); } finally { setRefreshingFx(false); } };
   const handleEnablePush = async () => {
@@ -445,11 +457,11 @@ export function SettingsPage() {
                 </div>
               </div>
               {telegram.status === 'connected' ? (
-                <Button variant="outline" size="sm" disabled={telegramBusy} onClick={handleDisconnectTelegram}>
+                <Button variant="outline" size="sm" disabled={telegramBusy} onClick={() => { setTelegramError(''); setActiveModal('telegram-disconnect'); }}>
                   Disconnect Telegram
                 </Button>
               ) : (
-                <Button variant="accent" size="sm" disabled={telegramBusy} onClick={handleConnectTelegram}>
+                <Button variant="accent" size="sm" disabled={telegramBusy} onClick={() => { setTelegramError(''); setActiveModal('telegram-connect'); }}>
                   {telegramBusy ? 'Connecting...' : 'Connect Telegram'}
                 </Button>
               )}
@@ -577,6 +589,29 @@ export function SettingsPage() {
       </div>
 
       <Modal isOpen={activeModal === 'security'} onClose={() => setActiveModal(null)} title="Two-factor authentication" description="Demo-only security preference." maxWidth="sm" footer={<><Button variant="outline" size="sm" onClick={() => setActiveModal(null)}>Cancel</Button><Button variant="primary" size="sm" onClick={() => { setSettings((current) => ({ ...current, demoTwoFactorEnabled: !current.demoTwoFactorEnabled })); setSaveMessage(settings.demoTwoFactorEnabled ? 'Demo 2FA preference disabled locally.' : 'Demo 2FA preference enabled locally. No authentication was configured.'); setActiveModal(null); }}>{settings.demoTwoFactorEnabled ? 'Disable demo 2FA' : 'Enable demo 2FA'}</Button></>}><div className="space-y-4"><div className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4"><Icon name="shield-check" className="mt-0.5 shrink-0 text-success" /><p className="text-xs leading-relaxed text-secondary">This preview lets you test the interaction and status copy. It does not create an authenticator secret, verify a code, or protect an account.</p></div><p className="text-xs text-secondary">Current status: <span className="font-semibold text-primary">{settings.demoTwoFactorEnabled ? 'Demo preference enabled' : 'Not configured'}</span></p></div></Modal>
+      <Modal
+        isOpen={activeModal === 'telegram-connect'}
+        onClose={() => { if (!telegramBusy) setActiveModal(null); }}
+        title="Connect Telegram?"
+        description="Start the existing Telegram account linking flow."
+        maxWidth="sm"
+        footer={<><Button variant="outline" size="sm" disabled={telegramBusy} onClick={() => setActiveModal(null)}>Cancel</Button><Button variant="accent" size="sm" loading={telegramBusy} onClick={() => { setActiveModal(null); void handleConnectTelegram(); }}>{telegramBusy ? 'Connecting...' : 'Connect Telegram'}</Button></>}
+      >
+        <p className="text-sm leading-relaxed text-secondary">Finexy will generate a secure link code so you can connect your Telegram account to this signed-in Finexy account.</p>
+      </Modal>
+      <Modal
+        isOpen={activeModal === 'telegram-disconnect'}
+        onClose={() => { if (!telegramBusy) setActiveModal(null); }}
+        title="Disconnect Telegram?"
+        description="Telegram notifications and integration access will stop."
+        maxWidth="sm"
+        footer={<><Button variant="outline" size="sm" disabled={telegramBusy} onClick={() => setActiveModal(null)}>Cancel</Button><Button variant="destructive" size="sm" loading={telegramBusy} onClick={() => void handleDisconnectTelegram()}>{telegramBusy ? 'Disconnecting...' : 'Disconnect Telegram'}</Button></>}
+      >
+        <div className="space-y-3 text-sm leading-relaxed text-secondary">
+          <p>Your Finexy account, transactions, and other data will not be deleted.</p>
+          <p>You can connect Telegram again later from Settings.</p>
+        </div>
+      </Modal>
     </div>
   );
 }
