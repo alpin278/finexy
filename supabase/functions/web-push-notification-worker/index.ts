@@ -1,5 +1,10 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { send } from '@daaku/webpush';
+import { installBase64Compatibility } from './base64-compat.ts';
+
+// @daaku/webpush@0.2.0 calls Uint8Array.fromBase64/toBase64 during send().
+// Supabase Edge's Deno runtime does not expose them yet.
+installBase64Compatibility();
 
 type Delivery = {
   outbox_id: string;
@@ -65,10 +70,55 @@ function runtimeConfig(): WorkerConfig {
   };
 }
 
-function statusCode(error: unknown): number | null {
-  if (!error || typeof error !== 'object') return null;
-  const value = (error as { statusCode?: unknown }).statusCode;
-  return typeof value === 'number' ? value : null;
+function errorField(error: unknown, field: string): unknown {
+  if (!error || typeof error !== 'object') return undefined;
+  return (error as Record<string, unknown>)[field];
+}
+
+function httpStatus(error: unknown): number | null {
+  const response = errorField(error, 'response');
+  const value = errorField(error, 'statusCode')
+    ?? errorField(error, 'status')
+    ?? (response && typeof response === 'object' ? (response as Record<string, unknown>).status : undefined);
+  const status = typeof value === 'number' ? value : Number(value);
+  return Number.isInteger(status) && status >= 100 && status <= 599 ? status : null;
+}
+
+function errorName(error: unknown) {
+  const value = errorField(error, 'name') ?? (error instanceof Error ? error.name : 'unknown');
+  const name = typeof value === 'string' ? value.trim() : 'unknown';
+  return /^[a-z0-9_.-]{1,80}$/i.test(name) ? name : 'unknown';
+}
+
+function sanitizeProviderReason(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const reason = value
+    .replace(/\s+/g, ' ')
+    .replace(/https?:\/\/\S+/gi, '[redacted-url]')
+    .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]')
+    .replace(/\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[redacted-token]')
+    .replace(/\b[A-Za-z0-9_-]{32,}\b/g, '[redacted-token]')
+    .trim();
+  return reason ? reason.slice(0, 160) : null;
+}
+
+function providerReason(error: unknown): string | null {
+  const body = errorField(error, 'body');
+  if (typeof body === 'string' && body.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(body) as Record<string, unknown>;
+      const nested = parsed.error && typeof parsed.error === 'object'
+        ? parsed.error as Record<string, unknown>
+        : undefined;
+      for (const candidate of [parsed.reason, parsed.message, nested?.reason, nested?.message, parsed.code]) {
+        const reason = sanitizeProviderReason(candidate);
+        if (reason) return reason;
+      }
+    } catch {
+      // Fall back to the library's sanitized Error.message below.
+    }
+  }
+  return sanitizeProviderReason(errorField(error, 'message') ?? (error instanceof Error ? error.message : null));
 }
 
 function isTrustedPushEndpoint(endpoint: string) {
@@ -89,13 +139,23 @@ function isTrustedPushEndpoint(endpoint: string) {
   }
 }
 
+function isTransientTransportError(error: unknown) {
+  const message = String(errorField(error, 'message') ?? (error instanceof Error ? error.message : '')).toLowerCase();
+  return /fetch failed|failed to fetch|network|timeout|timed out|connection|dns|tls|socket/i.test(message);
+}
+
 function failureDetails(error: unknown) {
-  const status = statusCode(error);
-  if (status === 404 || status === 410) return { retryable: false, deactivate: true, errorClass: 'subscription_gone' };
+  const status = httpStatus(error);
+  if (status === 404 || status === 410 || errorField(error, 'permanent') === true) {
+    return { retryable: false, deactivate: true, errorClass: 'subscription_gone' };
+  }
   if (status === 400) return { retryable: false, deactivate: true, errorClass: 'invalid_subscription' };
   if (status === 401 || status === 403) return { retryable: false, deactivate: true, errorClass: 'vapid_rejected' };
   if (status === 429) return { retryable: true, deactivate: false, errorClass: 'push_service_rate_limited' };
   if (status !== null && status >= 500) return { retryable: true, deactivate: false, errorClass: 'push_service_unavailable' };
+  if (errorName(error) === 'TypeError' && !isTransientTransportError(error)) {
+    return { retryable: false, deactivate: false, errorClass: 'worker_runtime_error' };
+  }
   return { retryable: true, deactivate: false, errorClass: 'push_delivery_failed' };
 }
 
@@ -134,6 +194,15 @@ async function processDelivery(db: SupabaseClient<any>, delivery: Delivery, conf
     return 'delivered' as const;
   } catch (error) {
     const details = failureDetails(error);
+    console.info(JSON.stringify({
+      stage: 'web_push_delivery',
+      result: 'failed',
+      error_class: details.errorClass,
+      error_name: errorName(error),
+      http_status: httpStatus(error),
+      provider_reason: providerReason(error),
+      retryable: details.retryable,
+    }));
     const { error: completionError } = await db.rpc('complete_web_push_notification', {
       p_outbox_id: delivery.outbox_id,
       p_delivered: false,
@@ -142,7 +211,6 @@ async function processDelivery(db: SupabaseClient<any>, delivery: Delivery, conf
       p_deactivate_subscription: details.deactivate,
     });
     if (completionError) throw completionError;
-    console.info(JSON.stringify({ stage: 'web_push_delivery', result: 'failed', error_class: details.errorClass }));
     return 'failed' as const;
   }
 }
