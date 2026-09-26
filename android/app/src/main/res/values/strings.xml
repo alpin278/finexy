@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Finexy</string>
+    <string name="title_activity_main">Finexy</string>
+    <string name="package_name">com.alfiin.finexy</string>
+    <string name="custom_url_scheme">com.alfiin.finexy</string>
+</resources>
