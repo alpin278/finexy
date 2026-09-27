@@ -191,8 +191,14 @@ html::view-transition-new(root),
   .privacy-mode [data-money-chart] .recharts-yAxis .recharts-text,
   .privacy-mode [data-money-chart] .recharts-tooltip-wrapper { filter: blur(6px); }
   .chart-focus-surface .recharts-surface:focus { outline: none; }
+  .expense-category-donut svg,
   .expense-category-donut .recharts-surface,
-  .expense-category-donut .recharts-pie { outline: none !important; -webkit-tap-highlight-color: transparent; }
+  .expense-category-donut .recharts-pie,
+  .expense-category-donut .recharts-pie-sector,
+  .expense-category-donut path.recharts-sector {
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent;
+  }
   .value-change { animation: value-change 180ms ease-out both; }
 }
 
