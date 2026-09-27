@@ -16,6 +16,7 @@ export interface TransactionRowProps {
   selected?: boolean;
   rowIndex?: number;
   onSelect?: () => void;
+  mobile?: boolean;
 }
 
 /** Compact logical-activity row: lower-priority fields move into metadata/detail. */
@@ -29,10 +30,25 @@ export function TransactionRow({
   selected = false,
   rowIndex,
   onSelect,
+  mobile = false,
 }: TransactionRowProps) {
   const isIncome = transaction.type === 'income';
   const isTransfer = transaction.type === 'transfer';
   const directionIcon = isTransfer ? 'arrow-left-right' : isIncome ? 'arrow-down-left' : 'arrow-up-right';
+
+  if (mobile) return (
+    <div data-transaction-row={rowIndex} data-state={selected ? 'selected' : undefined} aria-selected={selected} onClick={onSelect} className="min-w-0 max-w-full px-4 py-3.5 data-[state=selected]:bg-accent/[0.06]">
+      <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] gap-x-3">
+        <span className={cn('mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border', isTransfer ? 'border-accent/20 bg-accent/10 text-accent' : isIncome ? 'border-success/20 bg-success/10 text-success' : 'border-border bg-surface text-primary')} aria-hidden="true"><Icon name={directionIcon} /></span>
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-start justify-between gap-3"><p className="min-w-0 flex-1 break-words text-sm font-semibold leading-5 text-primary">{transaction.description}</p><span className={cn('money-value max-w-[46%] shrink-0 break-words text-right text-sm font-bold leading-5 tracking-tight', isTransfer ? 'text-accent' : isIncome ? 'text-success' : 'text-primary')}>{formatTransactionAmount(transaction)}</span></div>
+          <p className="mt-1 max-w-full break-words text-xs leading-4 text-secondary">{transaction.category} <span aria-hidden="true">·</span> {transaction.wallet}</p>
+          <div className="mt-1 flex min-w-0 items-center justify-between gap-3"><p className="min-w-0 break-words text-[10px] font-semibold uppercase leading-4 tracking-wider text-secondary">{formatTransactionDate(transaction.date)}{transaction.time ? ` · ${transaction.time}` : ''} · {transaction.splits?.length ? `Split · ${transaction.splits.length} categories` : isTransfer ? 'Wallet transfer' : transaction.method}</p><div className="relative shrink-0"><IconButton aria-label={`Actions for ${transaction.description}`} size="sm" variant="ghost" aria-expanded={isActionMenuOpen} onClick={(event) => { event.stopPropagation(); onToggleActionMenu(); }}><Icon name="three-dots" /></IconButton>{isActionMenuOpen && <div className="menu-enter absolute right-0 top-9 z-20 w-32 rounded-xl border border-border bg-card py-1 shadow-dropdown"><button type="button" onClick={onView} className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface">View Details</button>{!isTransfer && <button type="button" onClick={onEdit} className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-surface">Edit</button>}{!isTransfer && <button type="button" onClick={onDelete} className="w-full px-3 py-2 text-left text-xs font-medium text-danger hover:bg-danger/10">Delete</button>}</div>}</div></div>
+          <div className="mt-1"><StatusBadge status={getStatusBadgeType(transaction.status)} label={getStatusLabel(transaction.status)} /></div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <TableRow

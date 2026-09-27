@@ -24,7 +24,7 @@ export function CashFlowTrendChart({ data, stats, currency }: { data: ReportTren
           </div>
         </div>
         {data.length ? (
-          <div className="h-[250px] pt-4 sm:h-[300px]">
+          <div className="chart-focus-surface h-[250px] rounded-xl pt-4 focus-within:ring-2 focus-within:ring-accent/30 sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="var(--chart-grid, #ECECE8)" strokeDasharray="3 4" vertical={false} />
@@ -35,9 +35,9 @@ export function CashFlowTrendChart({ data, stats, currency }: { data: ReportTren
                   contentStyle={{ border: '1px solid var(--color-border)', borderRadius: 14, background: 'var(--color-card)', color: 'var(--color-primary)', fontSize: 11, boxShadow: 'var(--shadow-dropdown)', padding: '10px 12px' }}
                   labelStyle={{ color: 'var(--color-primary)', fontWeight: 700, marginBottom: 4 }}
                 />
-                <Line type="linear" dataKey="income" name="Inflow" stroke="var(--chart-dark, #22221C)" strokeWidth={2.5} dot={{ r: 2.5, fill: 'var(--chart-dark, #22221C)', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
-                <Line type="linear" dataKey="expenses" name="Outflow" stroke="#FF5A36" strokeWidth={2.5} dot={{ r: 2.5, fill: '#FF5A36', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
-                <Line type="linear" dataKey="net" name="Net" stroke="#55B88B" strokeWidth={2.5} strokeDasharray="5 4" dot={{ r: 2, fill: '#55B88B', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                <Line type="monotone" dataKey="income" name="Inflow" stroke="var(--chart-dark, #22221C)" strokeWidth={2.5} dot={{ r: 2.5, fill: 'var(--chart-dark, #22221C)', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                <Line type="monotone" dataKey="expenses" name="Outflow" stroke="#FF5A36" strokeWidth={2.5} dot={{ r: 2.5, fill: '#FF5A36', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                <Line type="monotone" dataKey="net" name="Net" stroke="#55B88B" strokeWidth={2.5} strokeDasharray="5 4" dot={{ r: 2, fill: '#55B88B', strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
