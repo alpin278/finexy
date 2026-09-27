@@ -1,5 +1,4 @@
 import { verificationSupabase } from './supabase';
-import { getAuthRedirectUrl } from './auth-redirect';
 
 export type VerificationWatchStatus = 'pending' | 'verified' | 'expired';
 
@@ -18,7 +17,7 @@ export function createSignupWatchNonce(): string {
 }
 
 export function getEmailVerificationRedirectUrl(): string {
-  return getAuthRedirectUrl('/verify-email');
+  return 'https://finexy.alfiin.my.id/verify-email';
 }
 
 export async function createVerificationWatch(userId: string, nonce: string): Promise<string> {
