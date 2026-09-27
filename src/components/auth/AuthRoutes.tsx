@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
 
@@ -39,6 +40,10 @@ export function RootRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return <AuthLoadingPlaceholder />;
+  }
+
+  if (Capacitor.getPlatform() === 'android') {
+    return <Navigate to={user ? "/overview" : "/login"} replace />;
   }
 
   if (user) {

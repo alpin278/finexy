@@ -3,7 +3,13 @@ import { Link } from 'react-router-dom';
 
 export function AuthPageLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="flex min-h-screen w-full items-center justify-center overflow-x-hidden bg-canvas px-4 py-8 font-sans antialiased text-primary sm:px-6">
+    <main
+      className="flex min-h-screen w-full items-center justify-center overflow-x-hidden bg-canvas px-4 py-8 font-sans antialiased text-primary sm:px-6"
+      style={{
+        paddingTop: 'calc(2rem + max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px)))',
+        paddingBottom: 'calc(2rem + max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)))',
+      }}
+    >
       <div className="w-full max-w-md">
         <Link to="/login" className="mx-auto mb-6 flex w-fit items-center gap-2.5" aria-label="Finexy home">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-white shadow-xs">F</span>

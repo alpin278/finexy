@@ -18,7 +18,7 @@ export function LandingNav() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-canvas/80 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-canvas/80 backdrop-blur-md finexy-safe-top">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <Link
