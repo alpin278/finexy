@@ -49,7 +49,7 @@ export const recoverySupabase = createClient<Database>(supabaseUrl, supabasePubl
     storageKey: 'finexy-password-recovery',
     persistSession: false,
     autoRefreshToken: false,
-    detectSessionInUrl: true,
+    detectSessionInUrl: (url) => url.pathname.endsWith('/reset-password'),
   },
 });
 
