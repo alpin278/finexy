@@ -7,6 +7,7 @@ import { useAuth } from '../context/useAuth';
 import { verificationSupabase } from '../lib/supabase';
 
 type VerificationState = 'ready' | 'verifying' | 'success' | 'invalid';
+type VerificationDiagnostic = { code?: string; message?: string; status?: number };
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function clearVerificationUrl() {
@@ -43,12 +44,23 @@ function getValidatedConfirmationUrl(payload: string): string | null {
   }
 }
 
+function getVerificationDiagnostic(error: unknown): VerificationDiagnostic {
+  if (!error || typeof error !== 'object') return {};
+  const { code, message, status } = error as { code?: unknown; message?: unknown; status?: unknown };
+  return {
+    code: typeof code === 'string' ? code : undefined,
+    message: typeof message === 'string' ? message : undefined,
+    status: typeof status === 'number' ? status : undefined,
+  };
+}
+
 export function VerifyEmailPage() {
   const navigate = useNavigate();
   const { resendSignupConfirmation } = useAuth();
   const [state, setState] = useState<VerificationState>('verifying');
   const [confirmationUrl, setConfirmationUrl] = useState<string | null>(null);
   const [tokenHash, setTokenHash] = useState<string | null>(null);
+  const [verificationDiagnostic, setVerificationDiagnostic] = useState<VerificationDiagnostic | null>(null);
   const [resendEmail, setResendEmail] = useState('');
   const [resendBusy, setResendBusy] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
@@ -151,12 +163,15 @@ export function VerifyEmailPage() {
   const handleConfirmation = async () => {
     if (tokenHash) {
       setState('verifying');
+      setVerificationDiagnostic(null);
       let nextState: 'success' | 'invalid' = 'invalid';
       try {
         const { error } = await verificationSupabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' });
         nextState = error ? 'invalid' : 'success';
-      } catch {
+        if (error) setVerificationDiagnostic(getVerificationDiagnostic(error));
+      } catch (error) {
         // The unavailable state below covers invalid and expired tokens.
+        setVerificationDiagnostic(getVerificationDiagnostic(error));
       } finally {
         // Verification sessions are isolated and must never become a Finexy login.
         await verificationSupabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
@@ -223,6 +238,13 @@ export function VerifyEmailPage() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary">Finexy account security</p>
             <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-[30px]">Verification link unavailable</h1>
             <p className="mt-3 text-sm leading-relaxed text-secondary">Verification link is invalid or has expired.</p>
+            {verificationDiagnostic && (
+              <dl className="mt-3 space-y-1 text-xs leading-relaxed text-secondary">
+                {verificationDiagnostic.code && <div><dt className="inline font-semibold text-primary">Error code: </dt><dd className="inline">{verificationDiagnostic.code}</dd></div>}
+                {verificationDiagnostic.message && <div><dt className="inline font-semibold text-primary">Message: </dt><dd className="inline">{verificationDiagnostic.message}</dd></div>}
+                {verificationDiagnostic.status !== undefined && <div><dt className="inline font-semibold text-primary">Status: </dt><dd className="inline">{verificationDiagnostic.status}</dd></div>}
+              </dl>
+            )}
           </div>
 
           <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void handleResend(); }} noValidate>
