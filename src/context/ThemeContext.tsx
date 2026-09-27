@@ -54,6 +54,14 @@ function applyThemeToDOM(theme: ResolvedTheme) {
     root.style.colorScheme = 'light';
   }
 
+  // Keep mobile browser/PWA system chrome aligned with Finexy's surface color.
+  // This only affects web/PWA browser chrome; Android native system bars stay
+  // owned by FinexySystemBars below.
+  const themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (themeColorMeta) {
+    themeColorMeta.content = theme === 'dark' ? '#1A1A17' : '#FAFAF8';
+  }
+
   if (Capacitor.getPlatform() === 'android') {
     console.debug('[FinexySystemBars] invoking setTheme', { theme });
     void FinexySystemBars.setTheme({ dark: theme === 'dark' }).catch((error: unknown) => {

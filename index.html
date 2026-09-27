@@ -19,6 +19,10 @@
         try {
           var pref = localStorage.getItem('finexy:theme-preference');
           var isDark = pref === 'dark' || ((!pref || pref === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var themeColor = document.querySelector('meta[name="theme-color"]');
+          if (themeColor) {
+            themeColor.setAttribute('content', isDark ? '#1A1A17' : '#FAFAF8');
+          }
           if (isDark) {
             document.documentElement.classList.add('dark');
             document.documentElement.setAttribute('data-theme', 'dark');
