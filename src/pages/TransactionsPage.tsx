@@ -50,7 +50,7 @@ export function TransactionsPage() {
     let active = true;
     void (async () => {
       try {
-        const data = await loadTransactionsPage({ force: true });
+        const data = await loadTransactionsPage();
         if (active) { setPageData(data); setLoadError(''); setHasLoadedData(true); }
       } catch (error) {
         if (active) setLoadError(transactionErrorMessage(error));

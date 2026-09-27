@@ -1,4 +1,5 @@
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { flushSync } from 'react-dom';
 import type { AppearancePreference } from '../types/settings';
 
@@ -16,6 +17,8 @@ export interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+const FinexySystemBars = registerPlugin<{ setTheme(options: { dark: boolean }): Promise<void> }>('FinexySystemBars');
 
 const STORAGE_KEY = 'finexy:theme-preference';
 
@@ -49,6 +52,13 @@ function applyThemeToDOM(theme: ResolvedTheme) {
     root.classList.remove('dark');
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
+  }
+
+  if (Capacitor.getPlatform() === 'android') {
+    console.debug('[FinexySystemBars] invoking setTheme', { theme });
+    void FinexySystemBars.setTheme({ dark: theme === 'dark' }).catch((error: unknown) => {
+      console.error('[FinexySystemBars] setTheme failed', error);
+    });
   }
 }
 

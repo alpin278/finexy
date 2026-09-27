@@ -16,7 +16,7 @@ export function MainContent({ children, className }: MainContentProps) {
       )}
     >
       {children}
-      <div aria-hidden="true" className="h-[calc(3.5rem+0.75rem+env(safe-area-inset-bottom,0px))] md:hidden" />
+      <div aria-hidden="true" className="h-[calc(4rem+0.75rem+env(safe-area-inset-bottom,0px))] bg-transparent md:hidden" />
     </main>
   );
 }

@@ -6,7 +6,7 @@ import { Button, PageSkeleton, Select, WidgetErrorBoundary } from '../components
 import { currentBudgetPeriod, periodLabel } from '../lib/budget-utils';
 import { loadOverviewPage, overviewErrorMessage, type OverviewPageData } from '../lib/overview';
 import { useDataInvalidation, useDataRevalidation } from '../context/DataRevalidationContext';
-import { getCachedPageData } from '../lib/page-data-cache';
+import { getCachedPageData, isPageDataCacheFresh } from '../lib/page-data-cache';
 
 export function OverviewPage() {
   const navigate = useNavigate();
@@ -38,6 +38,7 @@ export function OverviewPage() {
     const cached = getCachedPageData<OverviewPageData>(`overview:${period}`);
     setData(cached ?? null);
     setLoading(cached === undefined);
+    if (isPageDataCacheFresh(`overview:${period}`)) return undefined;
     const timer = window.setTimeout(() => { void refresh(period, true); }, 0);
     return () => window.clearTimeout(timer);
   }, [period, refresh]);

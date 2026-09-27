@@ -34,8 +34,16 @@ export function TopNavigation({
   const notificationsRef = useRef<HTMLDivElement>(null);
   const notificationsPanelRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const accumulatedDownRef = useRef(0);
+  const accumulatedUpRef = useRef(0);
+  const lastScrollYRef = useRef(0);
+  const lastDirectionRef = useRef<'down' | 'up' | null>(null);
 
   const location = useLocation();
+  const [headerVisibility, setHeaderVisibility] = useState({ pathname: location.pathname, visible: true });
+  if (headerVisibility.pathname !== location.pathname) setHeaderVisibility({ pathname: location.pathname, visible: true });
+  const isHeaderVisible = headerVisibility.pathname === location.pathname ? headerVisibility.visible : true;
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
   const profileName = profile?.display_name?.trim() || user?.email || 'Finexy user';
   const profileEmail = user?.email || profile?.email || '';
@@ -83,6 +91,69 @@ export function TopNavigation({
     if (isNotificationsOpen) notificationsPanelRef.current?.focus();
   }, [isNotificationsOpen]);
 
+  useEffect(() => {
+    if (!window.matchMedia('(max-width: 639px)').matches) return undefined;
+    const downThreshold = 28;
+    const upThreshold = 10;
+    const topThreshold = 24;
+    const main = document.querySelector<HTMLElement>('[data-popover-scroll-root]');
+    let frame = 0;
+    const setVisible = (visible: boolean) => setHeaderVisibility((current) => current.pathname === location.pathname && current.visible === visible ? current : { pathname: location.pathname, visible });
+
+    const getScrollY = () => Math.max(main?.scrollTop ?? 0, window.scrollY || document.documentElement.scrollTop || 0);
+    accumulatedDownRef.current = 0;
+    accumulatedUpRef.current = 0;
+    lastDirectionRef.current = null;
+    lastScrollYRef.current = getScrollY();
+
+    const update = () => {
+      frame = 0;
+      const currentScrollY = getScrollY();
+      const delta = currentScrollY - lastScrollYRef.current;
+      lastScrollYRef.current = currentScrollY;
+
+      if (isNotificationsOpen || isProfileOpen || currentScrollY <= topThreshold) {
+        setVisible(true);
+        accumulatedDownRef.current = 0;
+        accumulatedUpRef.current = 0;
+        lastDirectionRef.current = null;
+        return;
+      }
+      if (Math.abs(delta) < 1) return;
+
+      if (delta > 0) {
+        if (lastDirectionRef.current === 'up') accumulatedDownRef.current = 0;
+        lastDirectionRef.current = 'down';
+        accumulatedUpRef.current = 0;
+        accumulatedDownRef.current += delta;
+        if (accumulatedDownRef.current >= downThreshold && currentScrollY >= (headerRef.current?.offsetHeight ?? 64)) {
+          setVisible(false);
+          accumulatedDownRef.current = downThreshold;
+        }
+      } else {
+        if (lastDirectionRef.current === 'down') accumulatedUpRef.current = 0;
+        lastDirectionRef.current = 'up';
+        accumulatedDownRef.current = 0;
+        accumulatedUpRef.current += Math.abs(delta);
+        if (accumulatedUpRef.current >= upThreshold) {
+          setVisible(true);
+          accumulatedUpRef.current = upThreshold;
+        }
+      }
+    };
+
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+    main?.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      main?.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll, { capture: true });
+    };
+  }, [isNotificationsOpen, isProfileOpen, location.pathname]);
+
   const handleSignOut = async () => {
     setIsSigningOut(true);
     const result = await signOut();
@@ -104,8 +175,10 @@ export function TopNavigation({
 
   return (
     <header
+      ref={headerRef}
       className={cn(
-        'h-16 finexy-safe-top px-4 sm:px-6 lg:px-8 border-b border-border/60 flex items-center justify-between gap-2 sm:gap-3 lg:gap-2 bg-transparent select-none shrink-0',
+        'sticky top-0 z-40 h-16 finexy-safe-top px-4 sm:px-6 lg:px-8 border-b border-border/60 flex items-center justify-between gap-2 sm:gap-3 lg:gap-2 bg-surface select-none shrink-0 transition-transform duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none sm:static sm:translate-y-0 sm:transition-none',
+        isHeaderVisible ? 'translate-y-0' : '-translate-y-[calc(4rem+var(--finexy-safe-top-inset))]',
         className
       )}
     >

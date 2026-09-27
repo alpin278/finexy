@@ -198,9 +198,10 @@ html::view-transition-new(root),
 }
 
 .finexy-safe-top {
-  min-height: 4rem;
-  height: auto;
-  padding-top: env(safe-area-inset-top, 0px);
+  --finexy-safe-top-inset: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  min-height: calc(4rem + var(--finexy-safe-top-inset));
+  height: calc(4rem + var(--finexy-safe-top-inset));
+  padding-top: var(--finexy-safe-top-inset);
 }
 
 .finexy-safe-bottom {

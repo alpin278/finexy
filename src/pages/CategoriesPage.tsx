@@ -38,6 +38,7 @@ export function CategoriesPage() {
   const [rules, setRules] = useState<CategoryRule[]>(cachedCategoryData?.rules ?? []);
   const [summary, setSummary] = useState<CategorySummaryData>(() => cachedCategories ? buildCategorySummary(cachedCategories) : buildCategorySummary([]));
   const [isLoading, setIsLoading] = useState(cachedCategories === undefined);
+  const [hasLoadedData, setHasLoadedData] = useState(cachedCategories !== undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<CategoryTab>('expense');
@@ -55,6 +56,7 @@ export function CategoriesPage() {
     setCategories(data.categories);
     setRules(data.rules);
     setSummary(data.summary);
+    setHasLoadedData(true);
     setLoadError(null);
   };
 
@@ -79,7 +81,7 @@ export function CategoriesPage() {
 
   useEffect(() => {
     let isActive = true;
-    void loadPageData(true)
+    void loadPageData()
       .then((data) => {
         if (isActive) applyPageData(data);
       })
@@ -185,14 +187,14 @@ export function CategoriesPage() {
 
   if (isLoading) return <PageSkeleton variant="list" />;
 
-  if (loadError && !categories.length) {
+  if (loadError && !hasLoadedData) {
     return <div className="space-y-6"><Card padding="lg"><div className="space-y-3"><p className="text-sm font-semibold text-primary">Categories could not be loaded.</p><p className="text-xs leading-5 text-secondary">{loadError}</p><Button variant="outline" size="sm" onClick={() => void refreshData()}>Try again</Button></div></Card></div>;
   }
 
   const uncategorizedLabel = summary.uncategorizedCount === null ? '—' : summary.uncategorizedCount;
 
   return (
-    <div className="min-w-0 w-full max-w-[calc(100vw-2rem)] space-y-6 pb-8 animate-in fade-in-50 duration-200 sm:space-y-7">
+    <div className="min-w-0 w-full max-w-[calc(100vw-2rem)] space-y-6 pb-8 sm:space-y-7">
       <header className="flex min-w-0 flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary">System <span className="px-1 text-border">/</span> Settings &amp; Structure</p>

@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useConnectivity } from './connectivity-context';
 import { getBrowserOnline, isConnectivityError } from '../lib/connectivity';
-import { invalidatePageDataCache } from '../lib/page-data-cache';
+import { invalidatePageDataCache, setPageDataCacheOwner } from '../lib/page-data-cache';
 import { supabase } from '../lib/supabase';
+import { useAuth } from './useAuth';
 
 export type FinancialDataDomain = 'transactions' | 'wallets' | 'budgets' | 'overview' | 'reports' | 'categories' | 'recurring' | 'settings' | 'fx';
 
@@ -20,6 +21,8 @@ const focusFreshnessMs = 30_000;
 export function DataRevalidationProvider({ children }: { children: ReactNode }) {
   const registrations = useRef(new Map<symbol, { domains: FinancialDataDomain[]; revalidate: Revalidator; inFlight: Promise<void> | null; refreshQueued: boolean }>());
   const lastFocusRevalidation = useRef(0);
+  const { user, authReady } = useAuth();
+  if (authReady) setPageDataCacheOwner(user?.id ?? null);
 
   const register = useCallback((domains: FinancialDataDomain[], revalidate: Revalidator) => {
     const id = Symbol('financial-revalidator');
@@ -27,8 +30,7 @@ export function DataRevalidationProvider({ children }: { children: ReactNode }) 
     return () => { registrations.current.delete(id); };
   }, []);
 
-  const invalidate = useCallback(async (domains: FinancialDataDomain[]) => {
-    invalidatePageDataCache(domains);
+  const revalidate = useCallback(async (domains: FinancialDataDomain[]) => {
     const requested = new Set(domains);
     const refreshes: Promise<void>[] = [];
     registrations.current.forEach((registration) => {
@@ -49,6 +51,11 @@ export function DataRevalidationProvider({ children }: { children: ReactNode }) 
     return results.every((result) => result.status === 'fulfilled');
   }, []);
 
+  const invalidate = useCallback(async (domains: FinancialDataDomain[]) => {
+    invalidatePageDataCache(domains);
+    return revalidate(domains);
+  }, [revalidate]);
+
   const { status, markOnline } = useConnectivity();
   const reconnectInFlight = useRef(false);
 
@@ -56,7 +63,7 @@ export function DataRevalidationProvider({ children }: { children: ReactNode }) 
     if (status !== 'reconnecting' || reconnectInFlight.current) return;
     reconnectInFlight.current = true;
     void (async () => {
-      await invalidate(financialDomains);
+      await revalidate(financialDomains);
       try {
         const { error } = await supabase.from('profiles').select('id').limit(1);
         if (getBrowserOnline() && !isConnectivityError(error)) markOnline();
@@ -66,18 +73,18 @@ export function DataRevalidationProvider({ children }: { children: ReactNode }) 
         reconnectInFlight.current = false;
       }
     })();
-  }, [invalidate, markOnline, status]);
+  }, [markOnline, revalidate, status]);
 
   useEffect(() => {
     const revalidateOnFocus = () => {
       if (document.visibilityState !== 'visible' || Date.now() - lastFocusRevalidation.current < focusFreshnessMs) return;
       lastFocusRevalidation.current = Date.now();
-      void invalidate(financialDomains);
+      void revalidate(financialDomains);
     };
     window.addEventListener('focus', revalidateOnFocus);
     document.addEventListener('visibilitychange', revalidateOnFocus);
     return () => { window.removeEventListener('focus', revalidateOnFocus); document.removeEventListener('visibilitychange', revalidateOnFocus); };
-  }, [invalidate]);
+  }, [revalidate]);
 
   const value = useMemo(() => ({ invalidate, register }), [invalidate, register]);
   return <DataRevalidationContext.Provider value={value}>{children}</DataRevalidationContext.Provider>;

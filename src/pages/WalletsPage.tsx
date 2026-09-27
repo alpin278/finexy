@@ -42,8 +42,8 @@ export function WalletsPage() {
     void (async () => {
       try {
         const [transactionData, walletData] = await Promise.all([
-          loadTransactionsPage({ force: true }),
-          loadWalletsPage({ force: true }),
+          loadTransactionsPage(),
+          loadWalletsPage(),
         ]);
         if (active) { setWallets(walletData.wallets); setDisplayPreferences(walletData.displayPreferences); setWalletTransactions(transactionData.transactions); setLoadError(''); setHasLoadedData(true); }
       } catch (error) {

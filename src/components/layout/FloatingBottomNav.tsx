@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { Icon } from '../ui/Icon';
@@ -29,183 +29,141 @@ const navItems: readonly NavItem[] = [
 
 export function FloatingBottomNav({ currentTab, onNavigate, className }: FloatingBottomNavProps) {
   const location = useLocation();
-  const [isVisible, setIsVisible] = useState(true);
-  const isInteractingRef = useRef(false);
-  const interactionTimeoutRef = useRef<number | null>(null);
 
-  // Directional scroll accumulation refs
+  const [dockMode, setDockMode] = useState<{ pathname: string; isCompact: boolean }>({
+    pathname: location.pathname,
+    isCompact: false,
+  });
+  if (dockMode.pathname !== location.pathname) {
+    setDockMode({ pathname: location.pathname, isCompact: false });
+  }
+  const isCompact = dockMode.pathname === location.pathname ? dockMode.isCompact : false;
+
   const accumulatedDownRef = useRef(0);
   const accumulatedUpRef = useRef(0);
   const lastScrollYRef = useRef(0);
   const lastDirectionRef = useRef<'down' | 'up' | null>(null);
+
+  useEffect(() => {
+    if (!window.matchMedia('(max-width: 767px)').matches) return undefined;
+    const downThreshold = 28;
+    const upThreshold = 10;
+    const topThreshold = 24;
+    const main = document.querySelector<HTMLElement>('[data-popover-scroll-root]');
+    let frame = 0;
+
+    const setCompact = (compact: boolean) =>
+      setDockMode((current) =>
+        current.pathname === location.pathname && current.isCompact === compact
+          ? current
+          : { pathname: location.pathname, isCompact: compact }
+      );
+
+    const getScrollY = () => Math.max(main?.scrollTop ?? 0, window.scrollY || document.documentElement.scrollTop || 0);
+    accumulatedDownRef.current = 0;
+    accumulatedUpRef.current = 0;
+    lastDirectionRef.current = null;
+    lastScrollYRef.current = getScrollY();
+
+    const update = () => {
+      frame = 0;
+      const currentScrollY = getScrollY();
+      const delta = currentScrollY - lastScrollYRef.current;
+      lastScrollYRef.current = currentScrollY;
+
+      if (currentScrollY <= topThreshold) {
+        setCompact(false);
+        accumulatedDownRef.current = 0;
+        accumulatedUpRef.current = 0;
+        lastDirectionRef.current = null;
+        return;
+      }
+      if (Math.abs(delta) < 1) return;
+
+      if (delta > 0) {
+        if (lastDirectionRef.current === 'up') accumulatedDownRef.current = 0;
+        lastDirectionRef.current = 'down';
+        accumulatedUpRef.current = 0;
+        accumulatedDownRef.current += delta;
+        if (accumulatedDownRef.current >= downThreshold) {
+          setCompact(true);
+          accumulatedDownRef.current = downThreshold;
+        }
+      } else {
+        if (lastDirectionRef.current === 'down') accumulatedUpRef.current = 0;
+        lastDirectionRef.current = 'up';
+        accumulatedDownRef.current = 0;
+        accumulatedUpRef.current += Math.abs(delta);
+        if (accumulatedUpRef.current >= upThreshold) {
+          setCompact(false);
+          accumulatedUpRef.current = upThreshold;
+        }
+      }
+    };
+
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+    main?.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      main?.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scroll', onScroll, { capture: true });
+    };
+  }, [location.pathname]);
 
   const activeTab = currentTab || getActiveTabFromPath(location.pathname);
   const activeIndex = navItems.findIndex(
     (item) => item.id === activeTab || location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
   );
 
-  // Immediately reveal bottom navigation on route navigation
-  const [prevPathname, setPrevPathname] = useState(location.pathname);
-  if (prevPathname !== location.pathname) {
-    setPrevPathname(location.pathname);
-    setIsVisible(true);
-  }
-
-  useEffect(() => {
-    accumulatedDownRef.current = 0;
-    accumulatedUpRef.current = 0;
-    lastDirectionRef.current = null;
-  }, [location.pathname]);
-
-  // Keep visible when user taps or focuses the navigation
-  const handleInteraction = useCallback(() => {
-    setIsVisible(true);
-    accumulatedDownRef.current = 0;
-    accumulatedUpRef.current = 0;
-    isInteractingRef.current = true;
-    if (interactionTimeoutRef.current !== null) {
-      window.clearTimeout(interactionTimeoutRef.current);
-    }
-    interactionTimeoutRef.current = window.setTimeout(() => {
-      isInteractingRef.current = false;
-    }, 800);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (interactionTimeoutRef.current !== null) {
-        window.clearTimeout(interactionTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Directional scroll auto-hide with hysteresis & accumulation
-  useEffect(() => {
-    const downThreshold = 32; // Accumulate ~32px of downward scroll before hiding
-    const upThreshold = 14;   // Reveal more easily (~14px of upward scroll)
-    const topThreshold = 24;  // Always visible when <= 24px from top
-    let ticking = false;
-
-    const getScrollY = () => {
-      const main = document.querySelector<HTMLElement>('[data-popover-scroll-root]');
-      const mainScroll = main ? main.scrollTop : 0;
-      const windowScroll = window.scrollY || document.documentElement.scrollTop || 0;
-      return Math.max(mainScroll, windowScroll);
-    };
-
-    lastScrollYRef.current = getScrollY();
-
-    const updateScrollDirection = () => {
-      const currentScrollY = getScrollY();
-      const delta = currentScrollY - lastScrollYRef.current;
-      lastScrollYRef.current = currentScrollY;
-
-      if (isInteractingRef.current) {
-        setIsVisible(true);
-        accumulatedDownRef.current = 0;
-        accumulatedUpRef.current = 0;
-        ticking = false;
-        return;
-      }
-
-      // Near top of page: always keep visible
-      if (currentScrollY <= topThreshold) {
-        setIsVisible(true);
-        accumulatedDownRef.current = 0;
-        accumulatedUpRef.current = 0;
-        lastDirectionRef.current = null;
-        ticking = false;
-        return;
-      }
-
-      // Ignore micro movements (< 4px per frame)
-      if (Math.abs(delta) < 4) {
-        ticking = false;
-        return;
-      }
-
-      if (delta > 0) {
-        // Downward movement
-        if (lastDirectionRef.current === 'up') {
-          accumulatedUpRef.current = 0;
-          accumulatedDownRef.current = 0;
-        }
-        lastDirectionRef.current = 'down';
-        accumulatedDownRef.current += delta;
-
-        if (accumulatedDownRef.current >= downThreshold) {
-          setIsVisible(false);
-          accumulatedDownRef.current = downThreshold; // clamp
-        }
-      } else {
-        // Upward movement
-        if (lastDirectionRef.current === 'down') {
-          accumulatedDownRef.current = 0;
-          accumulatedUpRef.current = 0;
-        }
-        lastDirectionRef.current = 'up';
-        accumulatedUpRef.current += Math.abs(delta);
-
-        if (accumulatedUpRef.current >= upThreshold) {
-          setIsVisible(true);
-          accumulatedUpRef.current = upThreshold; // clamp
-        }
-      }
-
-      ticking = false;
-    };
-
-    const mainEl = document.querySelector<HTMLElement>('[data-popover-scroll-root]');
-
-    const onScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(updateScrollDirection);
-        ticking = true;
-      }
-    };
-
-    mainEl?.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
-
-    return () => {
-      mainEl?.removeEventListener('scroll', onScroll);
-      window.removeEventListener('scroll', onScroll, { capture: true });
-    };
-  }, []);
-
   return (
     <nav
       aria-label="Primary mobile navigation"
-      onFocusCapture={handleInteraction}
-      onPointerDownCapture={handleInteraction}
       className={cn(
-        'fixed bottom-0 left-0 right-0 z-40 md:hidden flex justify-center pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] px-4',
-        'motion-reduce:transition-none',
-        isVisible
-          ? 'translate-y-0 opacity-100 transition-[transform,opacity] duration-[320ms] ease-[cubic-bezier(0.22,1,0.36,1)] pointer-events-none'
-          : 'translate-y-[calc(100%+2.5rem+env(safe-area-inset-bottom,0px))] opacity-0 transition-[transform_380ms_cubic-bezier(0.22,1,0.36,1),opacity_260ms_ease-out_120ms] pointer-events-none',
+        'pointer-events-none fixed bottom-0 left-0 right-0 z-40 flex justify-center bg-transparent px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:hidden',
         className
       )}
     >
       <div
+        style={{
+          width: 'calc(100vw - 24px)',
+          maxWidth: isCompact ? '292px' : '340px',
+          height: isCompact ? '46px' : '52px',
+          padding: isCompact ? '3px' : '4px',
+          flexShrink: 0,
+        }}
         className={cn(
-          'pointer-events-auto relative flex items-center p-2 rounded-full select-none',
+          'pointer-events-auto relative flex items-center rounded-full select-none',
+          'transition-[max-width,width,height,padding] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
           'bg-card/85 dark:bg-[#1A1A17]/85 backdrop-blur-xl backdrop-saturate-150',
           'border border-border/80 dark:border-white/10',
           'shadow-[0_8px_32px_-4px_rgba(23,23,20,0.12),0_2px_8px_rgba(23,23,20,0.06)]',
           'dark:shadow-[0_8px_32px_-4px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.3)]'
         )}
       >
-        {/* Animated active indicator bubble (44px circle gliding smoothly over 40px slots) */}
+        {/* Animated active indicator bubble gliding across six equal slots. */}
         {activeIndex >= 0 && (
           <div
-            data-active-indicator
-            className="absolute top-1.5 left-1.5 w-11 h-11 rounded-full bg-dark dark:bg-white shadow-[0_2px_8px_rgba(23,23,20,0.16)] dark:shadow-[0_2px_10px_rgba(255,255,255,0.2)] transition-transform duration-[300ms] ease-[cubic-bezier(0.22,1,0.36,1)] pointer-events-none motion-reduce:transition-none"
-            style={{
-              transform: `translateX(${activeIndex * 40}px)`,
-            }}
+            style={{ inset: isCompact ? '3px' : '4px' }}
+            className="pointer-events-none absolute transition-[inset] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
             aria-hidden="true"
-          />
+          >
+            <div
+              data-active-indicator
+              className="flex h-full w-1/6 items-center justify-center transition-transform duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+              style={{ transform: `translateX(${activeIndex * 100}%)` }}
+            >
+              <div
+                className={cn(
+                  'rounded-full bg-dark shadow-[0_2px_8px_rgba(23,23,20,0.16)] dark:bg-white dark:shadow-[0_2px_10px_rgba(255,255,255,0.2)]',
+                  'transition-[width,height] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                  isCompact ? 'h-[38px] w-[38px]' : 'h-[44px] w-[44px]'
+                )}
+              />
+            </div>
+          </div>
         )}
 
         {navItems.map((item, index) => {
@@ -215,7 +173,6 @@ export function FloatingBottomNav({ currentTab, onNavigate, className }: Floatin
               key={item.id}
               to={item.path}
               onClick={() => {
-                handleInteraction();
                 onNavigate?.(item.id);
               }}
               onFocus={() => prefetchRouteData(item.path)}
@@ -224,13 +181,20 @@ export function FloatingBottomNav({ currentTab, onNavigate, className }: Floatin
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'relative z-10 flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+                'relative z-10 flex flex-1 items-center justify-center rounded-full transition-[height,color] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 motion-reduce:transition-none',
+                isCompact ? 'h-[38px]' : 'h-[44px]',
                 isActive
                   ? 'text-white dark:text-dark'
                   : 'text-secondary hover:text-primary dark:text-[#9C9C94] dark:hover:text-white'
               )}
             >
-              <Icon name={item.icon} className="text-xl" />
+              <Icon
+                name={item.icon}
+                className={cn(
+                  'transition-[font-size] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
+                  isCompact ? 'text-[16px]' : 'text-[18px]'
+                )}
+              />
             </Link>
           );
         })}

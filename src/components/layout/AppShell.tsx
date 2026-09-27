@@ -10,6 +10,7 @@ import { usePrivacy } from '../../context/usePrivacy';
 import { CommandPalette, type PaletteCommand } from './CommandPalette';
 import { useTheme } from '../../context/useTheme';
 import { ConnectivityBanner } from './ConnectivityBanner';
+import { warmPrimaryRouteData } from '../../lib/route-prefetch';
 
 export interface AppShellProps {
   currentTab?: NavigationTab;
@@ -62,6 +63,11 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
     return () => document.removeEventListener('keydown', handleShortcut);
   }, [commands, executeCommand, togglePrivacyMode]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void warmPrimaryRouteData(location.pathname); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [location.pathname]);
+
   return (
     // Outer page container with canvas background and responsive framing
     <div className={cn('min-h-screen bg-surface sm:bg-canvas p-0 sm:p-3 md:p-4 lg:p-6 flex flex-col sm:items-center sm:justify-center font-sans antialiased text-primary', privacyMode && 'privacy-mode')}>
@@ -97,7 +103,7 @@ export function AppShell({ currentTab, onNavigate, children, className }: AppShe
 
           {/* Main content scrollable viewport */}
           <MainContent>
-            <div key={location.pathname} className="route-enter sm:min-h-full">
+            <div key={location.pathname} className="sm:min-h-full">
               {children || <Outlet />}
             </div>
           </MainContent>
