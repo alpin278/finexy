@@ -48,6 +48,7 @@ export function VerifyEmailPage() {
   const { resendSignupConfirmation } = useAuth();
   const [state, setState] = useState<VerificationState>('verifying');
   const [confirmationUrl, setConfirmationUrl] = useState<string | null>(null);
+  const [tokenHash, setTokenHash] = useState<string | null>(null);
   const [resendEmail, setResendEmail] = useState('');
   const [resendBusy, setResendBusy] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
@@ -92,13 +93,13 @@ export function VerifyEmailPage() {
 
       try {
         if (tokenHash) {
-          // Backward compatibility: existing token_hash OTP verification
-          if (tokenType && tokenType !== 'signup') {
-            if (active) setState('invalid');
-            return;
+          // TokenHash links must be explicitly confirmed to resist email prefetchers.
+          if (active) {
+            setTokenHash(tokenType === 'signup' ? tokenHash : null);
+            setState(tokenType === 'signup' ? 'ready' : 'invalid');
           }
-          const { error } = await verificationSupabase.auth.verifyOtp({ token_hash: tokenHash, type: 'signup' });
-          if (active) setState(error ? 'invalid' : 'success');
+          clearVerificationUrl();
+          return;
         } else if (accessToken && refreshToken) {
           // Standard Supabase ConfirmationURL redirect result: session tokens in hash fragment
           if (tokenType && tokenType !== 'signup') {
@@ -146,14 +147,31 @@ export function VerifyEmailPage() {
       : 'If this address is eligible, a new verification email is on its way.');
   };
 
-  const handleConfirmation = () => {
-    if (!confirmationUrl) {
-      setState('invalid');
+  const handleConfirmation = async () => {
+    if (tokenHash) {
+      setState('verifying');
+      let nextState: 'success' | 'invalid' = 'invalid';
+      try {
+        const { error } = await verificationSupabase.auth.verifyOtp({ token_hash: tokenHash, type: 'signup' });
+        nextState = error ? 'invalid' : 'success';
+      } catch {
+        // The unavailable state below covers invalid and expired tokens.
+      } finally {
+        // Verification sessions are isolated and must never become a Finexy login.
+        await verificationSupabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+        setTokenHash(null);
+        setState(nextState);
+      }
       return;
     }
 
-    setState('verifying');
-    window.location.assign(confirmationUrl);
+    if (confirmationUrl) {
+      setState('verifying');
+      window.location.assign(confirmationUrl);
+      return;
+    }
+
+    setState('invalid');
   };
 
   return (
