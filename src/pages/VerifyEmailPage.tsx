@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AuthPageLayout } from '../components/auth/AuthPageLayout';
 import { Button, Input } from '../components/ui';
 import { Icon } from '../components/ui/Icon';
@@ -10,40 +10,79 @@ type VerificationState = 'verifying' | 'success' | 'invalid';
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function clearVerificationUrl() {
-  window.history.replaceState({}, document.title, '/verify-email');
+  if (typeof window !== 'undefined' && (window.location.search || window.location.hash)) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
 }
 
 export function VerifyEmailPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { resendSignupConfirmation } = useAuth();
   const [state, setState] = useState<VerificationState>('verifying');
   const [resendEmail, setResendEmail] = useState('');
   const [resendBusy, setResendBusy] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
 
-  const tokenHash = searchParams.get('token_hash');
-  const tokenType = searchParams.get('type');
-
   useEffect(() => {
     let active = true;
 
     const verifyEmail = async () => {
-      if (!tokenHash || tokenType !== 'signup') {
-        setState('invalid');
+      const search = new URLSearchParams(window.location.search);
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+
+      const hasError = Boolean(
+        search.get('error') ||
+        hash.get('error') ||
+        search.get('error_code') ||
+        hash.get('error_code')
+      );
+
+      if (hasError) {
+        if (active) setState('invalid');
         clearVerificationUrl();
         return;
       }
 
+      const tokenHash = search.get('token_hash') || hash.get('token_hash');
+      const tokenType = search.get('type') || hash.get('type');
+      const accessToken = hash.get('access_token') || search.get('access_token');
+      const refreshToken = hash.get('refresh_token') || search.get('refresh_token');
+      const code = search.get('code') || hash.get('code');
+
       try {
-        const { error } = await verificationSupabase.auth.verifyOtp({ token_hash: tokenHash, type: 'signup' });
-        if (active) setState(error ? 'invalid' : 'success');
+        if (tokenHash) {
+          // Backward compatibility: existing token_hash OTP verification
+          if (tokenType && tokenType !== 'signup') {
+            if (active) setState('invalid');
+            return;
+          }
+          const { error } = await verificationSupabase.auth.verifyOtp({ token_hash: tokenHash, type: 'signup' });
+          if (active) setState(error ? 'invalid' : 'success');
+        } else if (accessToken && refreshToken) {
+          // Standard Supabase ConfirmationURL redirect result: session tokens in hash fragment
+          if (tokenType && tokenType !== 'signup') {
+            if (active) setState('invalid');
+            return;
+          }
+          const { data, error } = await verificationSupabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (active) setState(error || !data.session ? 'invalid' : 'success');
+        } else if (code) {
+          // PKCE flow support if code parameter was returned
+          const { data, error } = await verificationSupabase.auth.exchangeCodeForSession(code);
+          if (active) setState(error || !data.session ? 'invalid' : 'success');
+        } else {
+          // No recognizable verification payload present
+          if (active) setState('invalid');
+        }
       } catch {
         if (active) setState('invalid');
       } finally {
-        // verifyOtp may create a temporary in-memory session. It is never
-        // allowed to become a persistent Finexy login session.
-        await verificationSupabase.auth.signOut({ scope: 'local' });
+        // Confirmation/verification may create a temporary in-memory session.
+        // It is never allowed to become a persistent Finexy login session.
+        await verificationSupabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
         clearVerificationUrl();
       }
     };
@@ -52,7 +91,7 @@ export function VerifyEmailPage() {
     return () => {
       active = false;
     };
-  }, [tokenHash, tokenType]);
+  }, []);
 
   const handleResend = async () => {
     const email = resendEmail.trim();

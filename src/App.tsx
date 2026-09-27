@@ -7,6 +7,7 @@ import { FinancialRealtimeBridge } from './context/FinancialRealtimeBridge';
 import { AppBootSplash } from './components/loading/AppBootSplash';
 import { PwaRuntime } from './components/pwa/PwaRuntime';
 import { ConnectivityProvider } from './context/ConnectivityContext';
+import { NativeAuthDeepLinkListener } from './components/auth/NativeAuthDeepLinkListener';
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
       <PwaRuntime>
         <ThemeProvider>
           <AuthProvider>
+            <NativeAuthDeepLinkListener />
             <DataRevalidationProvider>
               <FinancialRealtimeBridge />
               <PrivacyProvider>

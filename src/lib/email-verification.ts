@@ -1,4 +1,5 @@
 import { verificationSupabase } from './supabase';
+import { getAuthRedirectUrl } from './auth-redirect';
 
 export type VerificationWatchStatus = 'pending' | 'verified' | 'expired';
 
@@ -17,7 +18,7 @@ export function createSignupWatchNonce(): string {
 }
 
 export function getEmailVerificationRedirectUrl(): string {
-  return `${window.location.origin}/verify-email`;
+  return getAuthRedirectUrl('/verify-email');
 }
 
 export async function createVerificationWatch(userId: string, nonce: string): Promise<string> {
@@ -43,4 +44,3 @@ export async function getVerificationWatchStatus(token: string): Promise<Verific
   }
   throw new Error('Verification watch returned an invalid status.');
 }
-

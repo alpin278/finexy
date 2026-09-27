@@ -1,5 +1,6 @@
 import type { AuthError, User } from '@supabase/supabase-js';
 import type { Tables } from '../types/database';
+import { getAuthRedirectUrl } from './auth-redirect';
 import { supabase } from './supabase';
 import { offlineErrorMessage } from './connectivity';
 
@@ -12,7 +13,7 @@ export function isValidPassword(password: string): boolean {
 }
 
 export function getPasswordResetRedirectUrl(): string {
-  return `${window.location.origin}/reset-password`;
+  return getAuthRedirectUrl('/reset-password');
 }
 
 type ProfileMetadata = {
