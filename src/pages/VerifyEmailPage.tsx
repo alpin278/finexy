@@ -6,7 +6,7 @@ import { Icon } from '../components/ui/Icon';
 import { useAuth } from '../context/useAuth';
 import { verificationSupabase } from '../lib/supabase';
 
-type VerificationState = 'verifying' | 'success' | 'invalid';
+type VerificationState = 'ready' | 'verifying' | 'success' | 'invalid';
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function clearVerificationUrl() {
@@ -15,10 +15,39 @@ function clearVerificationUrl() {
   }
 }
 
+function getConfirmationUrlPayload(): string | null {
+  const marker = 'confirmation_url=';
+  const markerIndex = window.location.search.indexOf(marker);
+  if (markerIndex === -1) return null;
+
+  const payload = window.location.search.slice(markerIndex + marker.length);
+  try {
+    return decodeURIComponent(payload);
+  } catch {
+    return payload;
+  }
+}
+
+function getValidatedConfirmationUrl(payload: string): string | null {
+  try {
+    const confirmationUrl = new URL(payload);
+    const supabaseUrl = new URL(import.meta.env.VITE_SUPABASE_URL);
+
+    return confirmationUrl.protocol === 'https:'
+      && confirmationUrl.origin === supabaseUrl.origin
+      && confirmationUrl.pathname === '/auth/v1/verify'
+      ? confirmationUrl.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function VerifyEmailPage() {
   const navigate = useNavigate();
   const { resendSignupConfirmation } = useAuth();
   const [state, setState] = useState<VerificationState>('verifying');
+  const [confirmationUrl, setConfirmationUrl] = useState<string | null>(null);
   const [resendEmail, setResendEmail] = useState('');
   const [resendBusy, setResendBusy] = useState(false);
   const [resendMessage, setResendMessage] = useState('');
@@ -27,6 +56,18 @@ export function VerifyEmailPage() {
     let active = true;
 
     const verifyEmail = async () => {
+      const confirmationPayload = getConfirmationUrlPayload();
+      if (confirmationPayload !== null) {
+        const validatedConfirmationUrl = getValidatedConfirmationUrl(confirmationPayload);
+        clearVerificationUrl();
+
+        if (active) {
+          setConfirmationUrl(validatedConfirmationUrl);
+          setState(validatedConfirmationUrl ? 'ready' : 'invalid');
+        }
+        return;
+      }
+
       const search = new URLSearchParams(window.location.search);
       const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
 
@@ -105,8 +146,32 @@ export function VerifyEmailPage() {
       : 'If this address is eligible, a new verification email is on its way.');
   };
 
+  const handleConfirmation = () => {
+    if (!confirmationUrl) {
+      setState('invalid');
+      return;
+    }
+
+    setState('verifying');
+    window.location.assign(confirmationUrl);
+  };
+
   return (
     <AuthPageLayout>
+      {state === 'ready' && (
+        <div className="py-2 text-center">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+            <Icon name="shield-check" className="text-2xl" aria-hidden="true" />
+          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary">Finexy account security</p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-[30px]">Confirm your email</h1>
+          <p className="mt-3 text-sm leading-relaxed text-secondary">Tap the button below to finish verifying your email address.</p>
+          <p className="mt-3 text-xs leading-relaxed text-secondary">This extra confirmation step helps prevent email security scanners from using your one-time verification link before you do.</p>
+          <Button type="button" variant="accent" className="mt-7 w-full" onClick={handleConfirmation}>Confirm email</Button>
+          <Button type="button" variant="outline" className="mt-3 w-full" onClick={() => navigate('/login', { replace: true })}>Back to Sign In</Button>
+        </div>
+      )}
+
       {state === 'verifying' && (
         <div className="py-5 text-center">
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
