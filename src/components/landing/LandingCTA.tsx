@@ -44,17 +44,24 @@ export function LandingCTA() {
                 </Button>
               </Link>
 
-              <a href="#overview" className="w-full sm:w-auto">
+              <a
+                href="/downloads/finexy-android.apk"
+                download="finexy-android.apk"
+                className="w-full sm:w-auto"
+              >
                 <Button
                   variant="secondary"
                   size="lg"
                   className="w-full sm:w-auto font-semibold px-8 border-border bg-surface/90"
-                  leftIcon={<Icon name="eye" className="text-sm" />}
+                  leftIcon={<Icon name="android2" className="text-base text-accent" />}
                 >
-                  Explore Live Preview
+                  Download for Android
                 </Button>
               </a>
             </div>
+            <p className="mt-2.5 text-xs text-secondary/80">
+              Direct APK download · No store account required
+            </p>
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-secondary font-medium">
               <span className="flex items-center gap-1.5">

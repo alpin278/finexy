@@ -50,17 +50,24 @@ export function LandingHero() {
             </Button>
           </Link>
 
-          <a href="#overview" className="w-full sm:w-auto">
+          <a
+            href="/downloads/finexy-android.apk"
+            download="finexy-android.apk"
+            className="w-full sm:w-auto"
+          >
             <Button
               variant="secondary"
               size="lg"
               className="w-full sm:w-auto font-semibold px-7 border-border/80 bg-surface/90"
-              leftIcon={<Icon name="eye" className="text-sm" />}
+              leftIcon={<Icon name="android2" className="text-base text-accent" />}
             >
-              Explore Live Preview
+              Download for Android
             </Button>
           </a>
         </div>
+        <p className="hero-reveal hero-delay-3 mt-2.5 text-xs text-secondary/80">
+          Direct APK download · Android 8.0+
+        </p>
 
         {/* Trust Badges */}
         <div className="hero-reveal hero-delay-4 mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs sm:text-sm font-medium text-secondary">
