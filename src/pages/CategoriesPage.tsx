@@ -195,12 +195,13 @@ export function CategoriesPage() {
 
   return (
     <div className="min-w-0 w-full max-w-[calc(100vw-2rem)] space-y-6 pb-8 sm:space-y-7">
-      <header className="flex min-w-0 flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+      <header className="flex min-w-0 flex-col gap-3 sm:gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary">System <span className="px-1 text-border">/</span> Settings &amp; Structure</p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-primary sm:text-[32px]">Categories</h1>
-          <p className="mt-1 text-xs text-secondary sm:text-sm">Category Rules &amp; Budget Taxonomies</p>
-          <p className="mt-3 max-w-2xl text-xs leading-5 text-secondary sm:text-sm">Organize, color-tag, and define automated sorting rules for personal transactions across your accounts.</p>
+          <p className="hidden text-[10px] font-semibold uppercase tracking-[0.16em] text-secondary sm:block">System <span className="px-1 text-border">/</span> Settings &amp; Structure</p>
+          <h1 className="text-2xl font-bold tracking-tight text-primary sm:mt-2 sm:text-[32px]">Categories</h1>
+          <p className="mt-1 text-xs text-secondary sm:hidden">{summary.totalCategories} categories · {summary.expenseCategoryCount} expense · {summary.incomeCategoryCount} income</p>
+          <p className="hidden sm:mt-1 sm:block sm:text-sm text-secondary">Category Rules &amp; Budget Taxonomies</p>
+          <p className="hidden mt-3 max-w-2xl text-xs leading-5 text-secondary sm:block sm:text-sm">Organize, color-tag, and define automated sorting rules for personal transactions across your accounts.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <Button variant="secondary" size="sm" leftIcon={<Icon name="arrow-counterclockwise" className={isReindexing ? 'motion-safe:animate-spin' : ''} />} onClick={runPrototypeReindex} disabled={isReindexing}>{isReindexing ? 'Scanning...' : reindexFeedback ? 'Prototype scan complete' : 'Re-index Transactions'}</Button>
