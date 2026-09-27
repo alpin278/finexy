@@ -94,9 +94,10 @@ export function VerifyEmailPage() {
       try {
         if (tokenHash) {
           // TokenHash links must be explicitly confirmed to resist email prefetchers.
+          const supportedTokenType = tokenType === 'email' || tokenType === 'signup';
           if (active) {
-            setTokenHash(tokenType === 'signup' ? tokenHash : null);
-            setState(tokenType === 'signup' ? 'ready' : 'invalid');
+            setTokenHash(supportedTokenType ? tokenHash : null);
+            setState(supportedTokenType ? 'ready' : 'invalid');
           }
           clearVerificationUrl();
           return;
@@ -152,7 +153,7 @@ export function VerifyEmailPage() {
       setState('verifying');
       let nextState: 'success' | 'invalid' = 'invalid';
       try {
-        const { error } = await verificationSupabase.auth.verifyOtp({ token_hash: tokenHash, type: 'signup' });
+        const { error } = await verificationSupabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' });
         nextState = error ? 'invalid' : 'success';
       } catch {
         // The unavailable state below covers invalid and expired tokens.
