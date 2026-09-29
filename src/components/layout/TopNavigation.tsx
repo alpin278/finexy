@@ -170,6 +170,7 @@ export function TopNavigation({
     { id: 'transactions', label: 'Transactions', path: '/transactions' },
     { id: 'wallets', label: 'Wallets', path: '/wallets' },
     { id: 'budgets', label: 'Budgets', path: '/budgets' },
+    { id: 'categories', label: 'Categories', path: '/categories' },
     { id: 'reports', label: 'Reports', path: '/reports' },
   ];
 
@@ -177,7 +178,7 @@ export function TopNavigation({
     <header
       ref={headerRef}
       className={cn(
-        'sticky top-0 z-40 h-16 finexy-safe-top px-4 sm:px-6 lg:px-8 border-b border-border/60 flex items-center justify-between gap-2 sm:gap-3 lg:gap-2 bg-surface select-none shrink-0 transition-transform duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none sm:static sm:translate-y-0 sm:transition-none',
+        'sticky top-0 z-40 h-16 finexy-safe-top px-3 sm:px-4 md:px-3.5 lg:px-6 xl:px-8 border-b border-border/60 flex items-center justify-between gap-1.5 md:gap-2 bg-surface select-none shrink-0 transition-transform duration-[280ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none sm:static sm:translate-y-0 sm:transition-none',
         isHeaderVisible ? 'translate-y-0' : '-translate-y-[calc(4rem+var(--finexy-safe-top-inset))]',
         className
       )}
@@ -208,7 +209,7 @@ export function TopNavigation({
       </div>
 
       {/* Center: Navigation Pills (Desktop & Tablet) */}
-      <nav className="hidden items-center gap-1 overflow-hidden rounded-full p-0.5 md:flex lg:gap-1.5" aria-label="Main Navigation">
+      <nav className="hidden items-center gap-0.5 overflow-hidden rounded-full p-0.5 md:flex md:gap-0.5 lg:gap-1.5" aria-label="Main Navigation">
         {navTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -218,7 +219,7 @@ export function TopNavigation({
               onClick={() => onNavigate?.(tab.id)}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'px-3 xl:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-[background-color,color,border-color,box-shadow] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
+                'px-1.5 md:px-1.5 lg:px-2.5 xl:px-4 py-1 lg:py-2 rounded-full text-[11px] md:text-[11px] lg:text-xs xl:text-sm font-medium transition-[background-color,color,border-color,box-shadow] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
                 isActive
                   ? 'border border-dark/10 bg-dark text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_1px_2px_rgba(23,23,20,0.12)]'
                   : 'border border-transparent text-secondary hover:border-border hover:bg-surface hover:text-primary hover:shadow-sm'
@@ -231,7 +232,7 @@ export function TopNavigation({
       </nav>
 
       {/* Right: Theme Toggle, Notifications, Info, Profile */}
-      <div className="flex items-center gap-1.5 sm:gap-2 xl:gap-3">
+      <div className="flex items-center gap-1 sm:gap-1.5 md:gap-1.5 lg:gap-2 xl:gap-3">
         {/* Theme Toggle (Preserves radial view transition animation) */}
         <button
           type="button"
@@ -377,7 +378,7 @@ export function TopNavigation({
         <button
           type="button"
           aria-label="System Information"
-          className="w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface hover:shadow-sm transition-[background-color,color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 hidden sm:flex"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-surface hover:shadow-sm transition-[background-color,color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 hidden lg:flex"
         >
           <Icon name="info-circle" className="text-sm" />
         </button>
